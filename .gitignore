@@ -1,0 +1,11 @@
+.build/
+build/
+*.xcodeproj/
+.swiftpm/
+Package.resolved
+.DS_Store
+*.icns
+
+# Written by the CI coverage step (`make coverage | tee coverage.txt`)
+coverage.txt
+.claude/settings.json

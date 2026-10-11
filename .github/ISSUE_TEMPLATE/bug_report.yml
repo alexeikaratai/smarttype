@@ -1,0 +1,64 @@
+name: 🐛 Bug report
+description: Something in SmartType does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        Layout fixing and translation depend on the app you were typing in and on the
+        keyboard layouts you have enabled, so please say both — a fix usually starts there.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect instead?
+      placeholder: |
+        I selected "ghbdtn" in Notes and pressed ⌃⌥L. The text stayed the same
+        and the Mac beeped; I expected "привет".
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Type "ghbdtn" in Notes with the U.S. layout active
+        2. Select the word
+        3. Press ⌃⌥L — nothing changes
+    validations:
+      required: true
+
+  - type: input
+    id: where
+    attributes:
+      label: App and command
+      description: Which app were you typing in, and which command — hotkey, menu or right-click Services?
+      placeholder: Notes 4.12, hotkey ⌃⌥L
+    validations:
+      required: true
+
+  - type: input
+    id: setup
+    attributes:
+      label: macOS and keyboard layouts
+      placeholder: macOS 27.0.1 · U.S. + Russian – PC
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Optional but very helpful. Run this, reproduce the problem, then paste the output:
+        ```
+        /usr/bin/log stream --predicate 'subsystem == "com.smarttype.app"' --info --style compact
+        ```
+        SmartType never logs the text you select, so the log is safe to share.
+      render: text
+    validations:
+      required: false

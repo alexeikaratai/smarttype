@@ -1,0 +1,29 @@
+name: ✨ Feature request
+description: Suggest an idea for SmartType
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation you run into, not the solution you have in mind.
+      placeholder: |
+        I type in Ukrainian and English. SmartType only converts between English and
+        Russian, so my Ukrainian words come out wrong.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like SmartType to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Anything you tried instead?
+      description: Other apps, scripts, or workarounds — and why they fell short.
+    validations:
+      required: false

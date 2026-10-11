@@ -1,0 +1,110 @@
+# Contributing to SmartType
+
+Thanks for taking the time to help. This document covers what you need to build the project, the conventions the codebase follows, and what CI will check on your PR.
+
+> **Status:** the repository currently holds the design (`docs/`) and the conventions. The toolchain described below lands with the first code; see [Stage 1 of the delivery plan](docs/DELIVERY.md#stages).
+
+## Getting set up
+
+**Requirements**
+
+| | Version | Why |
+|---|---|---|
+| macOS | 14.0+ (Sonoma) | Minimum deployment target. On-device translation needs macOS 26+ |
+| Xcode | 26+ | Swift 6.2 first shipped in Xcode 26; earlier versions cannot build the package |
+| Swift | 6.2+ | The package declares `swift-tools-version: 6.2` |
+
+SmartType has **no external dependencies**, only Apple frameworks. Clone and build:
+
+```bash
+git clone git@github.com:alexeikaratai/smarttype.git
+cd smarttype
+make doctor   # verifies swift, xcode, swift-format, llvm-cov, codesign, gh, git
+make run      # build + bundle + launch
+```
+
+If `make doctor` reports a missing tool, fix that first: the other targets assume the toolchain is complete.
+
+## Everyday commands
+
+```bash
+make build      # swift build -c release
+make test       # swift test (Swift Testing, in parallel)
+make format     # rewrite sources with swift-format
+make lint       # check formatting without writing — CI gates on this
+make coverage   # run tests and print a per-file coverage table
+make app        # build + ad-hoc signed .app bundle
+make logs       # stream live logs (subsystem com.smarttype.app)
+```
+
+`make help` lists everything.
+
+## Before you open a PR
+
+```bash
+make format && make lint && make test && make app
+```
+
+That is the same sequence CI runs, in the same order.
+
+## Code style
+
+Formatting is enforced, not a matter of taste. `.swift-format` at the repo root is the single source of truth (the same configuration as SmartDock), and `make lint` fails the build on any deviation. Run `make format` before committing.
+
+Naming, file organisation, access control, the concurrency rules and the principles behind them are documented in [CLAUDE.md](CLAUDE.md). It is written for an AI assistant but is an accurate description of the house style; read it before a substantial change.
+
+## Architecture in one paragraph
+
+Four targets, split by isolation domain:
+- **`SmartTypeCore`** holds pure logic with no UI: keyboard layouts, conversion, language detection, correction.
+- **`SmartTypeEngines`** holds the translation engines behind one protocol.
+- **`SmartTypeApp`** is the main-actor shell: system adapters (hotkeys, keystrokes, clipboard, input sources, Accessibility), the actions, the menu, the panel and the macOS Services provider.
+- **`SmartType`** is the executable, with only `main.swift`.
+
+Dependencies flow one way and never back. **Put logic in Core whenever you can.** Details and decisions are in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Testing
+
+```bash
+make test
+swift test --filter <testName>
+```
+
+Tests use **Swift Testing** (`@Suite`, `@Test`, `#expect`) and run in parallel. Conventions:
+
+- Every call that leaves the process is injected with the real thing as the default. That covers synthetic keystrokes, the clipboard, input sources, Accessibility, alerts and translation. Tests pass recorders and never touch the developer's machine.
+- Tests use a private `NSPasteboard(name:)`, never the general one.
+- Wait for events with `waitUntil`, never with a fixed sleep.
+- Mocks live in each test target's `Mocks.swift`; helpers in `TestSupport.swift`.
+
+## Versioning
+
+**Never edit a version by hand.**
+
+```bash
+make bump V=1.2.3
+```
+
+The version appears in the `Makefile`, two keys in `Resources/Info.plist`, the README badge and `CHANGELOG.md`. `make bump` is the only thing that knows all of them, and it finishes with `make version-check`.
+
+## Commits and pull requests
+
+- Branch from `dev` for features; `main` is the release branch.
+- Write commit subjects in the imperative mood: "Add layout converter", not "Added" or "Adds".
+- Keep formatting-only changes in their own commit.
+- Record anything user-visible in `CHANGELOG.md` under `## [Unreleased]`.
+- Fill in the PR template.
+
+## Reporting bugs
+
+Open a [bug report](https://github.com/alexeikaratai/smarttype/issues/new?template=bug_report.yml). Say which app you were typing in, which keyboard layouts are enabled, and include a log:
+
+```bash
+/usr/bin/log stream --predicate 'subsystem == "com.smarttype.app"' --info --style compact
+```
+
+For anything involving hotkeys or copying, check Accessibility first. Ad-hoc signing changes the binary's code hash on every rebuild, which makes macOS silently revoke the grant.
+
+## License
+
+To be decided before the repository goes public; see the [business plan](docs/BUSINESS.md#7-business-model-and-distribution-to-decide).

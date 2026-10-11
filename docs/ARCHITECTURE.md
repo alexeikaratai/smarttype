@@ -1,0 +1,405 @@
+# SmartType — Architecture
+
+**Status:** draft for review, October 2026. Nothing is implemented yet.
+**Scope:** the architecture of the MVP. AI integrations (local LLM translation and an LLM "judge") come in Phase 2; the extension points for them are reserved here.
+**Environment:** macOS 27, Xcode 27, Swift 6.4, Apple Silicon. Deployment target: macOS 14.
+**Companion docs:** [Business plan](BUSINESS.md) · [Delivery plan](DELIVERY.md)
+
+## 1. Goals and quality attributes
+| Attribute | Target |
+|---|---|
+| Idle cost | 0.0% CPU; no timers, polling or event taps; zero idle wakeups |
+| Memory | ≲ 40 MB idle footprint; the panel and engines are created lazily and the panel is reused |
+| Latency | ⌃⌥L completes ≲ 150 ms after the keys are released, plus the paste settle time |
+| Privacy | text never leaves the Mac and is never logged; the clipboard is restored; temporary pasteboard data is marked transient |
+| Reliability | never paste stale clipboard content; never overwrite a clipboard the user changed in the meantime |
+| Readability | one primary type per file (small companion types allowed); files ≲ 150 lines; names over comments |
+| Extensibility | a new layout is one data file; a new engine, scorer or selection reader is one type behind a protocol |
+
+## 2. System context
+```
+┌──────┐   select text + ⌃⌥L / ⌃⌥T     ┌──────────────────────────────┐
+│ User │ ─────────────────────────────► │ SmartType · menu-bar agent   │
+└──────┘ ◄────── panel / menu ───────── │ no Dock icon · idle 0% CPU   │
+                                        └───────┬──────────────┬───────┘
+          read selection (AX), synthetic ⌘C/⌘V, │              │ hot keys, input sources,
+          Services: text in → fixed text out    ▼              ▼ permissions, translation
+                               ┌──────────────────┐   ┌─────────────────────────────┐
+                               │ Frontmost app    │   │ macOS services              │
+                               │ any text field   │   │ Carbon · CGEvent · AX · TIS │
+                               └──────────────────┘   │ NSPasteboard · Translation  │
+                                                      └─────────────────────────────┘
+                               ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+                                 Phase 2: local LLM (Ollama, 127.0.0.1)
+                               └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
+```
+
+## 3. Modules
+**Architectural style:** *functional core, imperative shell* with ports and adapters.
+- `SmartTypeCore` is pure decision logic.
+- The App target is the shell that touches the system.
+- Protocols (ports) live where they are consumed; adapters over the C APIs live in `System/`.
+
+```
+SmartType.app
+┌──────────────────────────────────────────────────────────────────────────┐
+│ SmartType · executable (main.swift, ~6 lines)                            │
+│      │                                                                   │
+│      ▼                                                                   │
+│ SmartTypeApp · @MainActor by default                                     │
+│   App/          lifecycle, composition root, commands                    │
+│   StatusBar/    NSStatusItem + NSMenu                                    │
+│   ContextMenu/  macOS Services provider (right-click commands)           │
+│   Actions/      LayoutFixAction, TranslateAction                         │
+│   Panel/        FloatingPanel (AppKit) + TranslationView (SwiftUI)       │
+│   Permissions/  Accessibility, pasteboard access, onboarding             │
+│   System/       adapters: hot keys, keystrokes, input sources,           │
+│                 selection readers, clipboard, spelling                   │
+│      │                                  │                                │
+│      ▼                                  ▼                                │
+│ SmartTypeEngines · nonisolated     SmartTypeCore · pure, nonisolated     │
+│   TranslationEngine protocol ────►   layouts, converter, detection,      │
+│   Apple on-device engine             correction (Foundation only)        │
+│   Ollama, LLM judge (Phase 2)                                            │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+| Target | Owns | Depends on | Isolation |
+|---|---|---|---|
+| `SmartTypeCore` | languages, keyboard layouts, conversion, detection, correction | Foundation | nonisolated; data types `Sendable`; strict memory safety |
+| `SmartTypeEngines` | translation engines, fallback chain; HTTP transport and LLM in Phase 2 | Core, Translation (weak-linked) | nonisolated async |
+| `SmartTypeApp` | system adapters, actions, UI, composition root | Core, Engines, AppKit, SwiftUI, Carbon | MainActor by default |
+| `SmartType` | process entry point | App | — |
+
+**Why this split.** Targets are cut by isolation domain and dependencies:
+- Pure logic is testable without UI.
+- AppKit and Carbon code lives where the main actor is the default.
+- The executable stays trivial, so everything else is testable.
+
+Cross-target API uses `package` access, not `public`.
+
+### 3.1 Runtime object graph (ownership)
+```
+AppDelegate
+└─ AppComposition (composition root; lives as long as the app)
+   ├─ HotKeyCenter ─────────┐
+   ├─ StatusBarController ──┴─► perform(AppCommand) ─┬─► LayoutFixAction.fixSelection()
+   │                                                  └─► TranslateAction.translateSelection()
+   ├─ TextServiceProvider ─────► LayoutFixAction.fix(text) · TranslateAction.translate(text)
+   │
+   ├─ LayoutFixAction
+   │   ├─ ClipboardTransaction ── KeystrokeSender, PasteboardSnapshot
+   │   ├─ LayoutCorrector (Core) ── LanguageDetector ── PhonotacticScorer, SpellCheckScorer
+   │   └─ InputSourceSwitcher
+   └─ TranslateAction
+       ├─ selection readers: AXSelectionReader → ClipboardSelectionReader
+       ├─ FallbackTranslator: [AppleTranslationEngine]      (lazy; Ollama joins in Phase 2)
+       └─ PanelController (lazy) ── FloatingPanel ── TranslationView ◄ TranslationViewModel
+```
+- **Entry points.** Hotkeys and the menu go through `AppCommand`, a single routing point that the future settings UI will rebind. The context menu calls the actions' text-based API.
+- **One core operation per action.** Each action has a single core operation: `fix(text)` or `translate(text)`. The selection-based entry points wrap it.
+
+## 4. Concurrency and isolation
+```
+ Main actor                                     Off the main actor
+ ─────────────────────────────────────────      ───────────────────────────────
+ AppKit · SwiftUI · NSStatusItem · NSPanel       framework I/O awaited by Engines:
+ Carbon hot keys · CGEvent · TIS · AX              TranslationSession.translate
+ NSPasteboard · NSSpellChecker                     URLSession (Phase 2)
+ Core: nonisolated, called synchronously here    results come back as Sendable values
+ Actions ── await engine ──────────────────────►
+```
+**Language settings:**
+- Swift 6 language mode with strict concurrency, in all targets.
+- Upcoming features `ExistentialAny`, `MemberImportVisibility` and `NonisolatedNonsendingByDefault`.
+- In App: `defaultIsolation(MainActor)` and `InferIsolatedConformances`.
+- Warnings are errors, except deprecations.
+
+**Runtime rules:**
+- Each action runs as one task.
+- Cancellation flows from the UI (Esc, closing the panel, pressing the hotkey again) down to the engines.
+- No `Task.detached`.
+- Carbon delivers its callbacks on the main thread; the code asserts this with `MainActor.assumeIsolated`.
+- Engine code is nonisolated async and never blocks. The frameworks do their I/O off the main actor. Any future CPU-heavy work will be marked `@concurrent`.
+
+## 5. Key flows
+
+### 5.1 Fix layout (⌃⌥L)
+```
+User    Action        Clipboard         Front app     Core           TIS
+ │ ⌃⌥L ─►│              │                 │             │              │
+ │       │─ begin ─────►│ snapshot all    │             │              │
+ │       │              │ wait ⌃⌥ release │             │              │
+ │       │              │─ ⌘C ───────────►│             │              │
+ │       │              │◄─ changeCount+1 │             │              │
+ │       │◄─ "ghbdtn" ──│                 │             │              │
+ │       │─ correct ─────────────────────────────────────►│              │
+ │       │◄─ "привет" · RussianWin ───────────────────────│              │
+ │       │─ paste ─────►│ write transient │             │              │
+ │       │              │─ ⌘V ───────────►│ replaced    │              │
+ │       │              │ +250 ms: restore if changeCount still ours     │
+ │       │─ select RussianWin ──────────────────────────────────────────►│
+```
+**Guards and rules:**
+- **Already running:** repeat presses are ignored, which also swallows hotkey auto-repeat.
+- **No Accessibility permission:** show onboarding instead.
+- **Nothing to act on:** if SmartType itself is frontmost, or Secure Input (a password field) is on, beep.
+- **Nothing selected:** no `changeCount` bump means nothing was selected, so beep. Stale clipboard content is never used.
+- **Nothing to fix:** if the corrected text equals the input, nothing is pasted.
+- **Restore:** the clipboard restore is skipped if the user copied something in the meantime.
+- **Marking:** pasteboard writes carry `org.nspasteboard.TransientType` and `AutoGeneratedType`, so clipboard managers don't keep them.
+- **Synthetic ⌘C/⌘V:** sent only after the physical ⌃⌥ are released (10 ms steps, ≤ 1 s), to `.cgSessionEventTap` with explicit flags.
+- **Started from the menu:** the action starts after the menu closes, so the copy goes to the app the user was in.
+- **Pasteboard access (macOS 15.4+):** this path reads the general pasteboard twice (the snapshot and the copied text), so the user allows pasteboard access once. The context-menu path (§5.4) needs neither this nor Accessibility.
+
+### 5.2 Translate (⌃⌥T)
+```
+User    Action         Selection          Panel        Translator    Engine
+ │ ⌃⌥T ─►│               │                  │             │            │
+ │       │─ close if open ─────────────────►│             │            │
+ │       │─ read ───────►│ AX selected text │             │            │
+ │       │               │ else ⌘C+restore  │             │            │
+ │       │◄─ "Привет" ───│                  │             │            │
+ │       │─ show "Translating…" ───────────►│ near cursor │            │
+ │       │─ translate ru→en ──────────────────────────────►│─ request ─►│
+ │       │◄─ outcome: text · engine · skipped ─────────────│◄───────────│
+ │       │─ show result ───────────────────►│             │            │
+ │ Esc / click outside ────────────────────►│ close ─► cancel task     │
+```
+- **Close the panel first.** While the panel is the key window, a synthetic ⌘C would go to the panel itself.
+- **Selection readers.** A chain of `SelectionReader`s: `AXSelectionReader` reads `kAXSelectedTextAttribute` with no pasteboard, no privacy prompt, in about 1 ms. An empty or failed result falls through to `ClipboardSelectionReader` (⌘C inside a `ClipboardTransaction`).
+- **Direction.** ru↔en, chosen by the dominant script.
+- **Dismissal and cancellation.** `PanelController` reports dismissal and `TranslateAction` cancels its task. Pressing ⌃⌥T again cancels and restarts.
+- **Availability.** On macOS < 26 the MVP has no engine, so «Перевести» is disabled with the hint «Нужна macOS 26». Phase 2 adds Ollama for older systems.
+- **The MVP chain has one engine.** `FallbackTranslator` is already the seam, so Phase 2 only adds an engine to the list.
+
+### 5.3 Permissions
+```
+launch / action ─► AXIsProcessTrusted? ── yes ─► proceed
+                         │ no
+                         ▼
+        alert: why SmartType needs it ─► register app (prompt API, literal key)
+                                         + open Privacy ▸ Accessibility (deep link)
+        menu shows "⚠︎ Grant access…" until trusted — checked on menu open, never polled
+
+pasteboard (macOS 15.4+): accessBehavior ─► .alwaysDeny → explain how to allow
+                                          └► first system alert → suggest "Always allow"
+```
+
+### 5.4 Context menu (macOS Services)
+```
+User        Front app (Cocoa)         macOS Services              SmartType
+ │ right-click ─►│ Services ▸ "SmartType: Исправить раскладку"       │
+ │               │─ selection ──────►│─ service pasteboard ─────────►│ fix(text) (Core)
+ │               │◄─ replaces selection (native undo) ◄─ fixed text ─│ + switch layout
+ │ right-click ─►│ Services ▸ "SmartType: Перевести"                 │
+ │               │─ selection ──────►│──────────────────────────────►│ translate(text) → panel
+```
+- **Declaration.** Info.plist `NSServices` declares two services. Both include `NSRequiredContext` (empty); without it, macOS registers a service but doesn't show it.
+  - `fixLayout` sends and returns `public.utf8-plain-text`; the returned text replaces the selection.
+  - `translate` sends text only.
+- **Why this path is cleaner** than the hotkey for the layout fix:
+  - No clipboard, no ⌘C/⌘V, no Accessibility permission.
+  - No pasteboard privacy prompt, because the service pasteboard isn't the general one.
+  - Native undo.
+  - It calls the same actions' text-based API.
+- **Coverage.**
+  - Works in apps that support Services: native Cocoa apps, Safari, Mail, Notes, Xcode, Pages.
+  - Electron apps (VS Code, Slack…) usually don't show Services, so hotkeys remain the universal path.
+  - Third-party apps can't add top-level items to other apps' context menus; Services is the system-sanctioned way.
+- **Shortcuts.** We set no default `NSKeyEquivalent`: it allows ⌘ only and loses to the host app's own shortcuts. Users can bind their own in System Settings → Keyboard → Keyboard Shortcuts → Services.
+- **Not offered yet: "Translate and replace".** Services are synchronous; translation is async.
+- **Registration.** The app must be in /Applications. `make install` copies it there and refreshes the registry (`pbs -update`).
+
+## 6. Domain model and correction algorithm
+```
+ ┌────────────────────────┐ provides ┌───────────────────────────────┐
+ │ KeyboardLayoutProvider │ ───────► │ KeyboardLayout                │
+ │  BuiltIn: US, RU-PC    │          │ id (TIS) · language ·         │
+ │  Installed* (UCKey…)   │          │ output: [KeyStroke: String]   │
+ └────────────────────────┘          └──────────────┬────────────────┘
+                                                    │ layout pairs → LayoutConverter
+                                                    ▼
+ ┌────────────────────────┐   asks   ┌───────────────────────────────┐
+ │ LanguageDetector       │ ◄─────── │ LayoutCorrector               │ ──► Correction
+ │  script statistics     │          │ tokenize · decide · convert   │     text, targetLayoutID?
+ │  WordScorer chain:     │ ───────► │                               │
+ │   Phonotactic          │  scores  └───────────────────────────────┘
+ │   Dictionary           │
+ │   LLM judge* (ties)    │          * later phases
+ └────────────────────────┘          Plausibility: impossible < unknown < likely < known
+```
+```swift
+public struct KeyStroke: Hashable, Sendable { public let keyCode: UInt16; public let shift: Bool }
+
+public struct KeyboardLayout: Sendable, Identifiable {
+    public let id: String                      // TIS id, e.g. "com.apple.keylayout.RussianWin"
+    public let language: Language
+    public let output: [KeyStroke: String]     // String: some layouts emit 2 characters per key
+    public init(id: String, language: Language, unshifted: String, shifted: String)  // 47 ANSI keys
+}
+
+extension KeyboardLayout {                      // BuiltIn/RussianPC.swift — the whole file
+    static let russianPC = KeyboardLayout(id: "com.apple.keylayout.RussianWin", language: .russian,
+        unshifted: "ё1234567890-=йцукенгшщзхъ\\фывапролджэячсмитьбю.",
+        shifted:   "Ё!\"№;%:?*()_+ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,")
+}
+```
+```
+selection ─► tokenize: words with attached punctuation; whitespace kept as is
+               ([ ; ' , . count as word characters: they are х ж э б ю in Russian)
+                 │
+                 ▼
+     all words come from ONE layout? ── yes ─► convert everything to the paired layout
+                 │ no (mixed text)              (user intent; like Punto's "convert selection")
+                 ▼
+     per word: plausibility(original, own language) vs plausibility(converted, other language)
+                 │
+       converted wins? ── yes ─► replace the word         tie ─► keep it (LLM judge in Phase 2)
+                 │
+                 ▼
+       nothing changed? ── yes ─► beep "nothing to fix"
+```
+- **Scorers available now:**
+  - Phonotactic rules: impossible letter pairs (`jd`, `jn`, `fk`, `q` + consonant…; `щт`, `шы`, vowel + `ь`…) and impossible word starts (`yf`, `nj`; `ь`, `ъ`, `ы`).
+  - The macOS dictionary (`NSSpellChecker`; en, ru, uk, he and ar ship with macOS). Without it, mixed text like «Привет, ghbdtn» is mostly undecidable.
+- **Target layout.** `targetLayoutID` is the layout of the last converted word, because that's where the caret ends up and typing continues. It is `nil` when no letters changed.
+- **Three or more layouts (Phase 3).** A word can then have several candidate conversions. The best score wins; ties go to the judge.
+- **Isolation.** Core's data types are `Sendable`. `LanguageDetector` and `LayoutCorrector` hold injected scorers, so they run where those scorers live: the main actor, since `NSSpellChecker` is main-thread-only.
+- **Detection module.** `LanguageDetector` is the separate detection module: its own folder and facade in Core, and it can become its own target when the LLM judge arrives.
+
+## 7. Extension points (including future AI)
+| Extension point | Today | Later |
+|---|---|---|
+| `KeyboardLayoutProvider` | built-in US QWERTY, Russian – PC | the user's installed layouts via `UCKeyTranslate` (uk, he, ar…), rebuilt when the enabled sources change |
+| `WordScorer` | phonotactic rules, macOS dictionary | LLM judge for ties (Phase 2) |
+| `TranslationEngine` | Apple on-device (macOS 26+) | Ollama local LLM (Phase 2), others |
+| `SelectionReader` | AX, then clipboard | per-app strategies |
+| Typing monitor | — | `CGEventTap` auto mode (Phase 3) |
+| Entry points | hotkeys, menu bar, Services (context menu) | App Intents → Shortcuts and Spotlight actions (macOS 26) |
+```
+Phase 2
+TranslateAction ─► FallbackTranslator ─► [Ollama · local LLM] ─► [Apple on-device] ─► error + reasons
+                                          unavailable / failed ─┘   cancellation stops the chain
+LayoutCorrector ─► LanguageDetector: phonotactic + dictionary ─► tie? ─► LLM judge ─► replace / keep
+
+Phase 3 — auto mode
+CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ── word boundary ──► main actor
+   LayoutCorrector.decide(word) ─┬─ keep
+                                 ├─ replace ─► backspaces + Unicode typing (no clipboard)
+                                 └─ ambiguous ─► LLM judge (async) ─► replace / keep
+```
+
+## 8. UI shell (AppKit + SwiftUI)
+- **AppKit owns the shell.**
+  - `LSUIElement` in Info.plist keeps the app out of the Dock. The code never calls `setActivationPolicy(.accessory)`: on SmartDock it could drop the status item at launch.
+  - The menu bar is an `NSStatusItem` with an `NSMenu`.
+  - `FloatingPanel` is an `NSPanel` with `[.nonactivatingPanel, .titled, .fullSizeContentView]`. It can become key without activating the app, and has native corners and shadow.
+- **SwiftUI owns content.** Views are hosted by `NSHostingController`; the translation card is backed by an `@Observable` view model. A future Settings window will be SwiftUI too.
+- **Menu:**
+  - «Исправить раскладку ⌃⌥L» and «Перевести ⌃⌥T» (the latter disabled on macOS < 26).
+  - «Настройки хоткеев», a submenu showing the current bindings.
+  - «⚠︎ Разрешить доступ…» while Accessibility isn't granted.
+  - «Выход».
+- **Translation card:**
+  - Header "RU → EN". The original is small (≤ 3 lines); the translation is large and selectable.
+  - Footer: the engine that answered, plus why other engines were skipped; a Copy button (↩).
+  - Liquid Glass on macOS 26+, `.regularMaterial` below.
+- **Panel behavior:**
+  - Esc closes it via `cancelOperation`. A click outside closes it via resign-key, plus a mouse monitor that exists only while the panel is visible.
+  - `PanelPlacement`, a pure and tested function, places it at the cursor and keeps it inside the screen's `visibleFrame`.
+- **Why not `MenuBarExtra`:** no control over the status item, no non-activating panel, and opening Settings from an accessory app needs hacks.
+
+## 9. Design patterns
+| Pattern | Where | Why |
+|---|---|---|
+| Functional core, imperative shell | Core decides, App performs effects | the tricky logic is deterministic and unit-tested |
+| Ports and adapters | protocols where they're consumed; macOS adapters in `System/` | C APIs (Carbon, TIS, AX, CGEvent) never leak into features |
+| Composition root + constructor injection | `AppComposition` | one place knows the concrete types; no singletons, no service locator |
+| Command | `AppCommand` from hotkeys and the menu | one routing point; future settings rebind commands, not code |
+| Strategy | `TranslationEngine`, `WordScorer`, `KeyboardLayoutProvider`, `SelectionReader` | swap behavior without touching callers |
+| Chain of responsibility | `FallbackTranslator`; selection readers (AX → clipboard) | ordered fallbacks that keep the reasons |
+| Facade | `LanguageDetector` over the scorers; `ClipboardTransaction` over the pasteboard and keystrokes | callers make one intention-revealing call |
+| Scoped transaction | `ClipboardTransaction.run { }` | the restore can't be forgotten; one owner of the clipboard at a time |
+| MVVM + window controller | `TranslationViewModel` (`@Observable`) + `TranslationView`; `PanelController` owns the window | SwiftUI renders state, AppKit owns windowing |
+
+**Avoided on purpose:**
+- singletons and global state;
+- a "god" AppDelegate;
+- NotificationCenter as an event bus;
+- `DispatchQueue.main.async` sprinkled around (actors instead);
+- a protocol around every class "for mocking" (calls that leave the process are injected parameters with real defaults instead; ADR-012);
+- files of 1,000 lines.
+
+## 10. Cross-cutting concerns
+- **Dependency injection.** Everything is built in the composition root through initializers. The only singletons are system ones, each wrapped in one adapter. Protocols exist only at extension points.
+- **Errors.**
+  - Typed domain errors (`TranslationFailure.unavailable / .failed`, selection errors) become user-facing messages in the UI layer.
+  - Cancellation is never shown as an error.
+  - Failures of the layout fix are a beep, not a dialog.
+- **Logging.** `os.Logger` with one category per subsystem (hotkeys, selection, translation, permissions). User text is never logged; any diagnostic value derived from it uses `privacy: .private`.
+- **Testing.** Swift Testing, in three test targets:
+  - Core: layouts round-trip, conversions, correction cases, scorers.
+  - Engines: fake engines, the chain, cancellation.
+  - App: `PanelPlacement`, and `PasteboardSnapshot` on a private `NSPasteboard`, so the user's clipboard is never touched.
+
+  Actions are tested with recorders injected at the process boundary (ADR-012); the real system calls are verified end to end.
+- **Build.** The Makefile is the interface, mirroring SmartDock (see [CLAUDE.md](../CLAUDE.md#build--run)).
+  - `make app` builds `build/SmartType.app` from `Resources/Info.plist`, which carries `LSUIElement`, `LSMinimumSystemVersion`, `NSServices`, `CFBundleLocalizations [ru]`, and from Phase 2 `NSAllowsLocalNetworking`.
+  - `make run` opens the bundle; `make install` copies it to /Applications and runs `pbs -update`. `swift run` is not used: without the bundle there is no `LSUIElement`.
+  - No SwiftPM resources. The generated `Bundle.module` looks for its bundle at the .app root (which breaks code signing) or at an absolute build path. So icons are SF Symbols, the app icon is generated by `scripts/generate-icon.swift` and copied in by `make app`, and strings live in code.
+- **Signing.**
+  - Releases are ad-hoc signed, as SmartDock's are. With ad-hoc signing, macOS drops the Accessibility grant on every update.
+  - For development, `make app SIGN_ID="<identity>"` signs with a stable "Apple Development" identity, so the grant survives rebuilds.
+  - Hardened runtime and notarization come with a Developer ID (`make sign`).
+  - Translation.framework is weak-linked (checked with `otool`), so the app still launches on macOS 14.
+- **Release.** `make bump` → tag → `release.yml` → GitHub Release → the Homebrew tap; see [DELIVERY.md](DELIVERY.md#release-and-distribution).
+
+## 11. Decision log
+| # | Decision | Why | Rejected alternative |
+|---|---|---|---|
+| 001 | AppKit shell, SwiftUI content | control over the status item, the non-activating panel and focus | a `MenuBarExtra`-only app |
+| 002 | Modules by isolation domain | testable pure core; no access-modifier noise between main-actor parts | one target; per-feature modules; a separate System target |
+| 003 | One data file per keyboard layout, keyed by physical key; pairs derived | adding uk/he/ar is one file each; same shape as `UCKeyTranslate` output and event-tap input | a protocol per language pair (as in the original spec) |
+| 004 | Carbon `RegisterEventHotKey` | system-wide, needs no permission, zero idle cost | `CGEventTap` (needs Input Monitoring, always running) |
+| 005 | Clipboard transaction for the hotkey layout fix | replaces exactly what was copied; works in every app; reliable undo | replacing text through AX (support and undo vary by app) |
+| 006 | Read the selection through AX first for translation | no pasteboard prompt on macOS 27, no clipboard churn, ~1 ms | ⌘C only |
+| 007 | Apple Translation via `TranslationSession(installedSource:target:)`, macOS 26+ | no coupling to UI; testable on current macOS | a SwiftUI `.translationTask` bridge for macOS 15 |
+| 008 | Event-driven only | zero idle cost | timers, polling |
+| 009 | Swift 6 strict concurrency, warnings as errors | data-race safety, a clean codebase | Swift 5 mode |
+| 010 | Direct distribution (tentative) | the sandbox conflicts with synthetic input | the Mac App Store |
+| 011 | Expose both commands as macOS Services | native right-click integration; the layout fix gets text in and out without the clipboard or Accessibility, with native undo | App Intents/Shortcuts only (needs user setup) |
+| 012 | Seams at the process boundary: every call that leaves the process is a parameter whose default is the real thing | actions are unit-tested with recorders and no test touches the real clipboard or input source; proven on SmartDock, where an unseamed modal alert hung the suite | a protocol around every class; actions tested only end to end |
+| 013 | Makefile-driven release: `make bump` → tag → GitHub Release → Homebrew tap (cask + formula) | the same pipeline as SmartDock; the version lives in one place and release notes cannot be empty | a hand-rolled bundle script; manual tap updates |
+
+## Appendix — File layout
+```
+Package.swift · Makefile · .swift-format · README.md · CHANGELOG.md · CONTRIBUTING.md · CLAUDE.md
+Resources/Info.plist · scripts/generate-icon.swift · assets/ (README images)
+.github/{workflows/ci.yml, workflows/release.yml, dependabot.yml, pull_request_template.md, ISSUE_TEMPLATE/}
+docs/BUSINESS.md · docs/ARCHITECTURE.md · docs/DELIVERY.md
+Sources/SmartTypeCore/
+  Language/{Language, Script}
+  Layouts/{KeyStroke, KeyboardLayout, KeyboardLayoutProvider, LayoutConverter}
+  Layouts/BuiltIn/{USQwerty, RussianPC}
+  Detection/{Plausibility, WordScorer, LanguageProfile, PhonotacticScorer, LanguageDetector}
+  Detection/Profiles/{English, Russian}
+  Correction/{LayoutTokenizer, LayoutCorrector, Correction}
+Sources/SmartTypeEngines/
+  {TranslationEngine, TranslationFailure, FallbackTranslator}
+  Apple/AppleTranslationEngine
+  (Phase 2: HTTPTransport, Ollama/{OllamaClient, OllamaChatDTO, OllamaTranslationEngine, TranslationPrompt})
+Sources/SmartTypeApp/
+  App/{AppDelegate, AppComposition, AppCommand, Log}
+  StatusBar/{StatusBarController, StatusMenu, ClosureMenuItem}
+  ContextMenu/TextServiceProvider
+  Actions/{LayoutFixAction, TranslateAction}
+  Panel/{FloatingPanel, PanelController, PanelPlacement, TranslationViewModel, TranslationView}
+  Permissions/{AccessibilityPermission, PasteboardPermission, Onboarding}
+  System/HotKeys/{KeyCombo, HotKeyCenter}
+  System/Keyboard/{KeystrokeSender, InputSourceSwitcher}
+  System/Selection/{SelectionReader, AXSelectionReader, ClipboardSelectionReader,
+                    ClipboardTransaction, PasteboardSnapshot}
+  System/Spelling/SpellCheckScorer
+Sources/SmartType/main.swift
+Tests/{SmartTypeCoreTests, SmartTypeEnginesTests, SmartTypeAppTests}
+```
