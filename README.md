@@ -5,7 +5,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/status-planning-lightgrey?style=flat-square" alt="Status: planning"/>
+  <img src="https://img.shields.io/badge/version-0.1.0-blue?style=flat-square" alt="Version 0.1.0"/>
+  <img src="https://img.shields.io/badge/status-in%20development-orange?style=flat-square" alt="Status: in development"/>
   <img src="https://img.shields.io/badge/macOS-14.0%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+"/>
   <img src="https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.2"/>
 </p>
@@ -16,7 +17,7 @@ SmartType lives in your menu bar and works in any app. Typed `ghbdtn` because th
 
 Everything runs on your Mac. There are no servers and no accounts, and while idle SmartType does no work at all.
 
-> **Status: planning.** There is no code yet. The design is written down first: see [Documentation](#-documentation).
+> **Status: in development.** SmartType already runs in the menu bar, and both shortcuts are registered system-wide. For now they are only recorded in the log: layout fixing and translation arrive in the next stages ([delivery plan](docs/DELIVERY.md#stages)).
 
 ## ✨ Features (planned for v0.1)
 
@@ -28,6 +29,7 @@ Everything runs on your Mac. There are no servers and no accounts, and while idl
 | 🔒 | **On-device** | Apple's on-device translation; a local LLM comes later. Your text never leaves the Mac |
 | 📋 | **Clipboard-safe** | Whenever SmartType borrows the clipboard, it puts your content back |
 | ⚡ | **Zero idle cost** | Event-driven: no timers, no polling, 0% CPU while idle |
+| 🌍 | **English and Russian** | The interface follows the language of macOS; pick another one per app in System Settings → General → Language & Region |
 | 🧩 | **Built to grow** | A new keyboard layout is one data file; translation engines plug in behind one protocol |
 
 ## 📦 Installation (from the first release)

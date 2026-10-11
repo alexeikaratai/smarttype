@@ -2,7 +2,7 @@
 
 Thanks for taking the time to help. This document covers what you need to build the project, the conventions the codebase follows, and what CI will check on your PR.
 
-> **Status:** the repository currently holds the design (`docs/`) and the conventions. The toolchain described below lands with the first code; see [Stage 1 of the delivery plan](docs/DELIVERY.md#stages).
+> **Status:** the toolchain below is in place. Features land stage by stage, following the [delivery plan](docs/DELIVERY.md#stages).
 
 ## Getting set up
 
@@ -34,6 +34,8 @@ make format     # rewrite sources with swift-format
 make lint       # check formatting without writing — CI gates on this
 make coverage   # run tests and print a per-file coverage table
 make app        # build + ad-hoc signed .app bundle
+make docs-check # links, anchors and the CLAUDE.md file table match the repository
+make l10n       # add new UI strings to the translation catalog
 make logs       # stream live logs (subsystem com.smarttype.app)
 ```
 
@@ -42,10 +44,10 @@ make logs       # stream live logs (subsystem com.smarttype.app)
 ## Before you open a PR
 
 ```bash
-make format && make lint && make test && make app
+make format && make lint && make docs-check && make test && make app
 ```
 
-That is the same sequence CI runs, in the same order.
+CI runs the same checks, plus `version-check`, and measures coverage while it tests.
 
 ## Code style
 
@@ -76,6 +78,15 @@ Tests use **Swift Testing** (`@Suite`, `@Test`, `#expect`) and run in parallel. 
 - Tests use a private `NSPasteboard(name:)`, never the general one.
 - Wait for events with `waitUntil`, never with a fixed sleep.
 - Mocks live in each test target's `Mocks.swift`; helpers in `TestSupport.swift`.
+
+## Adding UI text
+
+The interface is English with a Russian translation, and follows the language of macOS.
+
+1. Write the English text through `String(localized: "Fix Layout", comment: "Command: …")`. The English text is the key; the comment tells the translator where it appears.
+2. Run `make l10n`. It adds the new key to `Resources/Localizable.xcstrings`.
+3. Add the Russian value in the catalog, by hand or in Xcode's String Catalog editor.
+4. Run `make l10n-check`, which `make app` also runs. It fails on any key that is missing, stale, untranslated or not a plain literal.
 
 ## Versioning
 
