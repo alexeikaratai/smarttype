@@ -6,7 +6,7 @@ import SmartTypeCore
 /// switches to that layout so the person keeps typing in it.
 final class LayoutFixAction {
     private enum Outcome {
-        case fixed(layoutID: String)
+        case fixed
         case nothingSelected
         case nothingToFix
     }
@@ -52,6 +52,7 @@ final class LayoutFixAction {
         defer { isRunning = false }
 
         guard permission.isGranted else {
+            Log.general.notice("Fix Layout: no Accessibility permission")
             if explain(.accessibility) {
                 permission.requestAccess()
             }
@@ -60,7 +61,8 @@ final class LayoutFixAction {
         // ⌘C would go to SmartType's own window, not to the text the person meant.
         guard !isSmartTypeFrontmost() else { return beep() }
 
-        switch await clipboard.run({ await self.replaceSelection() }) {
+        let start = ContinuousClock.now
+        switch await clipboard.run({ await self.replaceSelection(since: start) }) {
         case nil:
             Log.general.notice("Fix Layout: the clipboard may not be read")
             _ = explain(.pasteboard)
@@ -70,16 +72,24 @@ final class LayoutFixAction {
         case .nothingToFix?:
             Log.general.notice("Fix Layout: nothing to fix")
             beep()
-        case .fixed(let layoutID)?:
-            let switched = selectLayout(layoutID)
-            Log.general.notice("Fix Layout: fixed; \(layoutID, privacy: .public) selected: \(switched)")
+        case .fixed?:
+            break  // Logged, and the layout switched, where the text landed.
         }
     }
 
-    private func replaceSelection() async -> Outcome {
+    /// The timings in the log say where a slow fix spent its time; the copy includes waiting
+    /// for the hotkey's ⌃⌥ to come up.
+    private func replaceSelection(since start: ContinuousClock.Instant) async -> Outcome {
         guard let text = await clipboard.copySelection() else { return .nothingSelected }
+        let copied = start.duration(to: .now)
         guard let correction = fix(text) else { return .nothingToFix }
         await clipboard.paste(correction.text)
-        return .fixed(layoutID: correction.targetLayoutID)
+        // As the text lands, not after the clipboard comes back.
+        let switched = selectLayout(correction.targetLayoutID)
+        let pasted = start.duration(to: .now)
+        Log.general.notice(
+            "Fix Layout: copied after \(Int(copied / .milliseconds(1))) ms, pasted after \(Int(pasted / .milliseconds(1))) ms; \(correction.targetLayoutID, privacy: .public) selected: \(switched)"
+        )
+        return .fixed
     }
 }

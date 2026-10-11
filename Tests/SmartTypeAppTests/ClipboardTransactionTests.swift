@@ -55,6 +55,23 @@ import Testing
         #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
     }
 
+    /// The app reads a paste on its own time, so the clipboard comes back only after a moment.
+    @Test func theClipboardComesBackOnlyAfterThePasteHadTimeToLand() async {
+        let app = FakeFrontApp()
+        app.pasteboard.setString("the person's clipboard", forType: .string)
+        var onPasteboardDuringTheWait: [String] = []
+        let clipboard = app.clipboard(onPause: { duration in
+            if duration == .milliseconds(250) {
+                onPasteboardDuringTheWait.append(app.pasteboard.string(forType: .string) ?? "")
+            }
+        })
+
+        await clipboard.run { await clipboard.paste("привет") }
+
+        #expect(onPasteboardDuringTheWait == ["привет"])
+        #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
+    }
+
     /// Whoever writes to the pasteboard while SmartType borrows it keeps what they wrote.
     @Test func somethingCopiedMeanwhileIsKept() async {
         let app = FakeFrontApp()

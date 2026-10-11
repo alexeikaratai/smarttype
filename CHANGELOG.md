@@ -26,8 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   macOS 27 calls it), which the layout fix needs to copy and paste the selected text,
   with **Grant Access…** and **Reset Permission…**: after an
   update macOS can keep SmartType switched on in the list while the permission no longer
-  works, and the reset clears that in one click, then restarts SmartType so that macOS
-  lists it again. Shortcuts lists both commands and whether
+  works, and the reset clears that and restarts SmartType so that macOS lists it again,
+  ready to be switched back on; Settings opens next to it to show the status, as in
+  SmartDock. Shortcuts lists both commands and whether
   macOS accepted them; About shows the version, links to GitHub and the release notes, and
   "Made with ❤ by Alex Karatai". The window is built when it opens and freed when it
   closes, and SmartType still does no work while idle. Esc and ⌘W close it in any
@@ -36,10 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from a key the check cannot see, so a Russian window could show an English line.
 - SmartType runs in the menu bar, with no Dock icon. ⌃⌥L and ⌃⌥T are registered
   system-wide and fire in any keyboard layout, because they are bound to physical keys,
-  not letters. For now a press is only recorded in the log; fixing the layout and
-  translating arrive in the next stages. The menu lists both commands with their shortcuts,
-  and «Настройки хоткеев» shows whether macOS accepted each one. While idle the app uses
-  0.0% CPU and about 16 MB of memory.
+  not letters. The menu lists both commands with their shortcuts, and Keyboard Shortcuts
+  shows whether macOS accepted each one. While idle the app uses 0.0% CPU, and about 17 MB
+  of memory until Settings is first opened.
 - The interface speaks English and Russian and follows the language of macOS; another
   language can be chosen per app in System Settings → General → Language & Region. The
   build refuses to make the app while any string lacks a Russian translation, so a

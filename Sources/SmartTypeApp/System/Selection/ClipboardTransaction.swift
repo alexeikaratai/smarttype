@@ -12,6 +12,8 @@ final class ClipboardTransaction {
     private let pause: (Duration) async -> Void
     /// The change count of SmartType's last change; `nil` until it makes one.
     private var ownChangeCount: Int?
+    /// ⌘V went out, and the app reads the pasteboard on its own time.
+    private var didPaste = false
 
     init(
         pasteboard: NSPasteboard = .general,
@@ -31,7 +33,12 @@ final class ClipboardTransaction {
     func run<Result>(_ body: () async -> Result) async -> Result? {
         guard !isDenied(pasteboard), let snapshot = PasteboardSnapshot(of: pasteboard) else { return nil }
         ownChangeCount = nil
+        didPaste = false
         let result = await body()
+        // A moment for the app to read what was pasted, before it is taken back.
+        if didPaste {
+            await pause(.milliseconds(250))
+        }
         if let ownChangeCount, ownChangeCount == pasteboard.changeCount {
             snapshot.restore(to: pasteboard)
         }
@@ -57,8 +64,8 @@ final class ClipboardTransaction {
         return nil
     }
 
-    /// Hands `text` to the frontmost app with ⌘V, marked so clipboard managers skip it, and
-    /// gives the app a moment to read it before anything is restored.
+    /// Hands `text` to the frontmost app with ⌘V, marked so clipboard managers skip it. `run`
+    /// waits for the app to read it before giving the pasteboard back.
     func paste(_ text: String) async {
         let item = NSPasteboardItem()
         item.setString(text, forType: .string)
@@ -67,8 +74,7 @@ final class ClipboardTransaction {
         pasteboard.clearContents()
         pasteboard.writeObjects([item])
         ownChangeCount = pasteboard.changeCount
-        guard await keystrokes.press(.paste) else { return }
-        await pause(.milliseconds(250))
+        didPaste = await keystrokes.press(.paste)
     }
 
     /// Paste from Other Apps set to Deny for SmartType (macOS 15.4 and later).

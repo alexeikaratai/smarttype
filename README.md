@@ -29,7 +29,7 @@ Everything runs on your Mac. There are no servers and no accounts, and while idl
 | 🔒 | **On-device** | Apple's on-device translation; a local LLM comes later. Your text never leaves the Mac |
 | 📋 | **Clipboard-safe** | Whenever SmartType borrows the clipboard, it puts your content back |
 | ⚡ | **Zero idle cost** | Event-driven: no timers, no polling, 0% CPU while idle |
-| ⚙️ | **Settings** | The Accessibility status with Grant Access and one-click Reset Permission, the shortcuts, and About, laid out as SmartDock's |
+| ⚙️ | **Settings** | The Accessibility status with Grant Access and Reset Permission (confirm, and SmartType restarts), the shortcuts, and About, laid out as SmartDock's |
 | 🌍 | **English and Russian** | The interface follows the language of macOS; pick another one per app in System Settings → General → Language & Region |
 | 🧩 | **Built to grow** | A new keyboard layout is one data file; translation engines plug in behind one protocol |
 
@@ -41,7 +41,7 @@ Everything runs on your Mac. There are no servers and no accounts, and while idl
 brew install --cask alexeikaratai/tap/smarttype
 ```
 
-After install, grant Accessibility permission in **System Settings → Privacy & Security → Accessibility**.
+After install, grant the Accessibility permission in **System Settings → Privacy & Security → Accessibility**, called **Device Control and Data Access** on macOS 27. SmartType's menu offers to open it.
 
 ### From Source
 

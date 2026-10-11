@@ -52,6 +52,29 @@ import Testing
         #expect(outcome.beeps == 0)
     }
 
+    /// The keyboard switches as the fixed text lands, not after the clipboard comes back.
+    @Test func theLayoutSwitchesBeforeTheClipboardIsGivenBack() async {
+        let app = FakeFrontApp()
+        app.pasteboard.setString("the person's clipboard", forType: .string)
+        app.selection = "ghbdtn"
+        var onPasteboardAtSwitch: String?
+        let fix = LayoutFixAction(
+            corrector: LayoutCorrector(
+                layouts: BuiltInLayouts().layouts, detector: LanguageDetector(scorers: [PhonotacticScorer()])),
+            clipboard: app.clipboard(),
+            permission: trusted().permission(),
+            selectLayout: { _ in
+                onPasteboardAtSwitch = app.pasteboard.string(forType: .string)
+                return true
+            },
+            isSmartTypeFrontmost: { false }, beep: {}, explain: { _ in false })
+
+        await fix.fixSelection()
+
+        #expect(onPasteboardAtSwitch == "привет")
+        #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
+    }
+
     @Test func withoutAccessibilityItExplainsAndPressesNothing() async {
         let app = FakeFrontApp()
         let macOS = PermissionRecorder()

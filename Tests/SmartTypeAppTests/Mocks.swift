@@ -80,9 +80,15 @@ final class FakeFrontApp {
         pasteboard.clearContents()
     }
 
-    /// `yielding` suspends at every wait, so a test can press again while a fix is running.
-    func clipboard(isDenied: Bool = false, yielding: Bool = false) -> ClipboardTransaction {
-        let pause: (Duration) async -> Void = { _ in if yielding { await Task.yield() } }
+    /// `yielding` suspends at every wait, so a test can press again while a fix is running;
+    /// `onPause` sees every wait as it starts.
+    func clipboard(
+        isDenied: Bool = false, yielding: Bool = false, onPause: @escaping (Duration) -> Void = { _ in }
+    ) -> ClipboardTransaction {
+        let pause: (Duration) async -> Void = { duration in
+            onPause(duration)
+            if yielding { await Task.yield() }
+        }
         let keystrokes = KeystrokeSender(currentModifiers: { [] }, post: { self.receive($0) }, pause: pause)
         return ClipboardTransaction(
             pasteboard: pasteboard, keystrokes: keystrokes, isDenied: { _ in isDenied }, pause: pause)

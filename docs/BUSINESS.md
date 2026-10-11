@@ -99,11 +99,14 @@ The MVP ships without telemetry. Until opt-in analytics exist, these metrics com
 
 ## 11. Open questions for review
 1. **MVP translation.** Keep ⌃⌥T on Apple's on-device engine (macOS 26+ only), or move the whole translation feature to the AI phase?
+   **Decided on 2026-10-12:** Apple's on-device engine. On macOS older than 26, Translate stays disabled until Phase 2's local LLM.
 2. **Minimum macOS.** Keep 14 (as in the spec), or raise it to 26? Raising it simplifies the Translation API and Liquid Glass and removes `#available` branches.
+   **Decided on 2026-10-12:** macOS 14 stays. The layout fix runs there; translation checks for macOS 26 at run time.
 3. **Business model.** A, B or C?
 4. **Next languages** after en/ru. What order for uk, he, ar?
 5. **Name.** Check "SmartType" for trademark and App Store collisions before any branding work.
 6. **Translation scope.** ru↔en only (the current plan), or any language → the user's language? The second needs on-device language detection with `NLLanguageRecognizer`; Apple's engine covers about two dozen languages.
+   **Decided on 2026-10-12:** any language Apple's engine supports, into a language the person picks; the source is detected, or picked too. Measured on macOS 27: 47 languages and variants. The defaults are settled in the Stage 3 plan.
 7. **Text that can't be selected** (images, video, UI labels). Add on-screen OCR later? Vision supports Russian, but it needs the Screen Recording permission. Also: a dictionary card for single words (meanings, examples) in Phase 2?
 
 ## Sources

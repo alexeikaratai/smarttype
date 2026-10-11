@@ -117,9 +117,10 @@ app: build l10n-check $(ICON)
 	@rm -rf $(APP_DIR)
 	@mkdir -p $(MACOS_DIR) $(RESOURCES)
 	cp $(BUILD_DIR)/$(APP_NAME) $(MACOS_DIR)/$(APP_NAME)
+	@plutil -lint Resources/Info.plist > /dev/null
 	cp Resources/Info.plist $(CONTENTS)/Info.plist
 	cp $(ICON) $(RESOURCES)/AppIcon.icns
-	@# en.lproj and ru.lproj, where String(localized:) looks them up at run time.
+	@# ru.lproj, where String(localized:) finds Russian at run time; the English strings are the keys.
 	xcrun xcstringstool compile $(CATALOG) --output-directory $(RESOURCES) > /dev/null
 	codesign --force --sign "$(SIGN_ID)" $(APP_DIR)
 	@codesign --verify --strict $(APP_DIR)

@@ -22,8 +22,8 @@ package struct LanguageDetector {
             .max { letters[$0.script, default: 0] < letters[$1.script, default: 0] }
     }
 
-    /// A dictionary that knows the word outweighs a rule that forbids it. Otherwise the most
-    /// pessimistic opinion wins, since one impossible pair is enough to rule a word out.
+    /// A dictionary that knows the word outweighs a rule that forbids it. Short of that, one
+    /// impossible pair rules the word out, and among the remaining opinions the highest wins.
     package func plausibility(of word: String, as language: Language) -> Plausibility {
         let opinions = scorers.map { $0.score(word, as: language) }
         if opinions.contains(.known) {

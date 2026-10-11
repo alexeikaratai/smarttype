@@ -57,10 +57,10 @@ Naming, file organisation, access control, the concurrency rules and the princip
 
 ## Architecture in one paragraph
 
-Four targets, split by isolation domain:
+Three targets today, split by isolation domain; a fourth, `SmartTypeEngines`, arrives with translation in Stage 3:
 - **`SmartTypeCore`** holds pure logic with no UI: keyboard layouts, conversion, language detection, correction.
-- **`SmartTypeEngines`** holds the translation engines behind one protocol.
-- **`SmartTypeApp`** is the main-actor shell: system adapters (hotkeys, keystrokes, clipboard, input sources, Accessibility), the actions, the menu, the panel and the macOS Services provider.
+- **`SmartTypeEngines`** (Stage 3) will hold the translation engines behind one protocol.
+- **`SmartTypeApp`** is the main-actor shell: system adapters (hotkeys, keystrokes, clipboard, input sources, Accessibility), the actions, the menu and the Settings window; the translation panel (Stage 3) and the macOS Services provider (Stage 4) join it.
 - **`SmartType`** is the executable, with only `main.swift`.
 
 Dependencies flow one way and never back. **Put logic in Core whenever you can.** Details and decisions are in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -76,8 +76,8 @@ Tests use **Swift Testing** (`@Suite`, `@Test`, `#expect`) and run in parallel. 
 
 - Every call that leaves the process is injected with the real thing as the default. That covers synthetic keystrokes, the clipboard, input sources, Accessibility, alerts and translation. Tests pass recorders and never touch the developer's machine.
 - Tests use a private `NSPasteboard(name:)`, never the general one.
-- Wait for events with `waitUntil`, never with a fixed sleep.
-- Mocks live in each test target's `Mocks.swift`; helpers in `TestSupport.swift`.
+- Wait for the event, never for a fixed time; a `waitUntil` helper goes into `TestSupport.swift` when the first test needs one.
+- Fakes live in each test target's `Mocks.swift`.
 
 ## Adding UI text
 
@@ -114,7 +114,7 @@ Open a [bug report](https://github.com/alexeikaratai/smarttype/issues/new?templa
 /usr/bin/log stream --predicate 'subsystem == "com.smarttype.app"' --info --style compact
 ```
 
-For anything involving hotkeys or copying, check Accessibility first. Ad-hoc signing changes the binary's code hash on every rebuild, which makes macOS silently revoke the grant.
+If the layout fix copies or pastes nothing, check Accessibility first; the hotkeys themselves need no permission. Ad-hoc signing changes the binary's code hash on every rebuild, which makes macOS silently revoke the grant.
 
 ## License
 

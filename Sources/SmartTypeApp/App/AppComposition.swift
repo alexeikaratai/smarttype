@@ -7,9 +7,11 @@ final class AppComposition {
     private let hotKeys: HotKeyCenter
     private let statusBar: StatusBarController
     private let permission: AccessibilityPermission
+    private let presentSettings: (NSWindow) -> Void
     private(set) var refusedHotKeys: Set<AppCommand> = []
     /// Built on first use, so a launch that never opens Settings never builds it.
-    private lazy var settings = SettingsWindowController(refusedHotKeys: refusedHotKeys, permission: permission)
+    private lazy var settings = SettingsWindowController(
+        refusedHotKeys: refusedHotKeys, permission: permission, present: presentSettings)
     /// Built on first use too: the dictionary and the layout tables load with the first ⌃⌥L.
     private lazy var layoutFix = LayoutFixAction(
         corrector: LayoutCorrector(
@@ -20,11 +22,13 @@ final class AppComposition {
     init(
         hotKeyRegistrar: any HotKeyRegistering = CarbonHotKeyRegistrar(),
         statusBar: NSStatusBar = .system,
-        permission: AccessibilityPermission = AccessibilityPermission()
+        permission: AccessibilityPermission = AccessibilityPermission(),
+        presentSettings: @escaping (NSWindow) -> Void = { SettingsWindowController.bringToFront($0) }
     ) {
         hotKeys = HotKeyCenter(registrar: hotKeyRegistrar)
         self.statusBar = StatusBarController(statusBar: statusBar, permission: permission)
         self.permission = permission
+        self.presentSettings = presentSettings
     }
 
     func start() {
@@ -42,8 +46,11 @@ final class AppComposition {
             openSettings: { [weak self] in self?.settings.show() }
         )
         // The relaunch that ends a reset: only this new process puts SmartType back in the list.
+        // As in SmartDock, Settings opens too, to show the status next to System Settings.
         if permission.asksAfterNextLaunch {
             permission.asksAfterNextLaunch = false
+            Log.permissions.notice("Accessibility: asking again after a reset")
+            settings.show()
             permission.requestAccess()
         }
     }
