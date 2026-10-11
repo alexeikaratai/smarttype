@@ -9,11 +9,14 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     private let statusBar: NSStatusBar
     private let statusItem: NSStatusItem
+    private let permission: AccessibilityPermission
     private var refusedHotKeys: Set<AppCommand> = []
     private var perform: (AppCommand) -> Void = { _ in }
+    private var openSettings: () -> Void = {}
 
-    init(statusBar: NSStatusBar = .system) {
+    init(statusBar: NSStatusBar = .system, permission: AccessibilityPermission = AccessibilityPermission()) {
         self.statusBar = statusBar
+        self.permission = permission
         statusItem = statusBar.statusItem(withLength: NSStatusItem.squareLength)
         super.init()
         statusItem.button?.image = NSImage(systemSymbolName: Self.symbolName, accessibilityDescription: "SmartType")
@@ -22,18 +25,23 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         statusItem.menu = menu
     }
 
-    func show(refusedHotKeys: Set<AppCommand>, perform: @escaping (AppCommand) -> Void) {
+    func show(
+        refusedHotKeys: Set<AppCommand>, perform: @escaping (AppCommand) -> Void, openSettings: @escaping () -> Void
+    ) {
         self.refusedHotKeys = refusedHotKeys
         self.perform = perform
+        self.openSettings = openSettings
     }
 
     func remove() {
         statusBar.removeStatusItem(statusItem)
     }
 
+    /// The permission is read here, as the menu opens, and never polled.
     func menuNeedsUpdate(_ menu: NSMenu) {
-        StatusMenu.fill(menu, refusedHotKeys: refusedHotKeys, perform: perform) {
-            NSApp.terminate(nil)
-        }
+        StatusMenu.fill(
+            menu, refusedHotKeys: refusedHotKeys, needsAccess: !permission.isGranted, perform: perform,
+            grantAccess: { [permission] in permission.requestAccess() }, openSettings: openSettings,
+            quit: { NSApp.terminate(nil) })
     }
 }

@@ -83,10 +83,10 @@ Tests use **Swift Testing** (`@Suite`, `@Test`, `#expect`) and run in parallel. 
 
 The interface is English with a Russian translation, and follows the language of macOS.
 
-1. Write the English text through `String(localized: "Fix Layout", comment: "Command: …")`. The English text is the key; the comment tells the translator where it appears.
+1. Write the English text through `String(localized: "Fix Layout", comment: "Command: …")`. The English text is the key; the comment tells the translator where it appears. In SwiftUI, pass that string to the view: `Text(String(localized: …))`. A name that is never translated uses `Text(verbatim:)`.
 2. Run `make l10n`. It adds the new key to `Resources/Localizable.xcstrings`.
 3. Add the Russian value in the catalog, by hand or in Xcode's String Catalog editor.
-4. Run `make l10n-check`, which `make app` also runs. It fails on any key that is missing, stale, untranslated or not a plain literal.
+4. Run `make l10n-check`, which `make app` also runs. It fails on any key that is missing, stale, untranslated or not a plain literal, and on a bare SwiftUI title such as `Text("…")`, whose key it cannot see.
 
 ## Versioning
 

@@ -12,11 +12,16 @@ import Testing
 
     private func filledMenu(
         refused: Set<AppCommand> = [],
+        needsAccess: Bool = false,
         perform: @escaping (AppCommand) -> Void = { _ in },
+        grantAccess: @escaping () -> Void = {},
+        openSettings: @escaping () -> Void = {},
         quit: @escaping () -> Void = {}
     ) -> NSMenu {
         let menu = NSMenu()
-        StatusMenu.fill(menu, refusedHotKeys: refused, perform: perform, quit: quit)
+        StatusMenu.fill(
+            menu, refusedHotKeys: refused, needsAccess: needsAccess, perform: perform, grantAccess: grantAccess,
+            openSettings: openSettings, quit: quit)
         return menu
     }
 
@@ -47,6 +52,38 @@ import Testing
         #expect(lines.contains("Translate  ⌃⌥T — not registered"))
     }
 
+    /// While SmartType lacks the permission ⌃⌥L needs, the menu says so before anything else.
+    @Test func withoutThePermissionTheMenuOffersToGrantItFirst() throws {
+        var granted = 0
+        let menu = filledMenu(needsAccess: true, grantAccess: { granted += 1 })
+        let first = try #require(menu.items.first)
+
+        menu.performActionForItem(at: 0)
+
+        #expect(first.title == "⚠︎ Grant Access…")
+        #expect(menu.items[1].isSeparatorItem)
+        #expect(granted == 1)
+    }
+
+    @Test func withThePermissionTheMenuDoesNotMentionIt() {
+        #expect(!filledMenu(needsAccess: false).items.contains { $0.title.hasSuffix("Grant Access…") })
+    }
+
+    /// Next to the shortcuts it configures, and on ⌘, as in every Mac app.
+    @Test func settingsFollowsTheShortcutsAndAnswersCommandComma() throws {
+        var opened = 0
+        let menu = filledMenu(openSettings: { opened += 1 })
+        let index = try #require(menu.items.firstIndex { $0.title == "Settings…" })
+        let settings = menu.items[index]
+
+        menu.performActionForItem(at: index)
+
+        #expect(menu.items[index - 1].title == "Keyboard Shortcuts")
+        #expect(settings.keyEquivalent == ",")
+        #expect(settings.keyEquivalentModifierMask == .command)
+        #expect(opened == 1)
+    }
+
     @Test func quitIsLastAndAnswersCommandQ() throws {
         var didQuit = false
         let menu = filledMenu(quit: { didQuit = true })
@@ -64,7 +101,9 @@ import Testing
         let menu = filledMenu()
         let count = menu.items.count
 
-        StatusMenu.fill(menu, refusedHotKeys: [], perform: { _ in }, quit: {})
+        StatusMenu.fill(
+            menu, refusedHotKeys: [], needsAccess: false, perform: { _ in }, grantAccess: {}, openSettings: {}, quit: {}
+        )
 
         #expect(menu.items.count == count)
     }

@@ -16,6 +16,32 @@ import Testing
         #expect(composition.refusedHotKeys.isEmpty)
     }
 
+    /// The relaunch after a reset lands here: only a new process puts SmartType back in the list.
+    @Test func aStartAfterAResetAsksForAccess() {
+        _ = NSApplication.shared
+        let macOS = PermissionRecorder()
+        macOS.permission().asksAfterNextLaunch = true
+        let composition = AppComposition(hotKeyRegistrar: RecordingRegistrar(), permission: macOS.permission())
+        defer { composition.stop() }
+
+        composition.start()
+
+        #expect(macOS.prompts == 1)
+        #expect(macOS.openedURLs.count == 1)
+        #expect(!macOS.permission().asksAfterNextLaunch)
+    }
+
+    @Test func anOrdinaryStartAsksNothing() {
+        _ = NSApplication.shared
+        let macOS = PermissionRecorder()
+        let composition = AppComposition(hotKeyRegistrar: RecordingRegistrar(), permission: macOS.permission())
+        defer { composition.stop() }
+
+        composition.start()
+
+        #expect(macOS.prompts == 0)
+    }
+
     @Test func aHotKeyMacOSRefusesIsReported() {
         _ = NSApplication.shared
         let registrar = RecordingRegistrar()

@@ -5,6 +5,7 @@ import OSLog
 nonisolated enum Log {
     static let general = Logger(subsystem: subsystem, category: "general")
     static let hotKeys = Logger(subsystem: subsystem, category: "hotkeys")
+    static let permissions = Logger(subsystem: subsystem, category: "permissions")
 
     private static let subsystem = "com.smarttype.app"
 }

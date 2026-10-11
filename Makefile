@@ -1,4 +1,4 @@
-.PHONY: help build test clean app run install fix bump version-check docs-check footprint l10n l10n-check doctor actions-check logs format lint coverage
+.PHONY: help build test clean icon app run install fix bump version-check docs-check footprint l10n l10n-check doctor actions-check logs format lint coverage
 
 .DEFAULT_GOAL := help
 
@@ -15,6 +15,8 @@ RESOURCES    := $(CONTENTS)/Resources
 # while developing:  make app SIGN_ID="Apple Development: …"  (or its SHA-1 hash).
 SIGN_ID      ?= -
 CATALOG      := Resources/Localizable.xcstrings
+# Drawn by scripts/generate-icon.swift, never committed (*.icns is in .gitignore).
+ICON         := Resources/AppIcon.icns
 L10N_TMP     := .build/l10n
 
 # === Build ===
@@ -103,12 +105,20 @@ l10n-check:
 
 # === App Bundle ===
 
-app: build l10n-check
+# Redrawn only when the script changes.
+$(ICON): scripts/generate-icon.swift
+	@echo "🎨 Drawing the app icon..."
+	@swift scripts/generate-icon.swift $(ICON)
+
+icon: $(ICON)
+
+app: build l10n-check $(ICON)
 	@echo "📦 Creating $(APP_NAME).app bundle..."
 	@rm -rf $(APP_DIR)
 	@mkdir -p $(MACOS_DIR) $(RESOURCES)
 	cp $(BUILD_DIR)/$(APP_NAME) $(MACOS_DIR)/$(APP_NAME)
 	cp Resources/Info.plist $(CONTENTS)/Info.plist
+	cp $(ICON) $(RESOURCES)/AppIcon.icns
 	@# en.lproj and ru.lproj, where String(localized:) looks them up at run time.
 	xcrun xcstringstool compile $(CATALOG) --output-directory $(RESOURCES) > /dev/null
 	codesign --force --sign "$(SIGN_ID)" $(APP_DIR)
@@ -151,7 +161,7 @@ fix:
 clean:
 	@echo "🧹 Cleaning..."
 	swift package clean
-	rm -rf build/
+	rm -rf build/ $(ICON)
 
 # === Version ===
 # Usage: make bump V=1.2.3
@@ -299,6 +309,7 @@ help:
 	@echo "    make test          Run unit tests"
 	@echo "    make app           Build .app bundle (ad-hoc signed; SIGN_ID=… for a stable identity)"
 	@echo "    make run           Build + open the app (stops a running one first)"
+	@echo "    make icon          Draw the app icon (make app does it when the script changed)"
 	@echo "    make clean         Remove all build artifacts"
 	@echo ""
 	@echo "  Code quality:"

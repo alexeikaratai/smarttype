@@ -1,13 +1,90 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "About" : {
+      "comment" : "Settings tab",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "О программе"
+          }
+        }
+      }
+    },
+    "Accessibility" : {
+      "comment" : "The Accessibility permission, named as System Settings names it before macOS 27",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Универсальный доступ"
+          }
+        }
+      }
+    },
+    "Allowed" : {
+      "comment" : "Settings ▸ General: Accessibility status",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешён"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "comment" : "Button: close the alert",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отменить"
+          }
+        }
+      }
+    },
+    "Changelog" : {
+      "comment" : "Settings ▸ About: opens the release notes",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "История изменений"
+          }
+        }
+      }
+    },
     "Changing shortcuts comes in a later version" : {
-      "comment" : "Shortcuts submenu",
+      "comment" : "Shortcuts submenu and Settings ▸ Shortcuts",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Изменение сочетаний — в следующей версии"
+          }
+        }
+      }
+    },
+    "Couldn’t reset the permission" : {
+      "comment" : "Alert after tccutil failed: title",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось сбросить разрешение"
+          }
+        }
+      }
+    },
+    "Device Control and Data Access" : {
+      "comment" : "The Accessibility permission, named as System Settings names it on macOS 27 and later",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управление устройством и доступ к данным"
           }
         }
       }
@@ -23,6 +100,61 @@
         }
       }
     },
+    "Fix Layout needs it to copy the selected text and paste the fixed text back." : {
+      "comment" : "Settings ▸ General: why Accessibility is needed",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без него «Исправить раскладку» не сможет скопировать выделенный текст и вставить исправленный."
+          }
+        }
+      }
+    },
+    "Fixes text typed in the wrong keyboard layout and translates the selection." : {
+      "comment" : "Settings ▸ About: what SmartType does",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исправляет текст, набранный не в той раскладке, и переводит выделенное."
+          }
+        }
+      }
+    },
+    "General" : {
+      "comment" : "Settings tab",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основные"
+          }
+        }
+      }
+    },
+    "Grant Access…" : {
+      "comment" : "Button and menu item: add SmartType to the Accessibility list and open it",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить доступ…"
+          }
+        }
+      }
+    },
+    "If SmartType is switched on in System Settings but is still not allowed here, the permission went stale after an update: reset it." : {
+      "comment" : "Settings ▸ General: when to reset",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если в Системных настройках SmartType включён, а здесь доступа нет, разрешение устарело после обновления — сбросьте его."
+          }
+        }
+      }
+    },
     "Keyboard Shortcuts" : {
       "comment" : "Submenu listing the global shortcuts",
       "localizations" : {
@@ -30,6 +162,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Настройки хоткеев"
+          }
+        }
+      }
+    },
+    "Made with ❤ by Alex Karatai" : {
+      "comment" : "Settings header and About: the author's signature",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сделано с ❤ — Alex Karatai"
+          }
+        }
+      }
+    },
+    "Not allowed" : {
+      "comment" : "Settings ▸ General: Accessibility status",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не разрешён"
           }
         }
       }
@@ -45,6 +199,149 @@
         }
       }
     },
+    "Reset Permission…" : {
+      "comment" : "Button: clear a stale Accessibility grant",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить разрешение…"
+          }
+        }
+      }
+    },
+    "Reset SmartType’s permission?" : {
+      "comment" : "Reset confirmation: title",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить разрешение SmartType?"
+          }
+        }
+      }
+    },
+    "Reset and Restart" : {
+      "comment" : "Reset confirmation: the button that resets and relaunches",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить и перезапустить"
+          }
+        }
+      }
+    },
+    "Run this command in Terminal:" : {
+      "comment" : "Alert after tccutil failed: before the command",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выполните эту команду в Терминале:"
+          }
+        }
+      }
+    },
+    "Settings…" : {
+      "comment" : "Status menu item that opens the Settings window",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки…"
+          }
+        }
+      }
+    },
+    "Shortcuts" : {
+      "comment" : "Settings tab",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хоткеи"
+          }
+        }
+      }
+    },
+    "SmartType Settings" : {
+      "comment" : "Settings window title, read out by VoiceOver",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки SmartType"
+          }
+        }
+      }
+    },
+    "SmartType borrows the clipboard to fix the selection and gives it back afterwards. Allow it in System Settings ▸ Privacy & Security ▸ Paste from Other Apps, then quit and reopen SmartType." : {
+      "comment" : "Alert when pasting is denied: how to allow it",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SmartType берёт буфер обмена на время исправления и потом возвращает его. Разрешите это в Системных настройках ▸ Конфиденциальность и безопасность ▸ Вставка из других приложений, затем закройте и снова откройте SmartType."
+          }
+        }
+      }
+    },
+    "SmartType can’t read the clipboard" : {
+      "comment" : "Alert when pasting is denied: title",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SmartType не может прочитать буфер обмена"
+          }
+        }
+      }
+    },
+    "SmartType leaves the list in System Settings and restarts, then asks again. Switch it on in the list that opens." : {
+      "comment" : "Reset confirmation: what happens",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SmartType будет удалён из списка в Системных настройках и перезапустится, а затем снова попросит доступ. Включите его в открывшемся списке."
+          }
+        }
+      }
+    },
+    "SmartType needs a permission" : {
+      "comment" : "Alert when ⌃⌥L runs without Accessibility: title",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SmartType нужно разрешение"
+          }
+        }
+      }
+    },
+    "They work in any app and in any keyboard layout." : {
+      "comment" : "Settings ▸ Shortcuts: intro",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работают в любом приложении и в любой раскладке."
+          }
+        }
+      }
+    },
+    "To fix the selected text, SmartType copies it and pastes the fixed text back. macOS allows that only to apps switched on in System Settings ▸ Privacy & Security ▸" : {
+      "comment" : "Alert when ⌃⌥L runs without Accessibility: followed by the permission's name",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы исправить выделенный текст, SmartType копирует его и вставляет исправленный. macOS разрешает это только приложениям, включённым в Системных настройках ▸ Конфиденциальность и безопасность ▸"
+          }
+        }
+      }
+    },
     "Translate" : {
       "comment" : "Command: translate the selection",
       "localizations" : {
@@ -52,6 +349,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Перевести"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "comment" : "Settings ▸ About, before the version number",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Версия"
           }
         }
       }

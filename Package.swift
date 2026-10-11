@@ -38,6 +38,7 @@ let package = Package(
         // The executable keeps only `main.swift`.
         .target(
             name: "SmartTypeApp",
+            dependencies: ["SmartTypeCore"],
             path: "Sources/SmartTypeApp",
             swiftSettings: strict + mainActorShell
         ),

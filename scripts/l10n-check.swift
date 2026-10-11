@@ -7,6 +7,9 @@
 //  2. Every key the sources use is in the catalog.
 //  3. Every key in the catalog is still used: a stale key is a translation nobody sees.
 //  4. Every key has a translated Russian value, so no Russian menu shows an English word.
+//  5. No SwiftUI title is a bare literal. `Text("…")` localizes through `LocalizedStringKey`,
+//     which this check cannot see, so its translation could go missing unnoticed. Pass
+//     `String(localized:)`, or use `Text(verbatim:)` for a name that is never translated.
 //
 // It reads the sources itself instead of calling `xcstringstool extract`, so the check needs
 // nothing from Xcode beyond Swift; CI runs an older Xcode than the dev machine.
@@ -24,6 +27,9 @@ var problems: [String] = []
 
 let call = try NSRegularExpression(pattern: #"String\(\s*localized:"#)
 let literalKey = try NSRegularExpression(pattern: #"String\(\s*localized:\s*"((?:[^"\\\n]|\\["\\])*)"\s*[,)]"#)
+let bareSwiftUITitle = try NSRegularExpression(
+    pattern: #"\b(Text|Button|Label|Toggle|Picker|Section|Link|Menu|LabeledContent|GroupBox|DisclosureGroup)\(\s*""#
+        + #"|\.(help|navigationTitle|confirmationDialog|alert|accessibilityLabel|accessibilityHint)\(\s*""#)
 
 func keys(in path: String) -> [String] {
     let lines = ((try? String(contentsOfFile: path, encoding: .utf8)) ?? "").split(separator: "\n")
@@ -37,6 +43,9 @@ func keys(in path: String) -> [String] {
     }
     if found.count != call.numberOfMatches(in: code, range: range) {
         problems.append("\(path): a `String(localized:)` key is not a plain literal")
+    }
+    if bareSwiftUITitle.firstMatch(in: code, range: range) != nil {
+        problems.append("\(path): a SwiftUI title is a bare literal — pass `String(localized:)`, or `Text(verbatim:)`")
     }
     return found
 }
