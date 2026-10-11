@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: CI only ever reads the repository. Without this block the workflow
+# inherits whatever the repository default is, which can include write access.
+permissions:
+  contents: read
+
+env:
+  XCODE_PATH: /Applications/Xcode_26.6.app
+
+jobs:
+  test:
+    name: 🧪 Test & Build
+    runs-on: macos-26
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+
+      - name: 🔧 Select Xcode
+        run: sudo xcode-select -s ${{ env.XCODE_PATH }}
+
+      - name: 📦 Restore SPM cache
+        uses: actions/cache@v6
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: 🔢 Check version consistency
+        run: make version-check
+
+      # Links, anchors and the CLAUDE.md file table — a document that drifts from the code
+      # fails the build instead of misleading the next reader.
+      - name: 📚 Check docs
+        run: make docs-check
+
+      # Every UI string is in the catalog and translated into Russian. `make app` runs it
+      # too; here it fails in seconds instead of after the build.
+      - name: 🌐 Check translations
+        run: make l10n-check
+
+      # Runs before the build so a formatting-only PR fails in seconds rather than after
+      # a full compile.
+      - name: 🎨 Check formatting
+        run: make lint
+
+      # `make coverage` runs the same suite as `swift test`, with instrumentation — one
+      # step so the suite is not compiled and run twice. `shell: bash` is required, not
+      # cosmetic: the default runner shell has no pipefail, so piping into tee would mask
+      # a failing test run behind tee's exit code.
+      - name: 🧪 Run tests with coverage
+        shell: bash
+        run: make coverage | tee coverage.txt
+
+      - name: 📊 Coverage summary
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -s coverage.txt ]; then
+            echo "No coverage report produced — skipping summary."
+            exit 0
+          fi
+          {
+            echo '### 📊 Code coverage'
+            echo ''
+            echo '```'
+            cat coverage.txt
+            echo '```'
+            echo ''
+            echo '_The `SmartType` executable (main.swift) is not linked into the test bundle, so it does not appear here._'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 🔨 Build release
+        run: swift build -c release
+
+      # Exercises what `swift build` never touches: the bundle layout and its signature.
+      # Without this they would only ever run at release time.
+      - name: 📦 Build .app bundle
+        run: make app
+
+      - name: 🔏 Verify bundle signature
+        run: codesign --verify --strict --verbose=2 build/SmartType.app

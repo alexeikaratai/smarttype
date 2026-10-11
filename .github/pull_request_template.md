@@ -18,11 +18,13 @@
 ## Checklist
 
 ```bash
-make format && make lint && make test && make app
+make format && make lint && make docs-check && make test && make app
 ```
 
 - [ ] `make lint` passes — formatting is enforced, not advisory
+- [ ] `make docs-check` passes — links, anchors and the CLAUDE.md file table match the code
 - [ ] `make test` passes
+- [ ] New UI text goes through `String(localized:)` and has a Russian translation (`make l10n-check`)
 - [ ] `make app` succeeds — the only thing that exercises bundling and signing
 - [ ] New logic that *could* live in `SmartTypeCore` does, and is covered by tests
 - [ ] Calls that leave the process are injected, and no test touches the real clipboard,

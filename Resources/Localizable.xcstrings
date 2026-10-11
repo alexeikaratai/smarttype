@@ -1,0 +1,72 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Changing shortcuts comes in a later version" : {
+      "comment" : "Shortcuts submenu",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменение сочетаний — в следующей версии"
+          }
+        }
+      }
+    },
+    "Fix Layout" : {
+      "comment" : "Command: retype the selection in the other keyboard layout",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исправить раскладку"
+          }
+        }
+      }
+    },
+    "Keyboard Shortcuts" : {
+      "comment" : "Submenu listing the global shortcuts",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки хоткеев"
+          }
+        }
+      }
+    },
+    "Quit SmartType" : {
+      "comment" : "Status menu item",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выход"
+          }
+        }
+      }
+    },
+    "Translate" : {
+      "comment" : "Command: translate the selection",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевести"
+          }
+        }
+      }
+    },
+    "not registered" : {
+      "comment" : "After a shortcut macOS refused to register",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "не зарегистрировано"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
