@@ -180,6 +180,9 @@ launch / action ─► AXIsProcessTrusted? ── yes ─► proceed
         alert: why SmartType needs it ─► register app (prompt API, literal key)
                                          + open Privacy ▸ Accessibility (deep link)
         menu shows "⚠︎ Grant access…" until trusted — checked on menu open, never polled
+        "Reset Permission…" (stale grant after a rebuild or update):
+           tccutil reset Accessibility com.smarttype.app ─► prompt again ─► open the pane
+           (no administrator password on macOS 27 — measured with no existing entry; re-measure with one)
 
 pasteboard (macOS 15.4+): accessBehavior ─► .alwaysDeny → explain how to allow
                                           └► first system alert → suggest "Always allow"
@@ -221,7 +224,7 @@ User        Front app (Cocoa)         macOS Services              SmartType
                                                     ▼
  ┌────────────────────────┐   asks   ┌───────────────────────────────┐
  │ LanguageDetector       │ ◄─────── │ LayoutCorrector               │ ──► Correction
- │  script statistics     │          │ tokenize · decide · convert   │     text, targetLayoutID?
+ │  script statistics     │          │ tokenize · decide · convert   │     text, targetLayoutID
  │  WordScorer chain:     │ ───────► │                               │
  │   Phonotactic          │  scores  └───────────────────────────────┘
  │   Dictionary           │
@@ -229,19 +232,20 @@ User        Front app (Cocoa)         macOS Services              SmartType
  └────────────────────────┘          Plausibility: impossible < unknown < likely < known
 ```
 ```swift
-public struct KeyStroke: Hashable, Sendable { public let keyCode: UInt16; public let shift: Bool }
+package struct KeyStroke: Hashable, Sendable { package let keyCode: UInt16; package let shift: Bool }
 
-public struct KeyboardLayout: Sendable, Identifiable {
-    public let id: String                      // TIS id, e.g. "com.apple.keylayout.RussianWin"
-    public let language: Language
-    public let output: [KeyStroke: String]     // String: some layouts emit 2 characters per key
-    public init(id: String, language: Language, unshifted: String, shifted: String)  // 47 ANSI keys
+package struct KeyboardLayout: Hashable, Sendable, Identifiable {
+    package let id: String                          // TIS id, e.g. "com.apple.keylayout.RussianWin"
+    package let language: Language
+    package let output: [KeyStroke: String]         // what the writer means; some layouts type 2 characters
+    package let alternatives: [String: KeyStroke]   // what macOS really types, where that differs
 }
 
-extension KeyboardLayout {                      // BuiltIn/RussianPC.swift — the whole file
-    static let russianPC = KeyboardLayout(id: "com.apple.keylayout.RussianWin", language: .russian,
+extension KeyboardLayout {                          // BuiltIn/RussianPC.swift — the whole file
+    package static let russianPC = KeyboardLayout(id: "com.apple.keylayout.RussianWin", language: .russian,
         unshifted: "ё1234567890-=йцукенгшщзхъ\\фывапролджэячсмитьбю.",
-        shifted:   "Ё!\"№;%:?*()_+ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,")
+        shifted:   "Ё!\"№;%:?*()_+ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,",
+        alternatives: ["\u{00CB}": KeyStroke(keyCode: KeyStroke.ansiKeyCodes[0], shift: true)])  // measured: Shift+` types Latin Ë
 }
 ```
 ```
@@ -260,10 +264,10 @@ selection ─► tokenize: words with attached punctuation; whitespace kept as i
        nothing changed? ── yes ─► beep "nothing to fix"
 ```
 - **Scorers available now:**
-  - Phonotactic rules: impossible letter pairs (`jd`, `jn`, `fk`, `q` + consonant…; `щт`, `шы`, vowel + `ь`…) and impossible word starts (`yf`, `nj`; `ь`, `ъ`, `ы`).
+  - Phonotactic rules: impossible letter pairs (`jd`, `jn`, `fk`, `q` + consonant…; `щт`, `шы`, vowel + `ь`…) and impossible word starts (`yf`, `rf`, `vj`; `ь`, `ъ`, `ы`). English is measured on macOS's word list; Russian follows spelling rules.
   - The macOS dictionary (`NSSpellChecker`; en, ru, uk, he and ar ship with macOS). Without it, mixed text like «Привет, ghbdtn» is mostly undecidable.
-- **Target layout.** `targetLayoutID` is the layout of the last converted word, because that's where the caret ends up and typing continues. It is `nil` when no letters changed.
-- **Three or more layouts (Phase 3).** A word can then have several candidate conversions. The best score wins; ties go to the judge.
+- **Target layout.** `targetLayoutID` is the layout of the last converted word, because that's where the caret ends up and typing continues. When nothing would change, there is no correction at all.
+- **Three or more layouts (Phase 3).** A word can then have several candidate conversions: the best reading wins, a whole selection goes to the layout whose language reads best, and ties go to the judge. A word counts only when exactly one layout could have typed it, so with Russian and Ukrainian both installed, «руддщ» (letters both layouts type) stays as it is; Phase 3 should try every layout that could have typed the word.
 - **Isolation.** Core's data types are `Sendable`. `LanguageDetector` and `LayoutCorrector` hold injected scorers, so they run where those scorers live: the main actor, since `NSSpellChecker` is main-thread-only.
 - **Detection module.** `LanguageDetector` is the separate detection module: its own folder and facade in Core, and it can become its own target when the LLM judge arrives.
 
@@ -304,6 +308,10 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
   - Header "RU → EN". The original is small (≤ 3 lines); the translation is large and selectable.
   - Footer: the engine that answered, plus why other engines were skipped; a Copy button (↩).
   - Liquid Glass on macOS 26+, `.regularMaterial` below.
+- **Settings window** (Stage 4): an AppKit window hosting SwiftUI tabs, as in SmartDock.
+  - General: permission status and Reset Permission.
+  - Shortcuts: read-only until Phase 3 makes them editable.
+  - About: version, author, links to GitHub and the Changelog, "Made with ❤ by Alex Karatai".
 - **Panel behavior:**
   - Esc closes it via `cancelOperation`. A click outside closes it via resign-key, plus a mouse monitor that exists only while the panel is visible.
   - `PanelPlacement`, a pure and tested function, places it at the cursor and keeps it inside the screen's `visibleFrame`.
@@ -349,7 +357,7 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
   - No SwiftPM resources. The generated `Bundle.module` looks for its bundle at the .app root (which breaks code signing) or at an absolute build path. So icons are SF Symbols, the app icon is generated by `scripts/generate-icon.swift` and copied in by `make app`, and translations are compiled from the String Catalog by `make app`.
 - **Signing.**
   - Releases are ad-hoc signed, as SmartDock's are. With ad-hoc signing, macOS drops the Accessibility grant on every update.
-  - For development, `make app SIGN_ID="<identity>"` signs with a stable "Apple Development" identity, so the grant survives rebuilds.
+  - Development builds are ad-hoc too (ADR-015). After a rebuild, the menu's Reset Permission restores the grant; `make app SIGN_ID="<identity>"` remains for a stable identity of your own, never a company's.
   - Hardened runtime and notarization come with a Developer ID (`make sign`).
   - Translation.framework is weak-linked (checked with `otool`), so the app still launches on macOS 14.
 - **Release.** `make bump` → tag → `release.yml` → GitHub Release → the Homebrew tap; see [DELIVERY.md](DELIVERY.md#release-and-distribution).
@@ -371,6 +379,7 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 | 012 | Seams at the process boundary: every call that leaves the process is a parameter whose default is the real thing | actions are unit-tested with recorders and no test touches the real clipboard or input source; proven on SmartDock, where an unseamed modal alert hung the suite | a protocol around every class; actions tested only end to end |
 | 013 | Makefile-driven release: `make bump` → tag → GitHub Release → Homebrew tap (cask + formula) | the same pipeline as SmartDock; the version lives in one place and release notes cannot be empty | a hand-rolled bundle script; manual tap updates |
 | 014 | The interface is English with a Russian translation and follows the language of macOS. Strings are `String(localized:)` with English keys, kept in a String Catalog that `make app` compiles; `make l10n-check` fails on a missing translation | the audience is wider than Russian speakers, and adding languages later is one catalog column. A missing translation cannot ship | Russian only, as in the original spec; English only; SwiftPM resources (`Bundle.module` breaks signing) |
+| 015 | Development builds are ad-hoc signed, like releases; Reset Permission (`tccutil`) recovers the Accessibility grant after a rebuild | the only Apple Development certificates on the dev machine belong to other teams and expire on 2026-10-20; a lost grant is one menu click to restore | signing with a company's certificate; a self-signed local certificate (revisit if re-granting becomes a burden) |
 
 ## Appendix — File layout
 ```
@@ -396,6 +405,7 @@ Sources/SmartTypeApp/
   Actions/{LayoutFixAction, TranslateAction}
   Panel/{FloatingPanel, PanelController, PanelPlacement, TranslationViewModel, TranslationView}
   Permissions/{AccessibilityPermission, PasteboardPermission, Onboarding}
+  Settings/{SettingsWindowController, GeneralView, ShortcutsView, AboutView}
   System/HotKeys/{KeyCombo, HotKeyCenter, CarbonHotKeyRegistrar}
   System/Keyboard/{KeystrokeSender, InputSourceSwitcher}
   System/Selection/{SelectionReader, AXSelectionReader, ClipboardSelectionReader,

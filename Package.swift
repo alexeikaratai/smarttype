@@ -27,6 +27,13 @@ let package = Package(
         .macOS(.v14)
     ],
     targets: [
+        // Pure decision logic: layouts, conversion, language detection, correction.
+        // Foundation only, no isolation, strict memory safety.
+        .target(
+            name: "SmartTypeCore",
+            path: "Sources/SmartTypeCore",
+            swiftSettings: strict + [.strictMemorySafety()]
+        ),
         // The AppKit shell as a library, so the test bundle can build a menu and read it back.
         // The executable keeps only `main.swift`.
         .target(
@@ -41,8 +48,14 @@ let package = Package(
             swiftSettings: strict + mainActorShell
         ),
         .testTarget(
+            name: "SmartTypeCoreTests",
+            dependencies: ["SmartTypeCore"],
+            path: "Tests/SmartTypeCoreTests",
+            swiftSettings: strict
+        ),
+        .testTarget(
             name: "SmartTypeAppTests",
-            dependencies: ["SmartTypeApp"],
+            dependencies: ["SmartTypeApp", "SmartTypeCore"],
             path: "Tests/SmartTypeAppTests",
             swiftSettings: strict + mainActorShell
         ),

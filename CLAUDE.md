@@ -182,7 +182,7 @@ make doctor / logs / actions-check            # environment check · live log ·
 swift test --filter <testName>                # one test
 ```
 
-`make app SIGN_ID="<identity>"` signs with a stable identity, so the Accessibility grant survives rebuilds while developing. Releases are ad-hoc signed, like SmartDock's.
+Builds are ad-hoc signed, for development as for releases (ADR-015), so macOS drops the Accessibility grant after every rebuild. From Stage 2b, the menu's «Reset Permission…» restores it. `make app SIGN_ID="<identity>"` signs with a stable identity of your own, never with a company's certificate.
 
 ## Version & Release
 
@@ -253,6 +253,24 @@ Keep this table current, as SmartDock does: one row per file, including the meas
 
 | File | Responsibility |
 |---|---|
+| `SmartTypeCore/Language/Language.swift` | A language: BCP 47 code and script (`.english`, `.russian`). |
+| `SmartTypeCore/Language/Script.swift` | The script of a letter, by Unicode block. Latin covers U+00C0–U+024F, so the "Ë" macOS types counts as Latin. |
+| `SmartTypeCore/Layouts/KeyStroke.swift` | A physical key, with or without Shift. `ansiKeyCodes` lists the 47 ANSI keys row by row, pinned to Carbon's `kVK_ANSI_*` by `ANSIKeyCodeTests`. |
+| `SmartTypeCore/Layouts/KeyboardLayout.swift` | One layout: TIS ID, language, the output of each key, and `alternatives` for what macOS really types when that differs. |
+| `SmartTypeCore/Layouts/BuiltIn/USQwerty.swift` | U.S.: 94 characters, measured with `UCKeyTranslate`. |
+| `SmartTypeCore/Layouts/BuiltIn/RussianPC.swift` | Russian – PC, measured with `UCKeyTranslate`. Shift+` types Latin "Ë" (U+00CB): the table says Cyrillic "Ё" (U+0401) and keeps "Ë" as an alternative. |
+| `SmartTypeCore/Layouts/KeyboardLayoutProvider.swift` | Where layouts come from: `BuiltInLayouts` now, the user's installed layouts in Phase 3. |
+| `SmartTypeCore/Layouts/LayoutConverter.swift` | Retypes text from one layout into another. Longest match first, for keys that type several characters; text no key types passes through. |
+| `SmartTypeCore/Detection/Plausibility.swift` | `impossible < unknown < likely < known`. |
+| `SmartTypeCore/Detection/WordScorer.swift` | One opinion on a word. Not `Sendable`, because a scorer may wrap a main-thread service. |
+| `SmartTypeCore/Detection/LanguageProfile.swift` | Data: the pairs and starts a language never uses. |
+| `SmartTypeCore/Detection/Profiles/English.swift` | Measured on `/usr/share/dict/words` (210,773 lowercase entries): 127 pairs in at most 5 entries, and 334 starts in none. Regenerated, never edited by hand. |
+| `SmartTypeCore/Detection/Profiles/Russian.swift` | Spelling rules, because macOS ships no Russian word list. жю and шю are allowed, for жюри and брошюра. |
+| `SmartTypeCore/Detection/PhonotacticScorer.swift` | `.impossible` on a forbidden start or pair, `.unknown` otherwise. |
+| `SmartTypeCore/Detection/LanguageDetector.swift` | The detection module: the dominant language by script (the translation direction), and a word's plausibility from the scorers. `known` beats `impossible`; otherwise the most pessimistic opinion wins. |
+| `SmartTypeCore/Correction/LayoutTokenizer.swift` | Words (runs of non-whitespace, punctuation attached) and whitespace, in one pass. |
+| `SmartTypeCore/Correction/LayoutCorrector.swift` | A word's source is the only layout that could have typed it. One source for the whole selection: convert it whole. Mixed sources: decide word by word, and a tie keeps the word. The target is the layout of the last converted word. |
+| `SmartTypeCore/Correction/Correction.swift` | The fixed text and the layout to switch to. |
 | `SmartType/main.swift` | Entry point: `NSApplication` plus a top-level `AppDelegate`. `delegate` is weak, so the top-level constant is what keeps it alive. No `setActivationPolicy`; `LSUIElement` lives in `Resources/Info.plist`. |
 | `SmartTypeApp/App/AppDelegate.swift` | Builds `AppComposition` in `applicationDidFinishLaunching`. |
 | `SmartTypeApp/App/AppComposition.swift` | Composition root. Registers every `AppCommand`'s default hotkey, collects refusals for the menu, and owns `perform(_:)`, the single entry point for every command (Stage 1: logs only). `stop()` lets a test take its status item down. |
@@ -303,7 +321,7 @@ Swift Testing (`@Suite`, `@Test`, `#expect`), with suites running in parallel.
 
 **Hotkeys.** Carbon `RegisterEventHotKey`, with ⌃⌥ defaults. Require ⌃ or ⌘ in a combination, because some macOS 15 builds reject combinations made only of ⌥ or ⌥⇧. Carbon reports no conflict with other apps' hotkeys.
 
-**Accessibility & TCC.** Ad-hoc signing changes the code hash on every build, and macOS silently drops the grant. Re-grant it, or run `tccutil reset Accessibility com.smarttype.app`. The prompt key is the literal `"AXTrustedCheckOptionPrompt"`: the C constant is imported as a `var`, which Swift 6 rejects.
+**Accessibility & TCC.** Ad-hoc signing changes the code hash on every build, and macOS silently drops the grant. Re-grant it with «Reset Permission…» (from Stage 2b), or run `tccutil reset Accessibility com.smarttype.app`. On macOS 27 that command needs no administrator password; this was measured while no entry existed, so measure again once one does. The prompt key is the literal `"AXTrustedCheckOptionPrompt"`: the C constant is imported as a `var`, which Swift 6 rejects.
 
 **Localization.**
 - The interface is English with a Russian translation, and follows the language of macOS. A person can pick a language per app in System Settings → General → Language & Region → Applications.
