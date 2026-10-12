@@ -64,7 +64,7 @@ It runs locally, needs no account, and does no work while idle.
 - There are no servers to pay for, so nothing has to be charged; a paid tier (open core, C) stays possible later for new work, since MIT does not stop it.
 
 **Distribution:**
-- Homebrew, through the author's tap, which SmartDock already uses: `brew install --cask alexeikaratai/tap/smarttype`.
+- Homebrew, through the author's tap, which SmartDock already uses: `brew install --cask alexeikaratai/tap/smarttype`, for Apple silicon (decided 2026-10-12: the release is built on an arm64 runner, and Intel Macs end at macOS 26). The formula builds from source.
 - Direct download from GitHub Releases.
 - Every tag publishes both automatically ([delivery plan](DELIVERY.md#release-and-distribution)).
 - Release assets must be downloadable, so the repository goes public before the first release.

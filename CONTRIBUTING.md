@@ -118,4 +118,4 @@ If the layout fix copies or pastes nothing, check Accessibility first; the hotke
 
 ## License
 
-MIT, decided on 2026-10-12; the LICENSE file arrives when the repository goes public, before the first release ([business plan](docs/BUSINESS.md#7-business-model-and-distribution)).
+MIT; see [LICENSE](LICENSE). Decided on 2026-10-12 ([business plan](docs/BUSINESS.md#7-business-model-and-distribution)).

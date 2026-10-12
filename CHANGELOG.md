@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Install with Homebrew:** `brew install --cask alexeikaratai/tap/smarttype` on a Mac with
+  Apple silicon and macOS 14 or later, or `brew install --formula alexeikaratai/tap/smarttype`
+  to build it from source with Xcode 26. SmartType is ad-hoc signed, so macOS drops its
+  Accessibility permission with each update, and «Grant Access…» in the menu gives it back.
+- SmartType is free and open source, under the MIT license.
 - **Both commands are in the right-click Services menu**: select text in a Mac app, then
   Services ▸ «SmartType: Fix Layout» or «SmartType: Translate». From there the fix replaces
   the text in place, with the app's own undo, and switches the keyboard; nothing goes

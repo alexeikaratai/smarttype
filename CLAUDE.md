@@ -169,14 +169,14 @@ The rules this codebase runs on. Each carries its reason, so the reason survives
 
 ## Build & Run
 
-The Makefile is the interface, mirroring SmartDock. The release targets (`changelog-check`, `release-notes`, `release`) join it in Stage 5 of [DELIVERY.md](docs/DELIVERY.md).
+The Makefile is the interface, mirroring SmartDock.
 
 ```bash
 make build / test / app / run / clean         # swift build -c release · swift test · bundle (ad-hoc) · open · clean
 make icon                                     # draw Resources/AppIcon.icns (make app redraws it when the script changes)
 make format / lint / coverage                 # swift-format apply · check (CI gates) · llvm-cov table
-make bump V=1.2.3 / version-check / release   # version everywhere · verify refs · build + zip + gh release (Stage 5)
-make changelog-check / release-notes          # this version's notes exist · print them (Stage 5)
+make bump V=1.2.3 / version-check / release   # version everywhere · verify refs · build + zip + gh release
+make changelog-check / release-notes          # this version's notes exist · print them
 make install / fix                            # copy to /Applications + refresh Services · xattr -cr + codesign
 make docs-check / footprint                   # links, anchors, file table · idle CPU, wakeups, memory of the running app
 make l10n / l10n-check                        # add new UI strings to the catalog · every string used and translated
@@ -196,26 +196,28 @@ Builds are ad-hoc signed, for development as for releases (ADR-015), so macOS dr
 
 Before the first release, `VERSION` is the version being built (`0.1.0`) and the CHANGELOG has no dated section yet. `version-check` reports that state as *unreleased* instead of failing, and the first `make bump V=0.1.0` opens the section.
 
-**Never delete `## [Unreleased]`.** `bump` opens the new section directly under it, so whatever accumulated there becomes the release notes. From Stage 5, `changelog-check` refuses a release whose notes are empty, and both `make release` and `release.yml` call it. *(SmartDock shipped two releases with empty notes before the check sat on both paths.)*
+**Never delete `## [Unreleased]`.** `bump` opens the new section directly under it, so whatever accumulated there becomes the release notes. `changelog-check` refuses a release whose notes are empty, and both `make release` and `release.yml` call it. *(SmartDock shipped two releases with empty notes before the check sat on both paths.)*
 
-**Releasing is the user's step** (the pipeline lands in Stage 5): `make bump V=x.y.z` → fill in the notes → commit → tag `vX.Y.Z` → push the tag. `release.yml` then runs:
+**Releasing is the user's step:** `make bump V=x.y.z` → fill in the notes → commit → merge `dev` into `main` → tag `vX.Y.Z` on `main` → push the tag. `release.yml` then runs:
 1. 🧪 Test.
 2. 🔨 Build: `make bump`, `changelog-check`, `release-notes`, `make app`, zip.
 3. 🎉 GitHub Release, with the CHANGELOG section as its body.
-4. 🍺 Homebrew. Over SSH with the `TAP_DEPLOY_KEY` secret, it updates `Casks/smarttype.rb` (zip + sha256) and `Formula/smarttype.rb` (source tarball + sha256) in `alexeikaratai/homebrew-tap`. It fails if a `sed` matched nothing.
+4. 🍺 Homebrew. Over SSH with the `TAP_DEPLOY_KEY` secret, it updates `Casks/smarttype.rb` (zip + sha256) and `Formula/smarttype.rb` (source tarball + sha256) in `alexeikaratai/homebrew-tap`. It fails if a download failed (`curl -f`: without it, GitHub's "Not Found" page is saved with exit 0 and its hash would go into the tap; measured) or a `sed` matched nothing.
 
-**Before the first release:**
-- Homebrew cannot download release assets of a **private** repository, so the repository must be public by then.
-- The deploy key and the tap's two files are created once, by hand.
+**Set up once, in Stage 5:**
+- The repository is public: Homebrew cannot download release assets of a private one, so it went public before the first tag.
+- The deploy key «smarttype release» has write access to the tap, and its private half is this repository's `TAP_DEPLOY_KEY` secret. The tap's two files were written by hand; the workflow only updates them.
+- The cask takes Apple silicon only (`depends_on arch: :arm64`, ADR-010), because the release is built on an arm64 runner. The formula runs `make app`, so it builds the same bundle a developer does.
 
 ## CI/CD
 
-`ci.yml` and `dependabot.yml` land with Stage 1; `release.yml` lands with the first release (Stage 5).
+`ci.yml` and `dependabot.yml` came with Stage 1, `release.yml` with Stage 5.
 - **`ci.yml`** (pushes to `main`/`dev`, PRs to `main`/`dev`, and manual runs):
   - Concurrency per branch, read-only permissions, SPM cache.
   - Then `version-check` → `docs-check` → `l10n-check` → `lint` → `coverage` → `swift build -c release` → `make app` + `codesign --verify --strict`.
+  - Then the bundle is launched on macOS 14 and 15 runners and must stay up for 5 s: nothing else ever starts it below the dev machine's macOS 27.
   - Lint runs before the tests and the build, so a formatting PR fails in seconds.
-- **`release.yml`** (a `v*` tag): as above.
+- **`release.yml`** (a `v*` tag): as above. Only the release job's token may write; the tap is pushed with its deploy key.
 - **`dependabot.yml`**: monthly grouped Actions bumps. There is no `swift` entry, because there are no SPM dependencies.
 
 Xcode is set through `env.XCODE_PATH` at workflow level, never inline. The runner and `XCODE_PATH` must agree, so check the runner image readme before bumping either. Actions are pinned by major version; `make actions-check` compares them to the latest.

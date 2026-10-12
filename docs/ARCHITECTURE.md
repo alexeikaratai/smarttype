@@ -383,8 +383,8 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
   - Releases are ad-hoc signed, as SmartDock's are. With ad-hoc signing, macOS drops the Accessibility grant on every update.
   - Development builds are ad-hoc too (ADR-015). After a rebuild, Grant Access restores the grant; `make app SIGN_ID="<identity>"` remains for a stable identity of your own, never a company's.
   - Hardened runtime and notarization come with a Developer ID (`make sign`, later).
-  - From Stage 3, Translation.framework is weak-linked (checked with `otool`), so the app still launches on macOS 14.
-- **Release** (Stage 5). `make bump` → tag → `release.yml` → GitHub Release → the Homebrew tap; see [DELIVERY.md](DELIVERY.md#release-and-distribution).
+  - Translation.framework is weak-linked, so the app still launches on macOS 14: `make app` fails if it ever is not (checked with `otool`), and CI launches the bundle on macOS 14 and 15.
+- **Release** (Stage 5). `make bump` → tag → `release.yml` → GitHub Release → the Homebrew tap, for Apple silicon (ADR-010); see [DELIVERY.md](DELIVERY.md#release-and-distribution).
 
 ## 11. Decision log
 | # | Decision | Why | Rejected alternative |
@@ -398,23 +398,23 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 | 007 | Apple Translation via `TranslationSession(installedSource:target:)`, macOS 26+ | no coupling to UI; testable on current macOS | a SwiftUI `.translationTask` bridge for macOS 15 |
 | 008 | Event-driven only | zero idle cost | timers, polling |
 | 009 | Swift 6 strict concurrency, warnings as errors | data-race safety, a clean codebase | Swift 5 mode |
-| 010 | Direct distribution (tentative) | the sandbox conflicts with synthetic input | the Mac App Store |
+| 010 | Direct distribution: GitHub Releases and the author's Homebrew tap, for Apple silicon (decided 2026-10-12) | the sandbox conflicts with synthetic input; the release is built on an arm64 runner and Intel Macs end at macOS 26, so the cask refuses an Intel Mac rather than install an app that cannot open, while the formula builds wherever it runs | the Mac App Store; a universal binary (measured: it builds, both slices for macOS 14; left until someone asks) |
 | 011 | Expose both commands as macOS Services | native right-click integration; the layout fix gets text in and out without the clipboard or Accessibility, with native undo | App Intents/Shortcuts only (needs user setup) |
 | 012 | Seams at the process boundary: every call that leaves the process is a parameter whose default is the real thing | actions are unit-tested with recorders and no test touches the real clipboard or input source; proven on SmartDock, where an unseamed modal alert hung the suite | a protocol around every class; actions tested only end to end |
 | 013 | Makefile-driven release: `make bump` → tag → GitHub Release → Homebrew tap (cask + formula) | the same pipeline as SmartDock; the version lives in one place and release notes cannot be empty | a hand-rolled bundle script; manual tap updates |
 | 014 | The interface is English with a Russian translation and follows the language of macOS. Strings are `String(localized:)` with English keys, kept in a String Catalog that `make app` compiles; `make l10n-check` fails on a missing translation | the audience is wider than Russian speakers, and adding languages later is one catalog column. A missing translation cannot ship | Russian only, as in the original spec; English only; SwiftPM resources (`Bundle.module` breaks signing) |
-| 015 | Development builds are ad-hoc signed, like releases; Grant Access (`tccutil`, then a relaunch) recovers the Accessibility grant after a rebuild | the only Apple Development certificates on the dev machine belong to other teams and expire on 2026-10-20; a lost grant is restored from Settings: confirm the reset, SmartType restarts, switch it back on | signing with a company's certificate; a self-signed local certificate (revisit if re-granting becomes a burden) |
+| 015 | Development builds are ad-hoc signed, like releases; Grant Access (`tccutil`, then a relaunch) recovers the Accessibility grant after a rebuild | one signature for development and releases, so what is tested is what ships; a stable identity has to be the project's own, and there is none before a Developer ID (v1.0); a lost grant comes back with Grant Access: SmartType restarts, and you switch it on in the list | signing with a certificate that is not the project's; a self-signed local certificate (revisit if re-granting becomes a burden) |
 | 016 | Shortcuts a person can change, stored per command in UserDefaults as `{keyCode, modifiers}` (`{}` for none, nothing for the default), under SmartType's own rules | Carbon registers nearly anything and reports no clash with other apps (measured), so the rules have to be ours; the default is never stored, so a later default reaches everyone who kept it; the format is frozen, since a change would lose every shortcut people set | `Codable` JSON with the key's label; a shortcut-recorder package (no dependencies, ADR-012 seams instead) |
 
 ## Appendix — File layout
 The target layout, including files later stages add. What exists today is CLAUDE.md's file table, which `make docs-check` keeps exact.
 ```
 Package.swift · Makefile · .swift-format · README.md · CHANGELOG.md · CONTRIBUTING.md · CLAUDE.md
-Resources/{Info.plist, Localizable.xcstrings} · scripts/{docs-check.swift, l10n-check.swift, generate-icon.swift} · LICENSE (Stage 5)
+Resources/{Info.plist, Localizable.xcstrings, ServicesMenu.xcstrings} · scripts/{docs-check.swift, l10n-check.swift, generate-icon.swift} · LICENSE
 .github/{workflows/ci.yml, workflows/release.yml, dependabot.yml, pull_request_template.md, ISSUE_TEMPLATE/}
 docs/BUSINESS.md · docs/ARCHITECTURE.md · docs/DELIVERY.md
 Sources/SmartTypeCore/
-  Language/{Language, Script}
+  Language/Language
   Layouts/{KeyStroke, KeyboardLayout, KeyboardLayoutProvider, LayoutConverter}
   Layouts/BuiltIn/{USQwerty, RussianPC}
   Detection/{Plausibility, WordScorer, LanguageProfile, PhonotacticScorer, LanguageDetector}
@@ -439,8 +439,8 @@ Sources/SmartTypeApp/
   System/HotKeys/{Key, KeyCombo, KeyPress, HotKeyStore, HotKeyRules, HotKeyBindings, HotKeyCenter,
                   CarbonHotKeyRegistrar}
   System/Keyboard/{KeystrokeSender, InputSourceSwitcher}
-  System/Selection/{SelectionReader, AXSelectionReader, ClipboardSelectionReader,
-                    ClipboardTransaction, PasteboardSnapshot}
+  System/Selection/{AXSelectionReader, ClipboardTransaction, PasteboardSnapshot}
+                   (with a third reader: SelectionReader, ClipboardSelectionReader; §5.2)
   System/Spelling/SpellCheckScorer
 Sources/SmartType/main.swift
 Tests/{SmartTypeCoreTests, SmartTypeEnginesTests, SmartTypeAppTests}

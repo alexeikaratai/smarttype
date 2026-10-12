@@ -1,0 +1,208 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Least privilege: only the release job writes, to publish the release. The tap is pushed with
+# its own deploy key, not with this token.
+permissions:
+  contents: read
+
+env:
+  XCODE_PATH: /Applications/Xcode_26.6.app
+
+jobs:
+
+  # ── Stage 1: Test ────────────────────────────────────────
+
+  test:
+    name: 🧪 Test
+    runs-on: macos-26
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+
+      - name: 🔧 Select Xcode
+        run: sudo xcode-select -s ${{ env.XCODE_PATH }}
+
+      - name: 📦 Restore SPM cache
+        uses: actions/cache@v6
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: 🧪 Run tests
+        run: swift test
+
+  # ── Stage 2: Build ───────────────────────────────────────
+
+  build:
+    name: 🔨 Build
+    runs-on: macos-26
+    needs: test
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+
+      - name: 🔧 Select Xcode
+        run: sudo xcode-select -s ${{ env.XCODE_PATH }}
+
+      - name: 📦 Restore SPM cache
+        uses: actions/cache@v6
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: 🏷️ Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # `make bump` is the one list of the files that carry the version, and it ends with
+      # `version-check`, so a stale reference fails the release instead of shipping.
+      - name: 📌 Update version in project files
+        run: make bump V=${{ steps.version.outputs.VERSION }}
+
+      # After `bump`, which opens this version's section when the tag's commit has none.
+      # SmartDock published two releases with empty notes before this check sat on this path.
+      - name: 📝 Verify release notes
+        run: make changelog-check
+
+      # Collected here, where `bump` has run: the release job has no checkout. `mkdir -p`
+      # because a fresh runner has no build/, where a developer's machine always has one.
+      - name: 📄 Collect release notes
+        run: |
+          mkdir -p build
+          make release-notes > build/notes.md
+
+      - name: 🔨 Build app bundle
+        run: make app
+
+      - name: 📦 Create release zip
+        run: cd build && zip -qr SmartType-${{ steps.version.outputs.VERSION }}.zip SmartType.app
+
+      - name: ⬆️ Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: SmartType-${{ steps.version.outputs.VERSION }}
+          # Both live under build/, so the download puts them side by side.
+          path: |
+            build/SmartType-${{ steps.version.outputs.VERSION }}.zip
+            build/notes.md
+
+  # ── Stage 3: GitHub Release ──────────────────────────────
+
+  release:
+    name: 🎉 Release
+    runs-on: macos-26
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+      - name: 🏷️ Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: ⬇️ Download artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: SmartType-${{ steps.version.outputs.VERSION }}
+
+      # The body is this version's CHANGELOG section, never generated notes: SmartDock's
+      # `--generate-notes` once published a bare compare link.
+      - name: 🎉 Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          TAG=${{ github.ref_name }}
+          ZIP=SmartType-${VERSION}.zip
+
+          if gh release view "${TAG}" --repo "${{ github.repository }}" &>/dev/null; then
+            echo "Release exists — uploading the zip and refreshing the notes"
+            gh release upload "${TAG}" "${ZIP}" --clobber --repo "${{ github.repository }}"
+            gh release edit "${TAG}" --repo "${{ github.repository }}" --notes-file notes.md
+          else
+            gh release create "${TAG}" "${ZIP}" \
+              --repo "${{ github.repository }}" \
+              --title "SmartType ${VERSION}" \
+              --notes-file notes.md
+          fi
+
+  # ── Stage 4: Homebrew Tap ────────────────────────────────
+
+  homebrew:
+    name: 🍺 Homebrew
+    runs-on: macos-26
+    needs: release
+
+    steps:
+      - name: 🏷️ Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: 🔑 Setup SSH
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.TAP_DEPLOY_KEY }}
+
+      - name: 🍺 Update Homebrew tap
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          REPO=${{ github.repository }}
+          ZIP_URL="https://github.com/${REPO}/releases/download/v${VERSION}/SmartType-${VERSION}.zip"
+          TAR_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
+
+          # Downloaded to files, then hashed. Without -f, curl saves GitHub's 9-byte "Not Found"
+          # and exits 0 (measured), and that hash would go into the tap; piped into shasum, a
+          # failure would hide anyway, since this shell has no pipefail. The retries wait for
+          # an asset GitHub does not serve yet.
+          curl -fsSL --retry 10 --retry-delay 3 --retry-all-errors -o release.zip "${ZIP_URL}"
+          curl -fsSL --retry 10 --retry-delay 3 --retry-all-errors -o source.tar.gz "${TAR_URL}"
+          ZIP_SHA=$(shasum -a 256 release.zip | cut -d' ' -f1)
+          TAR_SHA=$(shasum -a 256 source.tar.gz | cut -d' ' -f1)
+          echo "Cask SHA256:    ${ZIP_SHA}"
+          echo "Formula SHA256: ${TAR_SHA}"
+
+          TAP="${RUNNER_TEMP}/tap"
+          git clone git@github.com:alexeikaratai/homebrew-tap.git "${TAP}"
+          cd "${TAP}"
+
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/smarttype.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${ZIP_SHA}\"/" Casks/smarttype.rb
+          # The whole url line rather than a version inside it, which cannot drift as the url
+          # changes shape.
+          sed -i '' "s|^  url \".*\"|  url \"${TAR_URL}\"|" Formula/smarttype.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${TAR_SHA}\"/" Formula/smarttype.rb
+
+          # A sed that matches nothing is silent: SmartDock's formula kept an old url while its
+          # sha256 followed every release, and could not install at all. Fail instead.
+          for check in \
+            "Formula/smarttype.rb:v${VERSION}.tar.gz" \
+            "Formula/smarttype.rb:${TAR_SHA}" \
+            "Casks/smarttype.rb:version \"${VERSION}\"" \
+            "Casks/smarttype.rb:${ZIP_SHA}"; do
+            file="${check%%:*}"
+            needle="${check#*:}"
+            grep -qF "${needle}" "${file}" || {
+              echo "::error::${file} was not updated — expected to find: ${needle}"
+              exit 1
+            }
+          done
+
+          # A re-run for the same version finds nothing to commit.
+          if git diff --quiet; then
+            echo "The tap already points at v${VERSION}"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/smarttype.rb Formula/smarttype.rb
+          git commit -m "Update SmartType to v${VERSION}"
+          git push

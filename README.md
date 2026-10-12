@@ -6,9 +6,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-0.1.0-blue?style=flat-square" alt="Version 0.1.0"/>
-  <img src="https://img.shields.io/badge/status-in%20development-orange?style=flat-square" alt="Status: in development"/>
   <img src="https://img.shields.io/badge/macOS-14.0%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+"/>
   <img src="https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.2"/>
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT"/>
 </p>
 
 ---
@@ -17,9 +17,7 @@ SmartType lives in your menu bar and works in any app. Typed `ghbdtn` because th
 
 Everything runs on your Mac. There are no servers and no accounts, and while idle SmartType does no work at all.
 
-> **Status: in development.** SmartType already runs in the menu bar, both shortcuts are registered system-wide and can be changed in Settings, and **Settings…** (⌘,) shows the Accessibility permission (Device Control and Data Access on macOS 27), with Grant Access while it is missing, the translation languages, the shortcuts and About. **⌃⌥⇧L already fixes the selected text, and ⌃⌥⇧T translates it** (macOS 26+); the right-click Services work too, and Translate reads the selection through Accessibility where the app allows; polish comes next ([delivery plan](docs/DELIVERY.md#stages)).
-
-## ✨ Features (planned for v0.1)
+## ✨ Features
 
 | | Feature | Details |
 |---|---|---|
@@ -33,7 +31,9 @@ Everything runs on your Mac. There are no servers and no accounts, and while idl
 | 🌍 | **English and Russian** | The interface follows the language of macOS; pick another one per app in System Settings → General → Language & Region |
 | 🧩 | **Built to grow** | A new keyboard layout is one data file; translation engines plug in behind one protocol |
 
-## 📦 Installation (from the first release)
+## 📦 Installation
+
+SmartType runs on a Mac with Apple silicon and macOS 14 or later; translation needs macOS 26.
 
 ### From Homebrew
 
@@ -41,15 +41,28 @@ Everything runs on your Mac. There are no servers and no accounts, and while idl
 brew install --cask alexeikaratai/tap/smarttype
 ```
 
-After install, grant the Accessibility permission in **System Settings → Privacy & Security → Accessibility**, called **Device Control and Data Access** on macOS 27. SmartType's menu offers to open it.
+Then choose **Grant Access…** in SmartType's menu. It restarts and opens **System Settings → Privacy & Security → Accessibility** (**Device Control and Data Access** on macOS 27), where you switch SmartType on. SmartType is ad-hoc signed, so macOS drops the permission with every update; the same button gives it back.
+
+### From GitHub Release
+
+Download `SmartType-x.y.z.zip` from [Releases](https://github.com/alexeikaratai/smarttype/releases), unzip it and move `SmartType.app` to `/Applications`. The app is not notarized, so clear its quarantine flag before the first launch:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/SmartType.app
+open /Applications/SmartType.app
+```
 
 ### From Source
 
+With Xcode 26 or later:
+
 ```bash
-git clone git@github.com:alexeikaratai/smarttype.git
+git clone https://github.com/alexeikaratai/smarttype.git
 cd smarttype
 make run
 ```
+
+`brew install --formula alexeikaratai/tap/smarttype` builds the same bundle from a release's source.
 
 ## 📚 Documentation
 
@@ -64,7 +77,7 @@ make run
 
 ## 🛠️ Requirements
 
-- macOS 14.0+ (Sonoma) to **run**; on-device translation needs macOS 26+.
+- A Mac with Apple silicon and macOS 14.0+ (Sonoma) to **run** a release; on-device translation needs macOS 26+.
 - Swift 6.2+ to **build**: the package declares `swift-tools-version: 6.2`.
 - Xcode 26+. The Command Line Tools alone are not enough: they lack `xcstringstool`, which `make app` uses for the Russian strings.
 
@@ -74,4 +87,4 @@ make run
 
 ## 📄 License
 
-To be decided before the first public release.
+MIT License. See [LICENSE](LICENSE) for details.

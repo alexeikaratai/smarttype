@@ -1,4 +1,4 @@
-.PHONY: help build test clean icon app run install fix bump version-check docs-check footprint l10n l10n-check doctor actions-check logs format lint coverage
+.PHONY: help build test clean icon app run install fix bump version-check changelog-check release-notes release docs-check footprint l10n l10n-check doctor actions-check logs format lint coverage
 
 .DEFAULT_GOAL := help
 
@@ -20,12 +20,20 @@ SERVICES_CATALOG := Resources/ServicesMenu.xcstrings
 # Drawn by scripts/generate-icon.swift, never committed (*.icns is in .gitignore).
 ICON         := Resources/AppIcon.icns
 L10N_TMP     := .build/l10n
+# Extra flags for `swift build`. The Homebrew formula passes --disable-sandbox, as SmartDock's
+# does: SwiftPM sandboxes its own build steps, and Homebrew already builds inside a sandbox.
+SWIFT_BUILD_FLAGS ?=
+
+# Prints the body of `## [VERSION]` from the CHANGELOG, stopping at the next version's heading.
+# On one line, with every `#` escaped: in a variable assignment make reads `#` as a comment (a
+# recipe line does not), and a line continuation would land inside the awk program (SmartDock).
+CHANGELOG_SECTION = awk -v v='\#\# [$(VERSION)]' 'index($$0, v) == 1 { f = 1; next } /^\#\# \[/ { f = 0 } f' CHANGELOG.md
 
 # === Build ===
 
 build:
 	@echo "🔨 Building $(APP_NAME)..."
-	swift build -c release
+	swift build -c release $(SWIFT_BUILD_FLAGS)
 
 test:
 	@echo "🧪 Running tests..."
@@ -122,6 +130,11 @@ app: build l10n-check $(ICON)
 	@rm -rf $(APP_DIR)
 	@mkdir -p $(MACOS_DIR) $(RESOURCES)
 	cp $(BUILD_DIR)/$(APP_NAME) $(MACOS_DIR)/$(APP_NAME)
+	@# SmartType runs from macOS 14, and Translation's API starts at 15 (the SDK's interface), so
+	@# the framework stays weak-linked (measured): linked strongly, SmartType would not launch on
+	@# a macOS without it.
+	@otool -l $(MACOS_DIR)/$(APP_NAME) | grep -B3 'Translation.framework' | grep -q 'LC_LOAD_WEAK_DYLIB' || \
+		{ echo "❌ Translation.framework is linked strongly: SmartType would not launch without it"; exit 1; }
 	@plutil -lint Resources/Info.plist > /dev/null
 	cp Resources/Info.plist $(CONTENTS)/Info.plist
 	cp $(ICON) $(RESOURCES)/AppIcon.icns
@@ -241,6 +254,39 @@ version-check:
 		exit 1; \
 	fi
 
+# === Release ===
+# A tag's workflow (.github/workflows/release.yml) is the usual path; `release` does the same
+# from this Mac. Both publish this version's CHANGELOG section as the release notes.
+
+# Refuses a release whose notes were never written. `version-check` accepts an empty section,
+# because `bump` opens one before the notes exist; here it is fatal, and both paths call it:
+# SmartDock published two releases with empty notes while it lived inside `release` alone.
+changelog-check:
+	@if [ -z "$$($(CHANGELOG_SECTION) | tr -d '[:space:]')" ]; then \
+		echo "❌ CHANGELOG section [$(VERSION)] is empty — write the release notes first"; \
+		exit 1; \
+	fi
+	@echo "✅ CHANGELOG section [$(VERSION)] has notes"
+
+# This version's CHANGELOG section, the body a release is published with. The same awk as the
+# check, so the notes that are checked are the notes that ship.
+release-notes:
+	@$(CHANGELOG_SECTION)
+
+release: version-check app
+	@echo "🚀 Releasing v$(VERSION)..."
+	@# Before the clean-tree check, so missing notes do not cost a second commit.
+	@$(MAKE) --no-print-directory changelog-check
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "❌ Uncommitted changes — commit them, then run: make release"; \
+		exit 1; \
+	fi
+	cd build && rm -f $(APP_NAME)-$(VERSION).zip && zip -qr $(APP_NAME)-$(VERSION).zip $(APP_NAME).app
+	@$(MAKE) --no-print-directory release-notes > build/release-notes.md
+	gh release create v$(VERSION) build/$(APP_NAME)-$(VERSION).zip \
+		--title "$(APP_NAME) $(VERSION)" --notes-file build/release-notes.md
+	@echo "✅ Released v$(VERSION)"
+
 # === Checks ===
 
 # Every relative link and anchor in the Markdown resolves, and CLAUDE.md's file table lists
@@ -331,6 +377,9 @@ help:
 	@echo "  Version:"
 	@echo "    make bump V=1.2.3  Bump version everywhere (Makefile, Info.plist, README badge, CHANGELOG)"
 	@echo "    make version-check Verify all version references agree"
+	@echo "    make changelog-check  Fail when this version's CHANGELOG section is empty"
+	@echo "    make release-notes Print this version's CHANGELOG section"
+	@echo "    make release       Build, zip and publish a GitHub release (a v* tag does it in CI)"
 	@echo ""
 	@echo "  Localization:"
 	@echo "    make l10n          Add new UI strings to the catalog (then translate them)"

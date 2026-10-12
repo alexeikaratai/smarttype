@@ -92,3 +92,50 @@ jobs:
 
       - name: 🔏 Verify bundle signature
         run: codesign --verify --strict --verbose=2 build/SmartType.app
+
+      # Zipped: an artifact keeps no file modes (upload-artifact's README), and the binary
+      # would lose its executable bit on the way to the launch check.
+      - name: 📦 Zip the bundle for the launch check
+        run: cd build && zip -qr SmartType.zip SmartType.app
+
+      - name: ⬆️ Upload the bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: SmartType-app
+          path: build/SmartType.zip
+          retention-days: 1
+
+  # SmartType promises macOS 14 (LSMinimumSystemVersion), is built with macOS 26's SDK, and is
+  # developed on 27, so nothing else ever starts it on an older macOS. A framework or symbol
+  # missing there stops it before its first line runs; still alive after 5 s, it got through
+  # launch into its run loop. Drop 14 when GitHub retires that runner (deprecated in 2026).
+  launch:
+    name: 🚀 Launch on macOS ${{ matrix.macos }}
+    needs: test
+    runs-on: macos-${{ matrix.macos }}
+    strategy:
+      fail-fast: false
+      matrix:
+        macos: [14, 15]
+
+    steps:
+      - name: ⬇️ Download the bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: SmartType-app
+
+      - name: 🚀 Launch and stay up for 5 s
+        run: |
+          unzip -q SmartType.zip
+          SmartType.app/Contents/MacOS/SmartType > launch.log 2>&1 &
+          pid=$!
+          sleep 5
+          if ! kill -0 "${pid}" 2>/dev/null; then
+            status=0
+            wait "${pid}" || status=$?
+            cat launch.log
+            echo "::error::SmartType exited with status ${status} within 5 s on macOS ${{ matrix.macos }}"
+            exit 1
+          fi
+          kill "${pid}"
+          echo "SmartType ran for 5 s on macOS $(sw_vers -productVersion)"
