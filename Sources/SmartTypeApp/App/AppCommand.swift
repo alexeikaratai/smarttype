@@ -35,10 +35,21 @@ nonisolated enum AppCommand: CaseIterable, Sendable {
         }
     }
 
+    /// ⌃⌥⇧ rather than ⌃⌥ (decided 2026-10-12): one key more, so a stray press in another app is
+    /// less likely to fire it. A person can set their own in Settings ▸ Shortcuts.
     var defaultHotKey: KeyCombo {
         switch self {
-        case .fixLayout: KeyCombo(key: .l, modifiers: [.control, .option])
-        case .translate: KeyCombo(key: .t, modifiers: [.control, .option])
+        case .fixLayout: KeyCombo(key: .l, modifiers: [.control, .option, .shift])
+        case .translate: KeyCombo(key: .t, modifiers: [.control, .option, .shift])
+        }
+    }
+
+    /// The command's name in stored settings. Frozen: renaming a case must not lose the shortcut
+    /// a person set for it.
+    var storageName: String {
+        switch self {
+        case .fixLayout: "fixLayout"
+        case .translate: "translate"
         }
     }
 }

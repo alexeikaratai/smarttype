@@ -7,8 +7,9 @@ import SwiftUI
 final class SettingsWindowController: NSObject {
     private(set) var window: NSWindow?
     private(set) var accessibility: AccessibilityViewModel?
+    private(set) var shortcuts: ShortcutsViewModel?
 
-    private let shortcuts: [Shortcut]
+    private let hotKeys: HotKeyBindings
     private let permission: AccessibilityPermission
     private let info: AppInfo
     private let openURL: (URL) -> Void
@@ -16,14 +17,14 @@ final class SettingsWindowController: NSObject {
     private let relaunch: () -> Void
 
     init(
-        refusedHotKeys: Set<AppCommand>,
+        hotKeys: HotKeyBindings,
         permission: AccessibilityPermission = AccessibilityPermission(),
         info: AppInfo = AppInfo(),
         openURL: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
         present: @escaping (NSWindow) -> Void = { SettingsWindowController.bringToFront($0) },
         relaunch: @escaping () -> Void = { AppRelauncher.relaunch() }
     ) {
-        shortcuts = Shortcut.all(refused: refusedHotKeys)
+        self.hotKeys = hotKeys
         self.permission = permission
         self.info = info
         self.openURL = openURL
@@ -50,6 +51,8 @@ final class SettingsWindowController: NSObject {
     private func makeWindow() -> NSWindow {
         let accessibility = AccessibilityViewModel(permission: permission, relaunch: relaunch)
         self.accessibility = accessibility
+        let shortcuts = ShortcutsViewModel(bindings: hotKeys)
+        self.shortcuts = shortcuts
         let content = SettingsView(
             accessibility: accessibility, translation: TranslationSettingsModel(), shortcuts: shortcuts, info: info,
             openURL: openURL)
@@ -93,8 +96,11 @@ extension SettingsWindowController: NSWindowDelegate {
         accessibility?.refresh()
     }
 
+    /// A recording under way gives the hotkeys back before the window goes.
     func windowWillClose(_ notification: Notification) {
+        shortcuts?.stopRecording()
         window = nil
         accessibility = nil
+        shortcuts = nil
     }
 }

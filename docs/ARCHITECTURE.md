@@ -1,6 +1,6 @@
 # SmartType — Architecture
 
-**Status:** the target design. Built so far: the menu-bar shell and global hotkeys (Stage 1), the correction core (2a), the Settings window (2b), ⌃⌥L fixing the selection (2c–2d), and ⌃⌥T translating the selection in a panel (3a–3b). What each later stage adds is tracked in [DELIVERY.md](DELIVERY.md) and `CHANGELOG.md`.
+**Status:** the target design. Built so far: the menu-bar shell and global hotkeys (Stage 1), the correction core (2a), the Settings window (2b), Fix Layout fixing the selection (2c–2d), Translate translating it in a panel (3a–3b), and shortcuts a person can change (3c). What each later stage adds is tracked in [DELIVERY.md](DELIVERY.md) and `CHANGELOG.md`.
 **Scope:** the architecture of the MVP. AI integrations (local LLM translation and an LLM "judge") come in Phase 2; the extension points for them are reserved here.
 **Environment:** macOS 27, Xcode 27, Swift 6.4, Apple Silicon. Deployment target: macOS 14.
 **Companion docs:** [Business plan](BUSINESS.md) · [Delivery plan](DELIVERY.md)
@@ -10,7 +10,7 @@
 |---|---|
 | Idle cost | 0.0% CPU; no timers, polling or event taps; zero idle wakeups |
 | Memory | ≲ 40 MB idle footprint (17 MB until Settings is first opened, 34 MB with it open); the panel and engines are created lazily and the panel is reused |
-| Latency | ⌃⌥L completes ≲ 150 ms after the keys are released, plus the paste settle time |
+| Latency | Fix Layout completes ≲ 150 ms after the keys are released, plus the paste settle time |
 | Privacy | text never leaves the Mac and is never logged; the clipboard is restored; temporary pasteboard data is marked transient |
 | Reliability | never paste stale clipboard content; never overwrite a clipboard the user changed in the meantime |
 | Readability | one primary type per file (small companion types allowed); files ≲ 150 lines; names over comments |
@@ -18,7 +18,7 @@
 
 ## 2. System context
 ```
-┌──────┐   select text + ⌃⌥L / ⌃⌥T     ┌──────────────────────────────┐
+┌──────┐   select text + ⌃⌥⇧L / ⌃⌥⇧T   ┌──────────────────────────────┐
 │ User │ ─────────────────────────────► │ SmartType · menu-bar agent   │
 └──────┘ ◄────── panel / menu ───────── │ no Dock icon · idle 0% CPU   │
                                         └───────┬──────────────┬───────┘
@@ -82,7 +82,7 @@ Cross-target API uses `package` access, not `public`.
 ```
 AppDelegate
 └─ AppComposition (composition root; lives as long as the app)
-   ├─ HotKeyCenter ─────────┐
+   ├─ HotKeyBindings ───────┐   (HotKeyStore · HotKeyCenter)
    ├─ StatusBarController ──┴─► perform(AppCommand) ─┬─► LayoutFixAction.fixSelection()
    │                                                  └─► TranslateAction.translateSelection()
    ├─ TextServiceProvider ─────► LayoutFixAction.fix(text) · TranslateAction.translate(text)
@@ -98,7 +98,7 @@ AppDelegate
        ├─ FallbackTranslator: [AppleTranslationEngine]      (per card; Ollama joins in Phase 2)
        └─ PanelController (lazy) ── FloatingPanel ── TranslationView ◄ TranslationViewModel
 ```
-- **Entry points.** Hotkeys and the menu go through `AppCommand`, a single routing point that the future settings UI will rebind. The context menu calls the actions' text-based API.
+- **Entry points.** Hotkeys and the menu go through `AppCommand`, a single routing point that Settings ▸ Shortcuts rebinds. The context menu calls the actions' text-based API.
 - **One core operation per action.** Each action has a single core operation: `fix(text)` or `translate(text)`. The selection-based entry points wrap it.
 
 ## 4. Concurrency and isolation
@@ -126,12 +126,12 @@ AppDelegate
 
 ## 5. Key flows
 
-### 5.1 Fix layout (⌃⌥L)
+### 5.1 Fix layout (⌃⌥⇧L)
 ```
 User    Action        Clipboard         Front app     Core           TIS
- │ ⌃⌥L ─►│              │                 │             │              │
+ │ ⌃⌥⇧L─►│              │                 │             │              │
  │       │─ begin ─────►│ snapshot all    │             │              │
- │       │              │ wait ⌃⌥ release │             │              │
+ │       │              │ wait keys up    │             │              │
  │       │              │─ ⌘C ───────────►│             │              │
  │       │              │◄─ changeCount+1 │             │              │
  │       │◄─ "ghbdtn" ──│                 │             │              │
@@ -154,10 +154,10 @@ User    Action        Clipboard         Front app     Core           TIS
 - **Started from the menu:** the action starts after the menu closes, so the copy goes to the app the user was in.
 - **Pasteboard access (macOS 15.4+):** reading the general pasteboard's contents asks the person; `changeCount`, `types` and the detection calls do not (SDK). This path reads twice, the snapshot and the copied text, so the person allows SmartType once in Privacy & Security ▸ Paste from Other Apps (the pane's name, measured). Set to Deny, or a pasteboard that lists types without data, means SmartType does not borrow it: ⌘C would overwrite a clipboard it could not put back. An alert says where to allow it. The context-menu path (§5.4) needs neither this nor Accessibility.
 
-### 5.2 Translate (⌃⌥T)
+### 5.2 Translate (⌃⌥⇧T)
 ```
 User    Action         Selection          Panel        Translator    Engine
- │ ⌃⌥T ─►│               │                  │             │            │
+ │ ⌃⌥⇧T─►│               │                  │             │            │
  │       │─ close if open ─────────────────►│             │            │
  │       │─ read ───────►│ AX selected text │             │            │
  │       │               │ else ⌘C+restore  │             │            │
@@ -174,8 +174,8 @@ User    Action         Selection          Panel        Translator    Engine
   - Unpicked, the target is the first of the person's macOS languages the text is not in (`TranslationTarget`, Core): with English then Russian, Russian goes into English and English into Russian.
   - The source is recognized on the Mac (`SourceLanguage`, Engines). Sentences come back sure (1.00 for ru, de and fr); single words do not ("hello" 0.13, "привет" taken for Bulgarian at 0.53), so below 0.9 the person's languages go in as hints. A lone foreign word then reads as one of theirs, and Settings ▸ Translation lets them pick the source.
 - **The engine cannot be interrupted.** A cancelled translation runs to the end and only then throws: 13.8 s for about 1,800 characters (measured). Nothing waits for a dropped translation, and text over 2,000 characters is refused with a message.
-- **Dismissal and restarts.** Closing the panel drops its card, and a translation still running finishes into a card nobody shows. Pressing ⌃⌥T again closes the panel, copies the new selection and shows a new card. A card translates once.
-- **Availability.** On macOS < 26 the MVP has no engine: Translate «Перевести» stays in the menu greyed out, its tooltip saying "Needs macOS 26" «Нужна macOS 26», and ⌃⌥T beeps. Phase 2 adds Ollama for older systems.
+- **Dismissal and restarts.** Closing the panel drops its card, and a translation still running finishes into a card nobody shows. Pressing Translate's shortcut again closes the panel, copies the new selection and shows a new card. A card translates once.
+- **Availability.** On macOS < 26 the MVP has no engine: Translate «Перевести» stays in the menu greyed out, its tooltip saying "Needs macOS 26" «Нужна macOS 26», and its shortcut beeps. Phase 2 adds Ollama for older systems.
 - **The MVP chain has one engine.** `FallbackTranslator` is already the seam, so Phase 2 only adds an engine to the list.
 
 ### 5.3 Permissions
@@ -189,7 +189,7 @@ Settings ▸ General (2b): the status is read when the window opens and whenever
                                      │    (the same process's request is only checked, never listed; tccd log)
                                      └─ failed ─► alert with the command to run in Terminal
 
-⌃⌥L without the permission (2d) ─► alert: why SmartType needs it ─► Grant Access…
+Fix Layout without the permission (2d) ─► alert: why SmartType needs it ─► Grant Access…
    menu shows "⚠︎ Grant Access…" until trusted — checked on menu open, never polled
 
 pasteboard (macOS 15.4+): accessBehavior ─► .alwaysDeny, or types without data ─► don't borrow; alert:
@@ -310,7 +310,7 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 - **SwiftUI owns content.** Views are hosted by `NSHostingView` or `NSHostingController`, and their state lives in `@Observable` view models: the translation card's, and Settings' `AccessibilityViewModel` and `TranslationSettingsModel`.
 - **Menu** (English, with a Russian translation; ADR-014):
   - ⚠︎ Grant Access… «Разрешить доступ…», first, while Accessibility isn't granted.
-  - Fix Layout ⌃⌥L «Исправить раскладку», and Translate ⌃⌥T «Перевести» (from Stage 3 disabled on macOS < 26).
+  - Fix Layout «Исправить раскладку» and Translate «Перевести» (from Stage 3 disabled on macOS < 26), each with its shortcut beside it: ⌃⌥⇧L and ⌃⌥⇧T by default, nothing for a command left without one.
   - Keyboard Shortcuts «Настройки хоткеев», a submenu showing the current bindings, and Settings… «Настройки…» ⌘,.
   - Quit SmartType «Выход».
 - **Translation card:**
@@ -323,7 +323,7 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 - **Settings window** (2b): an AppKit window with SwiftUI content, laid out as SmartDock's: the app's icon, name, version and "Made with ❤ by Alex Karatai" on top, segmented tabs below. General, Translation and Shortcuts are grouped forms, as in System Settings. From macOS 26 the whole window is Liquid Glass, as the translation card is: a clear window over an `NSGlassEffectView`, which follows light and dark (SmartDock's HUD material did not); the standard background before it.
   - General: the Accessibility status, under the name the running macOS gives it (Device Control and Data Access from macOS 27), with Grant Access… and Reset Permission….
   - Translation: Translate from and Translate into, each Automatic or any language Apple's engine supports.
-  - Shortcuts: read-only until Phase 3 makes them editable.
+  - Shortcuts (3c): click a command's shortcut and press the new keys; Esc cancels, ⌫ leaves the command without one, ↺ brings the default back. While it records, the hotkeys are paused, or Carbon would take the keys before the window, and a local key monitor exists; neither outlives the recording, the window closing included. `HotKeyRules` refuses a combination without ⌃ (or ⌘ with ⌥), one macOS has switched on (`CopySymbolicHotKeys`) and the other command's; a clash with another app cannot be seen, and the tab says so.
   - About: version and build, what SmartType does, GitHub and Changelog links, "Made with ❤ by Alex Karatai".
   - `SettingsWindowController` builds the window when it opens and frees it, with its view model, when it closes; a test pins that nothing keeps them alive. Esc and ⌘W close it: an agent app has no main menu, so nothing else answers ⌘W, and the key is matched by key code, because with Russian – PC active it types "ц".
 - **Panel behavior:**
@@ -338,7 +338,7 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 | Functional core, imperative shell | Core decides, App performs effects | the tricky logic is deterministic and unit-tested |
 | Ports and adapters | protocols where they're consumed; macOS adapters in `System/` | C APIs (Carbon, TIS, AX, CGEvent) never leak into features |
 | Composition root + constructor injection | `AppComposition` | one place knows the concrete types; no singletons, no service locator |
-| Command | `AppCommand` from hotkeys and the menu | one routing point; future settings rebind commands, not code |
+| Command | `AppCommand` from hotkeys and the menu | one routing point; Settings rebinds commands, not code |
 | Strategy | `TranslationEngine`, `WordScorer`, `KeyboardLayoutProvider`, `SelectionReader` | swap behavior without touching callers |
 | Chain of responsibility | `FallbackTranslator`; selection readers (AX → clipboard) | ordered fallbacks that keep the reasons |
 | Facade | `LanguageDetector` over the scorers; `ClipboardTransaction` over the pasteboard and keystrokes | callers make one intention-revealing call |
@@ -395,6 +395,7 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 | 013 | Makefile-driven release: `make bump` → tag → GitHub Release → Homebrew tap (cask + formula) | the same pipeline as SmartDock; the version lives in one place and release notes cannot be empty | a hand-rolled bundle script; manual tap updates |
 | 014 | The interface is English with a Russian translation and follows the language of macOS. Strings are `String(localized:)` with English keys, kept in a String Catalog that `make app` compiles; `make l10n-check` fails on a missing translation | the audience is wider than Russian speakers, and adding languages later is one catalog column. A missing translation cannot ship | Russian only, as in the original spec; English only; SwiftPM resources (`Bundle.module` breaks signing) |
 | 015 | Development builds are ad-hoc signed, like releases; Reset Permission (`tccutil`) recovers the Accessibility grant after a rebuild | the only Apple Development certificates on the dev machine belong to other teams and expire on 2026-10-20; a lost grant is restored from Settings: confirm the reset, SmartType restarts, switch it back on | signing with a company's certificate; a self-signed local certificate (revisit if re-granting becomes a burden) |
+| 016 | Shortcuts a person can change, stored per command in UserDefaults as `{keyCode, modifiers}` (`{}` for none, nothing for the default), under SmartType's own rules | Carbon registers nearly anything and reports no clash with other apps (measured), so the rules have to be ours; the default is never stored, so a later default reaches everyone who kept it; the format is frozen, since a change would lose every shortcut people set | `Codable` JSON with the key's label; a shortcut-recorder package (no dependencies, ADR-012 seams instead) |
 
 ## Appendix — File layout
 The target layout, including files later stages add. What exists today is CLAUDE.md's file table, which `make docs-check` keeps exact.
@@ -424,8 +425,10 @@ Sources/SmartTypeApp/
          TranslationView, ProblemView, GlassStyle, Locale.Language+DisplayName}
   Permissions/{AccessibilityPermission, Onboarding}
   Settings/{SettingsWindowController, SettingsWindow, SettingsView, GeneralView, TranslationSettingsView,
-            ShortcutsView, AboutView, AccessibilityViewModel, TranslationSettingsModel, AppInfo}
-  System/HotKeys/{KeyCombo, HotKeyCenter, CarbonHotKeyRegistrar}
+            ShortcutsView, ShortcutField, AboutView, AccessibilityViewModel, TranslationSettingsModel,
+            ShortcutsViewModel, AppInfo}
+  System/HotKeys/{Key, KeyCombo, KeyPress, HotKeyStore, HotKeyRules, HotKeyBindings, HotKeyCenter,
+                  CarbonHotKeyRegistrar}
   System/Keyboard/{KeystrokeSender, InputSourceSwitcher}
   System/Selection/{SelectionReader, AXSelectionReader, ClipboardSelectionReader,
                     ClipboardTransaction, PasteboardSnapshot}

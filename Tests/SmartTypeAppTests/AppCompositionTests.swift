@@ -7,13 +7,29 @@ import Testing
     @Test func startingRegistersTheDefaultHotKeyOfEveryCommand() {
         _ = NSApplication.shared
         let registrar = RecordingRegistrar()
-        let composition = AppComposition(hotKeyRegistrar: registrar)
+        let composition = AppComposition(hotKeyRegistrar: registrar, hotKeyStore: .forTest(#function))
         defer { composition.stop() }
 
         composition.start()
 
         #expect(Set(registrar.registered.values) == Set(AppCommand.allCases.map(\.defaultHotKey)))
         #expect(composition.refusedHotKeys.isEmpty)
+    }
+
+    /// The shortcuts set in Settings come back with the next launch.
+    @Test func startingRegistersTheShortcutsThePersonSet() {
+        _ = NSApplication.shared
+        let store = HotKeyStore.forTest(#function)
+        let controlOptionK = KeyCombo(key: Key(code: 40), modifiers: [.control, .option])
+        store.set(controlOptionK, for: .fixLayout)
+        store.set(nil, for: .translate)
+        let registrar = RecordingRegistrar()
+        let composition = AppComposition(hotKeyRegistrar: registrar, hotKeyStore: store)
+        defer { composition.stop() }
+
+        composition.start()
+
+        #expect(Array(registrar.registered.values) == [controlOptionK])
     }
 
     /// The relaunch after a reset lands here: only a new process puts SmartType back in the
@@ -24,7 +40,7 @@ import Testing
         macOS.permission().asksAfterNextLaunch = true
         var presented = 0
         let composition = AppComposition(
-            hotKeyRegistrar: RecordingRegistrar(), permission: macOS.permission(),
+            hotKeyRegistrar: RecordingRegistrar(), hotKeyStore: .forTest(#function), permission: macOS.permission(),
             presentSettings: { _ in presented += 1 })
         defer { composition.stop() }
 
@@ -41,7 +57,7 @@ import Testing
         let macOS = PermissionRecorder()
         var presented = 0
         let composition = AppComposition(
-            hotKeyRegistrar: RecordingRegistrar(), permission: macOS.permission(),
+            hotKeyRegistrar: RecordingRegistrar(), hotKeyStore: .forTest(#function), permission: macOS.permission(),
             presentSettings: { _ in presented += 1 })
         defer { composition.stop() }
 
@@ -55,7 +71,7 @@ import Testing
         _ = NSApplication.shared
         let registrar = RecordingRegistrar()
         registrar.refused = [AppCommand.translate.defaultHotKey]
-        let composition = AppComposition(hotKeyRegistrar: registrar)
+        let composition = AppComposition(hotKeyRegistrar: registrar, hotKeyStore: .forTest(#function))
         defer { composition.stop() }
 
         composition.start()

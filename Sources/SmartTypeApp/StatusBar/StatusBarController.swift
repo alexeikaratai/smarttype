@@ -10,7 +10,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private let statusBar: NSStatusBar
     private let statusItem: NSStatusItem
     private let permission: AccessibilityPermission
-    private var refusedHotKeys: Set<AppCommand> = []
+    private var hotKeys: HotKeyBindings?
     private var perform: (AppCommand) -> Void = { _ in }
     private var openSettings: () -> Void = {}
 
@@ -26,9 +26,9 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     }
 
     func show(
-        refusedHotKeys: Set<AppCommand>, perform: @escaping (AppCommand) -> Void, openSettings: @escaping () -> Void
+        hotKeys: HotKeyBindings, perform: @escaping (AppCommand) -> Void, openSettings: @escaping () -> Void
     ) {
-        self.refusedHotKeys = refusedHotKeys
+        self.hotKeys = hotKeys
         self.perform = perform
         self.openSettings = openSettings
     }
@@ -37,10 +37,11 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         statusBar.removeStatusItem(statusItem)
     }
 
-    /// The permission is read here, as the menu opens, and never polled.
+    /// The permission and the shortcuts are read here, as the menu opens, and never polled.
     func menuNeedsUpdate(_ menu: NSMenu) {
         StatusMenu.fill(
-            menu, refusedHotKeys: refusedHotKeys, needsAccess: !permission.isGranted, perform: perform,
+            menu, shortcuts: hotKeys?.shortcuts ?? [:], refusedHotKeys: hotKeys?.refused ?? [],
+            needsAccess: !permission.isGranted, perform: perform,
             grantAccess: { [permission] in permission.requestAccess() }, openSettings: openSettings,
             quit: { NSApp.terminate(nil) })
     }

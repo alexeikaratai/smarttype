@@ -1,29 +1,22 @@
 import SwiftUI
 
-/// Settings ▸ Shortcuts: what each command is bound to. Read-only until Phase 3.
+/// Settings ▸ Shortcuts: each command's shortcut. Click one and press the new keys.
 struct ShortcutsView: View {
-    let shortcuts: [Shortcut]
+    let model: ShortcutsViewModel
 
     var body: some View {
         Form {
             Section {
-                ForEach(shortcuts) { shortcut in
-                    LabeledContent(shortcut.title) {
-                        HStack(spacing: 8) {
-                            if !shortcut.isRegistered {
-                                Text(
-                                    String(
-                                        localized: "not registered",
-                                        comment: "After a shortcut macOS refused to register")
-                                )
-                                .foregroundStyle(.red)
-                            }
-                            Text(verbatim: shortcut.keys)
-                                .monospaced()
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
-                        }
+                ForEach(AppCommand.allCases, id: \.self) { command in
+                    LabeledContent(command.title) {
+                        ShortcutField(command: command, model: model)
+                    }
+                    if model.recording == command, let problem = model.problem {
+                        Text(problem.message)
+                            .foregroundStyle(.red)
+                    } else if model.refused.contains(command) {
+                        Text(String(localized: "not registered", comment: "After a shortcut macOS refused to register"))
+                            .foregroundStyle(.red)
                     }
                 }
             } footer: {
@@ -36,26 +29,21 @@ struct ShortcutsView: View {
                     .foregroundStyle(.secondary)
                     Text(
                         String(
-                            localized: "Changing shortcuts comes in a later version",
-                            comment: "Shortcuts submenu and Settings ▸ Shortcuts")
+                            localized:
+                                "Click a shortcut, then press the new keys. Esc cancels; ⌫ leaves the command without one.",
+                            comment: "Settings ▸ Shortcuts: how to change a shortcut")
+                    )
+                    .foregroundStyle(.secondary)
+                    Text(
+                        String(
+                            localized:
+                                "Another app may listen for the same keys, and macOS does not say so. If a shortcut does nothing, pick another.",
+                            comment: "Settings ▸ Shortcuts: clashes with other apps go unreported")
                     )
                     .foregroundStyle(.tertiary)
                 }
             }
         }
-    }
-}
-
-/// One row of the list: a command, its keys, and whether macOS accepted them.
-struct Shortcut: Identifiable {
-    let command: AppCommand
-    let isRegistered: Bool
-
-    var id: AppCommand { command }
-    var title: String { command.title }
-    var keys: String { command.defaultHotKey.displayString }
-
-    static func all(refused: Set<AppCommand>) -> [Shortcut] {
-        AppCommand.allCases.map { Shortcut(command: $0, isRegistered: !refused.contains($0)) }
+        .onDisappear(perform: model.stopRecording)
     }
 }

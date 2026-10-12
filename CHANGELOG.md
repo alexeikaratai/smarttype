@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **⌃⌥T translates the selected text** in a panel next to the pointer, on the Mac itself:
+- **⌃⌥⇧T translates the selected text** in a panel next to the pointer, on the Mac itself:
   Apple's on-device translation, macOS 26 and later. The language of the text is
   recognized, and it goes into the first of your macOS languages it is not already in; to
   always translate from or into a language of your choice, pick it in Settings ▸
@@ -22,8 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SmartType has its own icon: one key with two legends, F and А, since the same key types
   either one depending on the layout, which is the very mix-up SmartType fixes. It shows in
   System Settings' permission lists, which had a blank square for it, and in Settings.
-- **⌃⌥L fixes the selected text.** Typed `ghbdtn` with the wrong layout on? Select it, press
-  ⌃⌥L, and it becomes `привет` in any app, the keyboard switching to the layout the text is
+- **⌃⌥⇧L fixes the selected text.** Typed `ghbdtn` with the wrong layout on? Select it, press
+  ⌃⌥⇧L, and it becomes `привет` in any app, the keyboard switching to the layout the text is
   now in. A whole selection typed in one layout is converted whole, punctuation included;
   mixed text is decided word by word, with the macOS dictionary as the judge, so
   «Привет, ghbdtn» becomes «Привет, привет». SmartType borrows the clipboard for the copy
@@ -38,8 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   update macOS can keep SmartType switched on in the list while the permission no longer
   works, and the reset clears that and restarts SmartType so that macOS lists it again,
   ready to be switched back on; Settings opens next to it to show the status, as in
-  SmartDock. Translation picks the languages ⌃⌥T translates from and into, Automatic
-  until you choose one. Shortcuts lists both commands and whether macOS accepted them; About shows the version, links to GitHub and the release notes, and
+  SmartDock. Translation picks the languages Translate works from and into, Automatic
+  until you choose one. Shortcuts shows both commands' shortcuts and whether macOS
+  accepted them; About shows the version, links to GitHub and the release notes, and
   "Made with ❤ by Alex Karatai". The window is built when it opens and freed when it
   closes, and SmartType still does no work while idle. Esc and ⌘W close it in any
   keyboard layout. On macOS 26 and later the window is Liquid Glass, as the translation
@@ -47,7 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in System Settings.
 - `make l10n-check` also refuses a bare SwiftUI `Text("…")`: its translation would come
   from a key the check cannot see, so a Russian window could show an English line.
-- SmartType runs in the menu bar, with no Dock icon. ⌃⌥L and ⌃⌥T are registered
+- **Shortcuts can be changed.** In Settings ▸ Shortcuts, click a command's shortcut and
+  press the new keys; Esc cancels, ⌫ leaves the command without one, and ↺ brings the
+  default back. A combination macOS itself uses, the other command's, or one without ⌃ (or
+  ⌘ together with ⌥) is refused with the reason, since ⌘ alone would take keys every app
+  uses. The menu shows your shortcuts, and they come back after a restart. The defaults are
+  ⌃⌥⇧L and ⌃⌥⇧T.
+- SmartType runs in the menu bar, with no Dock icon. Its shortcuts are registered
   system-wide and fire in any keyboard layout, because they are bound to physical keys,
   not letters. The menu lists both commands with their shortcuts, and Keyboard Shortcuts
   shows whether macOS accepted each one. While idle the app uses 0.0% CPU, and about 17 MB

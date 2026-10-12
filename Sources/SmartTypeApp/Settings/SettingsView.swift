@@ -5,7 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     let accessibility: AccessibilityViewModel
     let translation: TranslationSettingsModel
-    let shortcuts: [Shortcut]
+    let shortcuts: ShortcutsViewModel
     let info: AppInfo
     let openURL: (URL) -> Void
 
@@ -55,7 +55,7 @@ struct SettingsView: View {
         switch tab {
         case .general: GeneralView(accessibility: accessibility)
         case .translation: TranslationSettingsView(settings: translation)
-        case .shortcuts: ShortcutsView(shortcuts: shortcuts)
+        case .shortcuts: ShortcutsView(model: shortcuts)
         case .about: AboutView(info: info, openURL: openURL).padding([.horizontal, .bottom], 24)
         }
     }

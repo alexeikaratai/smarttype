@@ -13,8 +13,11 @@ import Testing
         defer { controller.remove() }
         var performed: [AppCommand] = []
         var settingsOpened = 0
-        controller.show(
-            refusedHotKeys: [.fixLayout], perform: { performed.append($0) }, openSettings: { settingsOpened += 1 })
+        let registrar = RecordingRegistrar()
+        registrar.refused = [AppCommand.fixLayout.defaultHotKey]
+        let hotKeys = HotKeyBindings(registrar: registrar, store: .forTest(#function))
+        hotKeys.apply()
+        controller.show(hotKeys: hotKeys, perform: { performed.append($0) }, openSettings: { settingsOpened += 1 })
         let menu = NSMenu()
 
         controller.menuNeedsUpdate(menu)
@@ -24,7 +27,7 @@ import Testing
         menu.performActionForItem(at: settings)
 
         let submenu = try #require(menu.items.first { $0.submenu != nil }?.submenu)
-        #expect(submenu.items.map(\.title).contains("Fix Layout  ⌃⌥L — not registered"))
+        #expect(submenu.items.map(\.title).contains("Fix Layout  ⌃⌥⇧L — not registered"))
         #expect(performed == [.translate])
         #expect(settingsOpened == 1)
     }
@@ -34,7 +37,9 @@ import Testing
         let macOS = PermissionRecorder()
         let controller = StatusBarController(permission: macOS.permission())
         defer { controller.remove() }
-        controller.show(refusedHotKeys: [], perform: { _ in }, openSettings: {})
+        controller.show(
+            hotKeys: HotKeyBindings(registrar: RecordingRegistrar(), store: .forTest(#function)), perform: { _ in },
+            openSettings: {})
         let menu = NSMenu()
 
         controller.menuNeedsUpdate(menu)

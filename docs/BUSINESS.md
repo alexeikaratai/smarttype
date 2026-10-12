@@ -24,8 +24,8 @@ It runs locally, needs no account, and does no work while idle.
 | Developers and writers who live in many apps | no friction, no resource hogs | native, 0% CPU while idle |
 
 ## 4. Value proposition
-- **Fix in one keystroke.** Select the text, press ⌃⌥L, done. The keyboard also switches to the right layout.
-- **Translate without switching apps.** ⌃⌥T shows the translation next to the cursor; Esc dismisses it.
+- **Fix in one keystroke.** Select the text, press ⌃⌥⇧L (or a shortcut of your own), done. The keyboard also switches to the right layout.
+- **Translate without switching apps.** ⌃⌥⇧T shows the translation next to the cursor; Esc dismisses it.
 - **Also in the right-click menu.** Both commands appear under Services («Службы») for selected text. From there, the layout fix replaces the text natively, without touching the clipboard.
 - **Private by design.** Translation runs on-device now (Apple); a local LLM comes later. No servers, no accounts, no telemetry. Whenever SmartType borrows the clipboard, it puts the user's content back.
 - **Feather-light and native.** Swift/AppKit, no Electron, nothing running while idle.
@@ -48,9 +48,9 @@ It runs locally, needs no account, and does no work while idle.
 ## 6. Product scope and roadmap
 | Phase | Scope | Exit criteria |
 |---|---|---|
-| **MVP (v0.1)** | ⌃⌥L layout fix (en↔ru); ⌃⌥T translation panel on Apple's on-device engine (macOS 26+); both commands in the right-click Services menu; menu bar; permission onboarding | works in TextEdit, Notes, Mail, Safari, VS Code, Telegram; the clipboard is always restored; idle CPU 0% |
+| **MVP (v0.1)** | ⌃⌥⇧L layout fix (en↔ru); ⌃⌥⇧T translation panel on Apple's on-device engine (macOS 26+); shortcuts a person can change (pulled forward from Phase 3 on 2026-10-12); both commands in the right-click Services menu; menu bar; permission onboarding | works in TextEdit, Notes, Mail, Safari, VS Code, Telegram; the clipboard is always restored; idle CPU 0% |
 | **Phase 2 — AI** | local LLM engine (Ollama, `qwen2.5:3b`) in front of the Apple engine; LLM judge for ambiguous words | the panel shows which engine answered; instant fallback when Ollama is down |
-| **Phase 3 — Auto mode** | Punto-style fixing while typing; the user's installed layouts (uk, he, ar…); hotkey settings | false-positive rate under target on a test corpus |
+| **Phase 3 — Auto mode** | Punto-style fixing while typing; the user's installed layouts (uk, he, ar…) | false-positive rate under target on a test corpus |
 | **v1.0** | launch at login, updates, notarized builds, polished onboarding, website | public release |
 
 ## 7. Business model and distribution (to decide)
@@ -92,8 +92,8 @@ The MVP ships without telemetry. Until opt-in analytics exist, these metrics com
 | macOS privacy hardening. The macOS 27 SDK says the general pasteboard **asks** on programmatic reads; TCC rules also change. | prompts annoy users or features break | read the selection through Accessibility first; offer the context-menu path, which needs no clipboard; clear onboarding |
 | Uneven Accessibility support (Electron, Java, terminals) | the selection can't be read | ⌘C fallback; an app compatibility test matrix |
 | Synthetic ⌘C/⌘V while the hotkey's ⌃⌥ are still held | the copy or paste silently fails | wait until the modifiers are released (proven by Espanso and Sorla) |
-| Editors that copy the whole line when nothing is selected (VS Code, JetBrains) | ⌃⌥L pastes a converted line | stop when Accessibility reports an empty selection; ⌘Z restores the text |
-| Hotkey conflicts. Carbon lets several apps share a combo without reporting an error, so both react. | confusing double actions | sensible defaults; registration errors shown in the menu; configurable hotkeys in Phase 3 |
+| Editors that copy the whole line when nothing is selected (VS Code, JetBrains) | the layout fix pastes a converted line | stop when Accessibility reports an empty selection; ⌘Z restores the text |
+| Hotkey conflicts. Carbon lets several apps share a combo without reporting an error, so both react. | confusing double actions | defaults with three modifiers (⌃⌥⇧); registration errors shown in the menu; shortcuts a person can change, which refuse those macOS uses |
 | Apple ships similar system features | weaker differentiation | focus on layout fixing, bilingual workflows and local AI |
 | Niche market | limited revenue | more languages (uk, he, ar), auto mode, a Pro tier |
 

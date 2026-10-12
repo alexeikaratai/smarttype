@@ -12,10 +12,13 @@ import Testing
     /// Never brings anything forward: a test must not put a window on the screen.
     private func settings(
         _ macOS: PermissionRecorder = PermissionRecorder(),
-        present: @escaping (NSWindow) -> Void = { _ in }
+        hotKeys: HotKeyBindings? = nil,
+        present: @escaping (NSWindow) -> Void = { _ in },
+        test: String = #function
     ) -> SettingsWindowController {
         SettingsWindowController(
-            refusedHotKeys: [], permission: macOS.permission(), openURL: { _ in }, present: present)
+            hotKeys: hotKeys ?? HotKeyBindings(registrar: RecordingRegistrar(), store: .forTest(test)),
+            permission: macOS.permission(), openURL: { _ in }, present: present)
     }
 
     @Test func showingTwiceBringsTheSameWindowForward() {
@@ -96,6 +99,21 @@ import Testing
         #expect(window.contentView is NSGlassEffectView)
         #expect(!window.isOpaque)
         #expect(window.backgroundColor == .clear)
+    }
+
+    /// A shortcut was being recorded, so the hotkeys were paused: closing gives them back.
+    @Test func closingWhileRecordingBringsTheHotKeysBack() throws {
+        let registrar = RecordingRegistrar()
+        let hotKeys = HotKeyBindings(registrar: registrar, store: .forTest(#function))
+        hotKeys.apply()
+        let controller = settings(hotKeys: hotKeys)
+        controller.show()
+        try #require(controller.shortcuts).startRecording(.fixLayout)
+        #expect(registrar.registered.isEmpty)
+
+        try #require(controller.window).close()
+
+        #expect(registrar.registered.count == AppCommand.allCases.count)
     }
 
     @Test func escapeClosesTheWindow() throws {

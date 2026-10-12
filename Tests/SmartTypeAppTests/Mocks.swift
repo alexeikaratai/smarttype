@@ -42,9 +42,7 @@ final class PermissionRecorder {
     private let defaults: UserDefaults
 
     init(test: String = #function, file: String = #fileID) {
-        let suite = "com.smarttype.tests.\(file).\(test)".replacingOccurrences(of: "/", with: ".")
-        defaults = UserDefaults(suiteName: suite) ?? UserDefaults()
-        defaults.removePersistentDomain(forName: suite)
+        defaults = .forTest(test, part: "permission", file: file)
     }
 
     func permission(bundleID: String = "com.smarttype.app") -> AccessibilityPermission {
@@ -162,11 +160,13 @@ actor FakeTranslationEngine: TranslationEngine {
 }
 
 extension TranslationChoices {
-    /// A defaults domain per test, emptied first and never the app's own.
     static func forTest(_ test: String, file: String = #fileID) -> TranslationChoices {
-        let suite = "com.smarttype.tests.\(file).\(test)".replacingOccurrences(of: "/", with: ".")
-        let defaults = UserDefaults(suiteName: suite) ?? UserDefaults()
-        defaults.removePersistentDomain(forName: suite)
-        return TranslationChoices(defaults: defaults)
+        TranslationChoices(defaults: .forTest(test, part: "translation", file: file))
+    }
+}
+
+extension HotKeyStore {
+    static func forTest(_ test: String, file: String = #fileID) -> HotKeyStore {
+        HotKeyStore(defaults: .forTest(test, part: "hotkeys", file: file))
     }
 }

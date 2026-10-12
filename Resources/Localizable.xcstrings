@@ -34,6 +34,28 @@
         }
       }
     },
+    "Already used by" : {
+      "comment" : "Settings ▸ Shortcuts: before the other command's name",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уже занято:"
+          }
+        }
+      }
+    },
+    "Another app may listen for the same keys, and macOS does not say so. If a shortcut does nothing, pick another." : {
+      "comment" : "Settings ▸ Shortcuts: clashes with other apps go unreported",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Другая программа может слушать те же клавиши, и macOS об этом не сообщает. Если сочетание не срабатывает, выберите другое."
+          }
+        }
+      }
+    },
     "Apple does not translate between these languages." : {
       "comment" : "Translation panel",
       "localizations" : {
@@ -67,6 +89,17 @@
         }
       }
     },
+    "Back to the default shortcut" : {
+      "comment" : "Settings ▸ Shortcuts: tooltip of the reset button",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуть сочетание по умолчанию"
+          }
+        }
+      }
+    },
     "Cancel" : {
       "comment" : "Button: close the alert",
       "localizations" : {
@@ -89,13 +122,13 @@
         }
       }
     },
-    "Changing shortcuts comes in a later version" : {
-      "comment" : "Shortcuts submenu and Settings ▸ Shortcuts",
+    "Click a shortcut, then press the new keys. Esc cancels; ⌫ leaves the command without one." : {
+      "comment" : "Settings ▸ Shortcuts: how to change a shortcut",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Изменение сочетаний — в следующей версии"
+            "value" : "Нажмите на сочетание, затем новые клавиши. Esc — отмена, ⌫ — оставить команду без сочетания."
           }
         }
       }
@@ -199,6 +232,17 @@
         }
       }
     },
+    "Hold ⌃, or ⌘ together with ⌥." : {
+      "comment" : "Settings ▸ Shortcuts: refused modifiers",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужна ⌃ или ⌘ вместе с ⌥."
+          }
+        }
+      }
+    },
     "If SmartType is switched on in System Settings but is still not allowed here, the permission went stale after an update: reset it." : {
       "comment" : "Settings ▸ General: when to reset",
       "localizations" : {
@@ -239,6 +283,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Нужна macOS 26"
+          }
+        }
+      }
+    },
+    "None" : {
+      "comment" : "Settings ▸ Shortcuts: a command without a shortcut",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет"
           }
         }
       }
@@ -397,6 +452,17 @@
         }
       }
     },
+    "Space" : {
+      "comment" : "The space bar, in a shortcut",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пробел"
+          }
+        }
+      }
+    },
     "The translation did not work. Try again." : {
       "comment" : "Translation panel",
       "localizations" : {
@@ -426,6 +492,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Работают в любом приложении и в любой раскладке."
+          }
+        }
+      }
+    },
+    "This key can’t be part of a shortcut." : {
+      "comment" : "Settings ▸ Shortcuts: refused key",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эта клавиша не подходит для сочетания."
           }
         }
       }
@@ -518,6 +595,17 @@
         }
       }
     },
+    "Type Shortcut…" : {
+      "comment" : "Settings ▸ Shortcuts: while recording",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите сочетание…"
+          }
+        }
+      }
+    },
     "Version" : {
       "comment" : "Settings ▸ About, before the version number",
       "localizations" : {
@@ -525,6 +613,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Версия"
+          }
+        }
+      }
+    },
+    "macOS already uses it." : {
+      "comment" : "Settings ▸ Shortcuts: a system shortcut",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это сочетание уже занято macOS."
           }
         }
       }

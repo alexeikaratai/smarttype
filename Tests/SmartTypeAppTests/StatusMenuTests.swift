@@ -10,7 +10,10 @@ import Testing
         _ = NSApplication.shared
     }
 
+    private static let defaults = Dictionary(uniqueKeysWithValues: AppCommand.allCases.map { ($0, $0.defaultHotKey) })
+
     private func filledMenu(
+        shortcuts: [AppCommand: KeyCombo] = Self.defaults,
         refused: Set<AppCommand> = [],
         needsAccess: Bool = false,
         perform: @escaping (AppCommand) -> Void = { _ in },
@@ -21,16 +24,36 @@ import Testing
     ) -> NSMenu {
         let menu = NSMenu()
         StatusMenu.fill(
-            menu, refusedHotKeys: refused, needsAccess: needsAccess, isAvailable: isAvailable, perform: perform,
-            grantAccess: grantAccess, openSettings: openSettings, quit: quit)
+            menu, shortcuts: shortcuts, refusedHotKeys: refused, needsAccess: needsAccess, isAvailable: isAvailable,
+            perform: perform, grantAccess: grantAccess, openSettings: openSettings, quit: quit)
         return menu
     }
 
     @Test(arguments: AppCommand.allCases)
     func everyCommandHasAnItemThatShowsItsHotKey(_ command: AppCommand) throws {
         let item = try #require(filledMenu().items.first { $0.title == command.title })
-        #expect(item.keyEquivalent == command.defaultHotKey.key.label.lowercased())
+        #expect(item.keyEquivalent == command.defaultHotKey.key.menuKeyEquivalent)
         #expect(item.keyEquivalentModifierMask == command.defaultHotKey.modifiers.eventFlags)
+    }
+
+    /// The shortcut the person set in Settings, not the default.
+    @Test func theMenuShowsTheShortcutThePersonSet() throws {
+        let f5 = KeyCombo(key: Key(code: 96), modifiers: [.control, .command])
+        let menu = filledMenu(shortcuts: [.fixLayout: f5, .translate: AppCommand.translate.defaultHotKey])
+        let item = try #require(menu.items.first { $0.title == AppCommand.fixLayout.title })
+
+        #expect(item.keyEquivalent == f5.key.menuKeyEquivalent)
+        #expect(item.keyEquivalentModifierMask == [.control, .command])
+    }
+
+    /// A command left without a shortcut is still in the menu, with no keys beside it.
+    @Test func aCommandWithoutAShortcutShowsNoKeys() throws {
+        let menu = filledMenu(shortcuts: [.fixLayout: AppCommand.fixLayout.defaultHotKey])
+        let item = try #require(menu.items.first { $0.title == AppCommand.translate.title })
+        let submenu = try #require(menu.items.first { $0.title == "Keyboard Shortcuts" }?.submenu)
+
+        #expect(item.keyEquivalent.isEmpty)
+        #expect(submenu.items.map(\.title).contains("Translate  None"))
     }
 
     @Test(arguments: AppCommand.allCases)
@@ -49,8 +72,8 @@ import Testing
         let submenu = try #require(menu.items.first { $0.title == "Keyboard Shortcuts" }?.submenu)
         let lines = submenu.items.map(\.title)
 
-        #expect(lines.contains("Fix Layout  ⌃⌥L"))
-        #expect(lines.contains("Translate  ⌃⌥T — not registered"))
+        #expect(lines.contains("Fix Layout  ⌃⌥⇧L"))
+        #expect(lines.contains("Translate  ⌃⌥⇧T — not registered"))
     }
 
     /// Before macOS 26 there is no engine: Translate stays in the menu, greyed out, saying why.
@@ -112,8 +135,8 @@ import Testing
         let count = menu.items.count
 
         StatusMenu.fill(
-            menu, refusedHotKeys: [], needsAccess: false, perform: { _ in }, grantAccess: {}, openSettings: {}, quit: {}
-        )
+            menu, shortcuts: Self.defaults, refusedHotKeys: [], needsAccess: false, perform: { _ in }, grantAccess: {},
+            openSettings: {}, quit: {})
 
         #expect(menu.items.count == count)
     }
