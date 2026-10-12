@@ -174,6 +174,7 @@ The Makefile is the interface, mirroring SmartDock.
 ```bash
 make build / test / app / run / clean         # swift build -c release · swift test · bundle (ad-hoc) · open · clean
 make icon                                     # draw Resources/AppIcon.icns (make app redraws it when the script changes)
+make shot                                     # redraw the README icon and Settings screenshot at this version (bump does it)
 make format / lint / coverage                 # swift-format apply · check (CI gates) · llvm-cov table
 make bump V=1.2.3 / version-check / release   # version everywhere · verify refs · build + zip + gh release
 make changelog-check / release-notes          # this version's notes exist · print them
@@ -193,6 +194,8 @@ Builds are ad-hoc signed, for development as for releases (ADR-015), so macOS dr
 - `Resources/Info.plist` (`CFBundleShortVersionString`, and `CFBundleVersion` +1);
 - the README badge (URL and alt text);
 - a dated section in `CHANGELOG.md`.
+
+The README's Settings screenshot shows the version too, so `bump` redraws it with `make shot`, except on CI, whose working copy is never committed.
 
 Before the first release, `VERSION` is the version being built (`0.1.0`) and the CHANGELOG has no dated section yet. `version-check` reports that state as *unreleased* instead of failing, and the first `make bump V=0.1.0` opens the section.
 
@@ -247,6 +250,7 @@ Carried over from SmartDock; they apply to any SwiftPM app built on this machine
 - **Give a literal its type inside `#expect` when comparing `CGFloat`.** `#expect(frame.maxX == 1400 - 12)` failed with both sides printed as 1388, the literal arithmetic having been typed as something else; `CGFloat(1400) - gap` passed (measured).
 - **`NSImage.lockFocus` draws at the screen's scale.** On a Retina Mac an icon PNG drawn that way comes out twice the size its name says. `scripts/generate-icon.swift` draws every size into an `NSBitmapImageRep` of exact pixels, checked with `sips` after `iconutil -c iconset`.
 - **Rebuilding the bundle under a running SmartType breaks its Accessibility.** `tccd` checks a request against the code on disk, not the running one: after `make app` replaced the bundle, every AX query was refused (`Failed to match existing code requirement`, `authValue=0` in tccd's log), while `AXIsProcessTrusted()` inside the running app still said yes, so Translate fell back to ⌘C everywhere (measured in 4c). After a rebuild, `make run` and Grant Access before checking anything that reads through Accessibility. A Homebrew upgrade quits the app first (`uninstall quit:`), so people never hit this.
+- **Git overwrites the ignored `docs/`.** Commits from before `docs/` went private (v0.1.0 and older) still track `docs/*.md`, and `git checkout` replaces ignored files without asking (`--overwrite-ignore` is its default): checking one out puts that commit's copies over the private documents, and switching back deletes them. On 2026-10-12, `git checkout main` before main had the change emptied `docs/` (measured). Commit in `docs/` first; `git -C docs restore .` then brings them back.
 - **Never call `setActivationPolicy(.accessory)`.** It can drop the status item at launch. `LSUIElement` in `Info.plist` is the only switch, so run the app through `make run`, not `swift run`.
 
 ## Architecture
@@ -362,6 +366,7 @@ Swift Testing (`@Suite`, `@Test`, `#expect`), with suites running in parallel.
 - A suite that triggers menu actions creates `NSApplication.shared` in its `init`. `performActionForItem` sends the action through `NSApp`, and without it a test passed or failed depending on which suite happened to run first (measured with a mutation).
 - Actions run against `FakeFrontApp` in `Mocks.swift`: the frontmost app on a private pasteboard, which copies its selection on ⌘C and records ⌘V. No test sends a real keystroke or touches the real clipboard.
 - A new guard is proven by mutation (step 9).
+- `ShotTool` draws the README's Settings screenshot and asserts nothing; it runs only with `SHOT_PATH` set (`make shot`), so `swift test` skips it. Off screen, the window's glass draws as a plain light surface and the translation panel's not at all (measured), so the panel's picture in the README is taken by hand.
 - Fakes live in each test target's `Mocks.swift`, and helpers such as `waitUntil` in `TestSupport.swift`, created when the first helper is needed. This mirrors SmartDock.
 
 ## Conventions

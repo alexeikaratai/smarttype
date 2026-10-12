@@ -13,8 +13,16 @@ struct AppInfo {
     let build: String
 
     init(bundle: Bundle = .main) {
-        version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-        build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        self.init(
+            version: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?",
+            build: bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?")
+    }
+
+    /// A version other than the running bundle's: the README screenshot is drawn by the test
+    /// bundle, whose own version means nothing.
+    init(version: String, build: String) {
+        self.version = version
+        self.build = build
     }
 
     /// "Version 0.1.0 (1)".

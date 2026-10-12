@@ -1,4 +1,4 @@
-.PHONY: help build test clean icon app run install fix bump version-check changelog-check release-notes release docs-check footprint l10n l10n-check doctor actions-check logs format lint coverage
+.PHONY: help build test clean icon app run install fix bump version-check changelog-check release-notes release shot docs-check footprint l10n l10n-check doctor actions-check logs format lint coverage
 
 .DEFAULT_GOAL := help
 
@@ -19,6 +19,9 @@ CATALOG      := Resources/Localizable.xcstrings
 SERVICES_CATALOG := Resources/ServicesMenu.xcstrings
 # Drawn by scripts/generate-icon.swift, never committed (*.icns is in .gitignore).
 ICON         := Resources/AppIcon.icns
+# The README's pictures: the icon at the top and Settings, whose header shows the version.
+SHOT         := assets/settings.png
+ICON_PNG     := assets/app-icon.png
 L10N_TMP     := .build/l10n
 # Extra flags for `swift build`. The Homebrew formula passes --disable-sandbox, as SmartDock's
 # does: SwiftPM sandboxes its own build steps, and Homebrew already builds inside a sandbox.
@@ -215,6 +218,14 @@ endif
 		echo "  📝 CHANGELOG: opened section [$(V)]"; \
 	fi
 	@$(MAKE) --no-print-directory version-check
+	@# The screenshot shows the version, so it is redrawn with it; SmartDock's, taken by hand,
+	@# went stale for five releases. Not on CI: the release workflow bumps in a working copy it
+	@# never commits, so a picture drawn there would be thrown away.
+	@if [ -n "$$CI" ]; then \
+		echo "  📸 README pictures skipped — CI does not keep its working copy"; \
+	else \
+		$(MAKE) --no-print-directory shot; \
+	fi
 	@echo "✅ Version: $(V), Build: $$(sed -n '/CFBundleVersion/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' Resources/Info.plist)"
 
 # Every version reference must match VERSION. Before the first release the CHANGELOG has
@@ -286,6 +297,18 @@ release: version-check app
 	gh release create v$(VERSION) build/$(APP_NAME)-$(VERSION).zip \
 		--title "$(APP_NAME) $(VERSION)" --notes-file build/release-notes.md
 	@echo "✅ Released v$(VERSION)"
+
+# === README pictures ===
+# The icon at the top of the README, and Settings at this version. Only the test bundle can build
+# the real window, so a test draws it (Tests/SmartTypeAppTests/ShotTool.swift), inert unless
+# SHOT_PATH is set. The same input gives the same bytes (measured for the icon), so a redraw
+# changes only what changed.
+shot: $(ICON)
+	@echo "📸 Drawing the README pictures at $(VERSION)..."
+	@mkdir -p assets
+	@sips -s format png -Z 256 $(ICON) --out $(ICON_PNG) > /dev/null
+	@SHOT_PATH=$(SHOT) SHOT_VERSION=$(VERSION) swift test --filter renderTheSettingsWindow > /dev/null
+	@echo "✅ $(SHOT) and $(ICON_PNG), v$(VERSION)"
 
 # === Checks ===
 
@@ -380,6 +403,7 @@ help:
 	@echo "    make changelog-check  Fail when this version's CHANGELOG section is empty"
 	@echo "    make release-notes Print this version's CHANGELOG section"
 	@echo "    make release       Build, zip and publish a GitHub release (a v* tag does it in CI)"
+	@echo "    make shot          Redraw the README icon and Settings screenshot (bump does it)"
 	@echo ""
 	@echo "  Localization:"
 	@echo "    make l10n          Add new UI strings to the catalog (then translate them)"
