@@ -34,6 +34,7 @@ make coverage   # run tests and print a per-file coverage table
 make app        # build + ad-hoc signed .app bundle
 make docs-check # links, anchors and the CLAUDE.md file table match the repository
 make l10n       # add new UI strings to the translation catalog
+make shot       # redraw the README icon and Settings screenshot (make bump does it)
 make logs       # stream live logs (subsystem com.smarttype.app)
 ```
 

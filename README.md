@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/app-icon.png" width="128" alt="SmartType icon"/>
+</p>
+
 <h1 align="center">SmartType</h1>
 
 <p align="center">
@@ -24,6 +28,12 @@ A menu-bar app. Select text anywhere and press a shortcut:
 - **Right-click → Services** has both commands too. From there, Fix Layout replaces the text in place with the app's own undo, and needs neither the clipboard nor any permission.
 - **Settings** (⌘, in the menu): your own shortcuts, the translation languages, and the Accessibility status.
 - **English and Russian** interface, following the language of macOS.
+
+## 📸 Screenshot
+
+<p align="center">
+  <img src="assets/settings.png" width="460" alt="SmartType Settings"/>
+</p>
 
 ## 📦 Install
 

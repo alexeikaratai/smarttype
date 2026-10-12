@@ -174,6 +174,7 @@ The Makefile is the interface, mirroring SmartDock.
 ```bash
 make build / test / app / run / clean         # swift build -c release · swift test · bundle (ad-hoc) · open · clean
 make icon                                     # draw Resources/AppIcon.icns (make app redraws it when the script changes)
+make shot                                     # redraw the README icon and Settings screenshot at this version (bump does it)
 make format / lint / coverage                 # swift-format apply · check (CI gates) · llvm-cov table
 make bump V=1.2.3 / version-check / release   # version everywhere · verify refs · build + zip + gh release
 make changelog-check / release-notes          # this version's notes exist · print them
@@ -193,6 +194,8 @@ Builds are ad-hoc signed, for development as for releases (ADR-015), so macOS dr
 - `Resources/Info.plist` (`CFBundleShortVersionString`, and `CFBundleVersion` +1);
 - the README badge (URL and alt text);
 - a dated section in `CHANGELOG.md`.
+
+The README's Settings screenshot shows the version too, so `bump` redraws it with `make shot`, except on CI, whose working copy is never committed.
 
 Before the first release, `VERSION` is the version being built (`0.1.0`) and the CHANGELOG has no dated section yet. `version-check` reports that state as *unreleased* instead of failing, and the first `make bump V=0.1.0` opens the section.
 
@@ -363,6 +366,7 @@ Swift Testing (`@Suite`, `@Test`, `#expect`), with suites running in parallel.
 - A suite that triggers menu actions creates `NSApplication.shared` in its `init`. `performActionForItem` sends the action through `NSApp`, and without it a test passed or failed depending on which suite happened to run first (measured with a mutation).
 - Actions run against `FakeFrontApp` in `Mocks.swift`: the frontmost app on a private pasteboard, which copies its selection on ⌘C and records ⌘V. No test sends a real keystroke or touches the real clipboard.
 - A new guard is proven by mutation (step 9).
+- `ShotTool` draws the README's Settings screenshot and asserts nothing; it runs only with `SHOT_PATH` set (`make shot`), so `swift test` skips it. Off screen, the window's glass draws as a plain light surface and the translation panel's not at all (measured), so the panel's picture in the README is taken by hand.
 - Fakes live in each test target's `Mocks.swift`, and helpers such as `waitUntil` in `TestSupport.swift`, created when the first helper is needed. This mirrors SmartDock.
 
 ## Conventions
