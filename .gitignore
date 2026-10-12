@@ -9,3 +9,6 @@ Package.resolved
 # Written by the CI coverage step (`make coverage | tee coverage.txt`)
 coverage.txt
 .claude/settings.json
+
+# The design docs: the private repository alexeikaratai/smarttype-docs, cloned here
+/docs/

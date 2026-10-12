@@ -31,7 +31,7 @@ make format && make lint && make docs-check && make test && make app
       input source or Accessibility state
 - [ ] Version was **not** changed: it is bumped at release, with `make bump V=x.y.z`
 - [ ] `CHANGELOG.md` updated under `## [Unreleased]` for anything user-visible
-- [ ] `CLAUDE.md` / `docs/` / `README.md` updated if this changes architecture, commands or behaviour
+- [ ] `CLAUDE.md` / `README.md` updated if this changes architecture, commands or behaviour
 
 ### If this PR touches CI or the toolchain
 

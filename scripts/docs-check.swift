@@ -1,7 +1,9 @@
 // Keeps the documentation honest. Run by `make docs-check` and by CI.
 //
 //  1. Every relative Markdown link points to a file that exists, and every `#anchor`
-//     to a heading in that file, using GitHub's slug rules.
+//     to a heading in that file, using GitHub's slug rules. docs/ is a private repository
+//     cloned in place: its documents are checked where it exists, and CI, which has none,
+//     checks the public ones, which therefore name docs/ by path and never link into it.
 //  2. CLAUDE.md's file table lists exactly the Swift files under Sources/: a file added
 //     without a row, or a row left behind by a deleted file, fails the build.
 

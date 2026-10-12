@@ -4,7 +4,7 @@ Project instructions for Claude Code. Follow these exactly.
 
 SmartType is a macOS menu-bar assistant. ⌃⌥⇧L fixes text typed in the wrong keyboard layout; ⌃⌥⇧T translates the selection in a floating panel; a person can set other shortcuts in Settings, and both commands are also macOS Services in the right-click menu.
 
-The design lives in `docs/`: [business](docs/BUSINESS.md), [architecture](docs/ARCHITECTURE.md), [delivery](docs/DELIVERY.md). This file is *how* the work is done; the architecture is *what* is built. When the two disagree, reconcile them before writing code.
+The design lives in `docs/`: `BUSINESS.md`, `ARCHITECTURE.md` and `DELIVERY.md`. It is the private repository `alexeikaratai/smarttype-docs`, cloned into `docs/` and ignored here, so this file names it by path, never by link: the public repository and CI do not have it. This file is *how* the work is done; the architecture is *what* is built. When the two disagree, reconcile them before writing code.
 
 The conventions mirror SmartDock (`~/work/smartdock`), the author's other menu-bar app: the same process, the same Makefile-driven release and the same Homebrew tap. A lesson carried over from there is marked *(SmartDock)*.
 
@@ -14,11 +14,11 @@ One task at a time, carried through these steps in order. A step is not done bec
 
 ### 0. Before a stage starts
 
-A stage of [DELIVERY.md](docs/DELIVERY.md) starts only when all of these hold. If one does not, say which:
+A stage of `docs/DELIVERY.md` starts only when all of these hold. If one does not, say which:
 - The previous stage is committed, its CI run is green, and the user confirmed its manual checklist.
 - The working tree is clean.
-- Every open question in [BUSINESS.md §11](docs/BUSINESS.md#11-open-questions-for-review) that changes this stage's scope has an answer. Stage 3, for example, depends on questions 1, 2 and 6.
-- The stage row and the [ARCHITECTURE.md](docs/ARCHITECTURE.md) sections it touches have just been read again, not recalled.
+- Every open question in `docs/BUSINESS.md` §11 that changes this stage's scope has an answer. Stage 3, for example, depends on questions 1, 2 and 6.
+- The stage row and the `docs/ARCHITECTURE.md` sections it touches have just been read again, not recalled.
 
 ### 1. Understand the task
 
@@ -37,7 +37,7 @@ State plainly which claims are measured and which are knowledge. "I believe" and
 
 What the change is, which files it touches, what could break, and what stays out of scope. Where there is a real choice, give options with a recommendation, not a survey.
 
-**Acceptance first.** Where the spec or [DELIVERY.md](docs/DELIVERY.md) names an expected result (`yfgbcfk` → `написал`), it becomes a test before the code that makes it pass.
+**Acceptance first.** Where the spec or `docs/DELIVERY.md` names an expected result (`yfgbcfk` → `написал`), it becomes a test before the code that makes it pass.
 
 ### 4. Challenge the plan, then get a decision
 
@@ -46,7 +46,7 @@ Before writing code, attack the plan:
 - Which call sites does it not mention?
 - What would a user see that they did not ask for?
 
-Revise it. Then wait for a decision on anything that changes behaviour users rely on or departs from [ARCHITECTURE.md](docs/ARCHITECTURE.md). A departure is recorded there as an ADR.
+Revise it. Then wait for a decision on anything that changes behaviour users rely on or departs from `docs/ARCHITECTURE.md`. A departure is recorded there as an ADR.
 
 Steps 1–4 end in one visible **brief**, shown before any code is written:
 
@@ -132,13 +132,13 @@ Never add a `Co-Authored-By` trailer. Bumping, committing, tagging and releasing
 - [ ] `make lint`, `make test` (new guards proven by mutation), `make coverage` (read, not just run), `make app` — and every other target that does not change the machine.
 - [ ] `make docs-check` passes. The CHANGELOG, the file table and `docs/` describe what was built.
 - [ ] The live check is done and the user has confirmed the manual checklist; the machine is put back.
-- [ ] When the stage changed what runs, the idle cost is re-measured with `make footprint` against [ARCHITECTURE.md §1](docs/ARCHITECTURE.md#1-goals-and-quality-attributes).
+- [ ] When the stage changed what runs, the idle cost is re-measured with `make footprint` against `docs/ARCHITECTURE.md` §1.
 - [ ] The reconciliation and file-by-file report are given, and the user has committed.
 - [ ] CI is green on `dev`.
 
 ## Principles
 
-The rules this codebase runs on. Each carries its reason, so the reason survives the next refactor. A change that breaks one is a change to the design: record it as an ADR in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The rules this codebase runs on. Each carries its reason, so the reason survives the next refactor. A change that breaks one is a change to the design: record it as an ADR in `docs/ARCHITECTURE.md`.
 
 **One execution path.** Hotkeys, the menu and macOS Services are front doors into one core operation per action: `LayoutFixAction.fix(text)` and `TranslateAction.translate(text)`. A new input adds a door, not a behaviour. *(SmartDock: four front doors, one `performCommand`.)*
 
@@ -204,6 +204,8 @@ Before the first release, `VERSION` is the version being built (`0.1.0`) and the
 3. 🎉 GitHub Release, with the CHANGELOG section as its body.
 4. 🍺 Homebrew. Over SSH with the `TAP_DEPLOY_KEY` secret, it updates `Casks/smarttype.rb` (zip + sha256) and `Formula/smarttype.rb` (source tarball + sha256) in `alexeikaratai/homebrew-tap`. It fails if a download failed (`curl -f`: without it, GitHub's "Not Found" page is saved with exit 0 and its hash would go into the tap; measured) or a `sed` matched nothing.
 
+The workflow's own `make bump` adds one to the build number again, so a release ships one build above its commit (v0.1.0: build 3, committed 2; measured), as SmartDock's releases do.
+
 **Set up once, in Stage 5:**
 - The repository is public: Homebrew cannot download release assets of a private one, so it went public before the first tag.
 - The deploy key «smarttype release» has write access to the tap, and its private half is this repository's `TAP_DEPLOY_KEY` secret. The tap's two files were written by hand; the workflow only updates them.
@@ -249,7 +251,7 @@ Carried over from SmartDock; they apply to any SwiftPM app built on this machine
 
 ## Architecture
 
-[ARCHITECTURE.md](docs/ARCHITECTURE.md) is the source of truth for modules, flows, patterns and ADRs. Modules are split by isolation domain:
+`docs/ARCHITECTURE.md` is the source of truth for modules, flows, patterns and ADRs. Modules are split by isolation domain:
 - `SmartTypeCore`: pure logic, nonisolated.
 - `SmartTypeEngines`: nonisolated async.
 - `SmartTypeApp`: `@MainActor` by default.
@@ -374,7 +376,7 @@ Swift Testing (`@Suite`, `@Test`, `#expect`), with suites running in parallel.
 
 **Hotkeys.** Carbon `RegisterEventHotKey`. The defaults are ⌃⌥⇧L and ⌃⌥⇧T, one key more than ⌃⌥ so a stray press in another app is less likely (decided 2026-10-12), and a person sets their own in Settings ▸ Shortcuts. A shortcut needs ⌃, or ⌘ together with ⌥: ⌘ alone would take keys every app uses, and some macOS 15 builds reject combinations made only of ⌥ or ⌥⇧. Carbon registers nearly anything and reports no conflict with other apps' hotkeys (measured), so `HotKeyRules` refuses the shortcuts macOS uses and the other command's; a clash with another app cannot be seen, and Settings says so. While a shortcut is recorded the hotkeys are paused, or Carbon would take the keys first.
 
-**Accessibility & TCC.** macOS 27 renamed the Privacy & Security row: Accessibility is now Device Control and Data Access («Управление устройством и доступ к данным»), measured in System Settings' own string tables. The API, the TCC service (`tccutil reset Accessibility`) and the `Privacy_Accessibility` deep link did not change, so only text does: the UI names the row as the running macOS does (`AccessibilityPermission.settingName`), and code and docs keep saying Accessibility. After `tccutil reset`, a request from the same running process is only checked (tccd: `authValue=1`, `authReason=5`) and SmartType does not reappear in the list, so a reset ends in a relaunch (measured). Ad-hoc signing changes the code hash on every build, and macOS silently drops the grant. Re-grant it with Grant Access…, which clears the entry and restarts, or run `tccutil reset Accessibility com.smarttype.app`. On macOS 27 that command needs no administrator password, with or without an entry: measured from the app on a stale grant after a rebuild (exit 0; a command-line tool cannot ask for a password, so it would have failed instead). The prompt key is the literal `"AXTrustedCheckOptionPrompt"`: the C constant is imported as a `var`, which Swift 6 rejects.
+**Accessibility & TCC.** macOS 27 renamed the Privacy & Security row: Accessibility is now Device Control and Data Access («Управление устройством и доступ к данным»), measured in System Settings' own string tables. The API, the TCC service (`tccutil reset Accessibility`) and the `Privacy_Accessibility` deep link did not change, so only text does: the UI names the row as the running macOS does (`AccessibilityPermission.settingName`), and code and docs keep saying Accessibility. After `tccutil reset`, a request from the same running process is only checked (tccd: `authValue=1`, `authReason=5`) and SmartType does not reappear in the list, so a reset ends in a relaunch (measured). Ad-hoc signing changes the code hash on every build, and macOS silently drops the grant. Re-grant it with Grant Access…, which clears the entry and restarts, or run `tccutil reset Accessibility com.smarttype.app`. `tccutil` finds the app through LaunchServices: with no bundle registered under the ID it fails with −10814 (measured in Stage 5, between removing one build and installing the next), while Grant Access runs it from the running app, whose bundle is registered. On macOS 27 that command needs no administrator password, with or without an entry: measured from the app on a stale grant after a rebuild (exit 0; a command-line tool cannot ask for a password, so it would have failed instead). The prompt key is the literal `"AXTrustedCheckOptionPrompt"`: the C constant is imported as a `var`, which Swift 6 rejects.
 
 **Pasteboard.** Since macOS 15.4, reading the general pasteboard's contents asks the person, while `changeCount`, `types` and the detection calls do not (SDK headers). The setting lives in Privacy & Security ▸ Paste from Other Apps («Вставка из других приложений»), and macOS warns that a change may need the app relaunched (both measured in System Settings' own strings). Never read contents to find out whether something changed: compare `changeCount`, then check `types`.
 

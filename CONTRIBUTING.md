@@ -2,8 +2,6 @@
 
 Thanks for taking the time to help. This document covers what you need to build the project, the conventions the codebase follows, and what CI will check on your PR.
 
-> **Status:** the toolchain below is in place. Features land stage by stage, following the [delivery plan](docs/DELIVERY.md#stages).
-
 ## Getting set up
 
 **Requirements**
@@ -17,7 +15,7 @@ Thanks for taking the time to help. This document covers what you need to build 
 SmartType has **no external dependencies**, only Apple frameworks. Clone and build:
 
 ```bash
-git clone git@github.com:alexeikaratai/smarttype.git
+git clone https://github.com/alexeikaratai/smarttype.git
 cd smarttype
 make doctor   # verifies swift, xcode, swift-format, llvm-cov, codesign, gh, git
 make run      # build + bundle + launch
@@ -60,10 +58,10 @@ Naming, file organisation, access control, the concurrency rules and the princip
 Four targets, split by isolation domain:
 - **`SmartTypeCore`** holds pure logic with no UI: keyboard layouts, conversion, language detection, correction, and the rule that picks the language a translation goes into.
 - **`SmartTypeEngines`** holds the translation engines behind one protocol, the fallback chain and source-language recognition.
-- **`SmartTypeApp`** is the main-actor shell: system adapters (hotkeys, keystrokes, clipboard, input sources, Accessibility), the actions, the menu, the Settings window and the translation panel; the macOS Services provider joins it in Stage 4.
+- **`SmartTypeApp`** is the main-actor shell: system adapters (hotkeys, keystrokes, clipboard, input sources, Accessibility), the actions, the menu, the Settings window, the translation panel and the macOS Services provider.
 - **`SmartType`** is the executable, with only `main.swift`.
 
-Dependencies flow one way and never back. **Put logic in Core whenever you can.** Details and decisions are in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Dependencies flow one way and never back. **Put logic in Core whenever you can.** The principles behind the design, and a row for every source file, are in [CLAUDE.md](CLAUDE.md).
 
 ## Testing
 
@@ -118,4 +116,4 @@ If the layout fix copies or pastes nothing, check Accessibility first; the hotke
 
 ## License
 
-MIT; see [LICENSE](LICENSE). Decided on 2026-10-12 ([business plan](docs/BUSINESS.md#7-business-model-and-distribution)).
+MIT; see [LICENSE](LICENSE).
