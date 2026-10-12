@@ -69,7 +69,14 @@ final class TranslateAction {
         await translate(text)
     }
 
-    /// The core operation, which the right-click Services path shares (Stage 4).
+    /// The Services door: macOS hands the text over, so nothing is copied and no permission is
+    /// needed.
+    func translateText(_ text: String) async {
+        guard isAvailable(), !text.allSatisfy(\.isWhitespace) else { return beep() }
+        await translate(text)
+    }
+
+    /// The core operation, which both doors share.
     func translate(_ text: String) async {
         let card = makeCard(text)
         panel.show(card)

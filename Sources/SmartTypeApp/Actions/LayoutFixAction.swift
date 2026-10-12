@@ -40,9 +40,25 @@ final class LayoutFixAction {
         self.explain = explain
     }
 
-    /// The core operation, which the right-click Services path shares (Stage 4).
+    /// The core operation, which both doors share.
     func fix(_ text: String) -> Correction? {
         corrector.correct(text)
+    }
+
+    /// The Services door: macOS hands the text over and puts the fixed text in place itself,
+    /// with its own undo, so neither the clipboard nor the keys are touched and no permission
+    /// is needed. The keyboard switches, as with the hotkey. `nil`, with a beep, when there is
+    /// nothing to fix.
+    func fixInPlace(_ text: String) -> String? {
+        guard let correction = fix(text) else {
+            Log.general.notice("Fix Layout via Services: nothing to fix")
+            beep()
+            return nil
+        }
+        let switched = selectLayout(correction.targetLayoutID)
+        Log.general.notice(
+            "Fix Layout via Services: \(correction.targetLayoutID, privacy: .public) selected: \(switched)")
+        return correction.text
     }
 
     func fixSelection() async {

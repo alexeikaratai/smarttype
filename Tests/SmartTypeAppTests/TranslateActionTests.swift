@@ -159,4 +159,28 @@ import Testing
         #expect(outcome.beeps == 1)
         #expect(app.copies == 0)
     }
+
+    /// The Services door: macOS hands the text over, so nothing is copied, and no Accessibility
+    /// is needed.
+    @Test func textFromServicesIsTranslatedInThePanel() async {
+        let app = FakeFrontApp()
+        let panel = panel()
+
+        await action(app, PermissionRecorder(), panel, Outcome()).translateText("Привет")
+
+        #expect(panel.card?.original == "Привет")
+        #expect(panel.card?.state == .translated("en: Привет", engine: "Fake"))
+        #expect(app.copies == 0)
+    }
+
+    @Test(arguments: [(true, "  "), (false, "Привет")])
+    func textFromServicesThatCannotBeTranslatedBeeps(_ isAvailable: Bool, _ text: String) async {
+        let panel = panel()
+        let outcome = Outcome()
+
+        await action(FakeFrontApp(), trusted(), panel, outcome, isAvailable: isAvailable).translateText(text)
+
+        #expect(outcome.beeps == 1)
+        #expect(!panel.isShown)
+    }
 }

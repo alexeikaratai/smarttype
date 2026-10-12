@@ -15,6 +15,8 @@ RESOURCES    := $(CONTENTS)/Resources
 # while developing:  make app SIGN_ID="Apple Development: …"  (or its SHA-1 hash).
 SIGN_ID      ?= -
 CATALOG      := Resources/Localizable.xcstrings
+# The right-click Services' titles: macOS reads them from ServicesMenu.strings, not from Localizable.
+SERVICES_CATALOG := Resources/ServicesMenu.xcstrings
 # Drawn by scripts/generate-icon.swift, never committed (*.icns is in .gitignore).
 ICON         := Resources/AppIcon.icns
 L10N_TMP     := .build/l10n
@@ -125,6 +127,7 @@ app: build l10n-check $(ICON)
 	cp $(ICON) $(RESOURCES)/AppIcon.icns
 	@# ru.lproj, where String(localized:) finds Russian at run time; the English strings are the keys.
 	xcrun xcstringstool compile $(CATALOG) --output-directory $(RESOURCES) > /dev/null
+	xcrun xcstringstool compile $(SERVICES_CATALOG) --output-directory $(RESOURCES) > /dev/null
 	codesign --force --sign "$(SIGN_ID)" $(APP_DIR)
 	@codesign --verify --strict $(APP_DIR)
 	@echo "✅ $(APP_DIR) created (signed with: $(SIGN_ID))"

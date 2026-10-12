@@ -1,0 +1,28 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "SmartType: Fix Layout" : {
+      "comment" : "Right-click Services menu: retype the selection in the other keyboard layout",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SmartType: Исправить раскладку"
+          }
+        }
+      }
+    },
+    "SmartType: Translate" : {
+      "comment" : "Right-click Services menu: translate the selection",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SmartType: Перевести"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

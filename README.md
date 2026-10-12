@@ -13,11 +13,11 @@
 
 ---
 
-SmartType lives in your menu bar and works in any app. Typed `ghbdtn` because the wrong layout was on? Select it, press **⌃⌥⇧L**, and it becomes `привет`; the keyboard also switches to the right layout. Need to understand or check a phrase in another language? Select it, press **⌃⌥⇧T**, and the translation appears next to the cursor. Both shortcuts can be changed in Settings.
+SmartType lives in your menu bar and works in any app. Typed `ghbdtn` because the wrong layout was on? Select it, press **⌃⌥⇧L**, and it becomes `привет`; the keyboard also switches to the right layout. Need to understand or check a phrase in another language? Select it, press **⌃⌥⇧T**, and the translation appears next to the cursor. Both shortcuts can be changed in Settings, and both commands are also in the right-click **Services** menu.
 
 Everything runs on your Mac. There are no servers and no accounts, and while idle SmartType does no work at all.
 
-> **Status: in development.** SmartType already runs in the menu bar, both shortcuts are registered system-wide and can be changed in Settings, and **Settings…** (⌘,) shows the Accessibility permission (Device Control and Data Access on macOS 27), with Grant Access and Reset Permission while it is missing, the translation languages, the shortcuts and About. **⌃⌥⇧L already fixes the selected text, and ⌃⌥⇧T translates it** (macOS 26+); the right-click Services and polish come next ([delivery plan](docs/DELIVERY.md#stages)).
+> **Status: in development.** SmartType already runs in the menu bar, both shortcuts are registered system-wide and can be changed in Settings, and **Settings…** (⌘,) shows the Accessibility permission (Device Control and Data Access on macOS 27), with Grant Access and Reset Permission while it is missing, the translation languages, the shortcuts and About. **⌃⌥⇧L already fixes the selected text, and ⌃⌥⇧T translates it** (macOS 26+); the right-click Services work too, and reading the selection through Accessibility and polish come next ([delivery plan](docs/DELIVERY.md#stages)).
 
 ## ✨ Features (planned for v0.1)
 

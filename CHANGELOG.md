@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Both commands are in the right-click Services menu**: select text in a Mac app, then
+  Services ▸ «SmartType: Fix Layout» or «SmartType: Translate». From there the fix replaces
+  the text in place, with the app's own undo, and switches the keyboard; nothing goes
+  through your clipboard and no permission is needed. Translate opens the panel. You can
+  give either one a shortcut of your own in System Settings ▸ Keyboard ▸ Keyboard
+  Shortcuts ▸ Services.
 - **⌃⌥⇧T translates the selected text** in a panel next to the pointer, on the Mac itself:
   Apple's on-device translation, macOS 26 and later. The language of the text is
   recognized, and it goes into the first of your macOS languages it is not already in; to

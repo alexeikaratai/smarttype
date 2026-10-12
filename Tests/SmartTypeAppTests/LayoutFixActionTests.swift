@@ -158,4 +158,38 @@ import Testing
         #expect(app.copies == 1)
         #expect(app.pasted == ["привет"])
     }
+
+    /// The Services door: macOS hands the text over and puts the result in place, so the
+    /// clipboard and the keys are never touched. The keyboard still switches.
+    @Test func textFromServicesIsFixedWithoutTheClipboard() {
+        let app = FakeFrontApp()
+        let outcome = Outcome()
+
+        let fixed = action(app, trusted(), outcome).fixInPlace("ghbdtn")
+
+        #expect(fixed == "привет")
+        #expect(outcome.layouts == ["com.apple.keylayout.RussianWin"])
+        #expect(app.copies == 0)
+        #expect(app.pasted.isEmpty)
+    }
+
+    @Test func textFromServicesWithNothingToFixBeeps() {
+        let outcome = Outcome()
+
+        let fixed = action(FakeFrontApp(), trusted(), outcome).fixInPlace("2 + 2 = 4")
+
+        #expect(fixed == nil)
+        #expect(outcome.beeps == 1)
+        #expect(outcome.layouts.isEmpty)
+    }
+
+    /// No Accessibility needed: the Services door copies and pastes nothing.
+    @Test func textFromServicesNeedsNoPermission() {
+        let outcome = Outcome()
+
+        let fixed = action(FakeFrontApp(), PermissionRecorder(), outcome).fixInPlace("ghbdtn")
+
+        #expect(fixed == "привет")
+        #expect(outcome.explained.isEmpty)
+    }
 }

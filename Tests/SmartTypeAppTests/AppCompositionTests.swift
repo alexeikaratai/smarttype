@@ -7,7 +7,8 @@ import Testing
     @Test func startingRegistersTheDefaultHotKeyOfEveryCommand() {
         _ = NSApplication.shared
         let registrar = RecordingRegistrar()
-        let composition = AppComposition(hotKeyRegistrar: registrar, hotKeyStore: .forTest(#function))
+        let composition = AppComposition(
+            hotKeyRegistrar: registrar, hotKeyStore: .forTest(#function), offerServices: { _ in })
         defer { composition.stop() }
 
         composition.start()
@@ -24,7 +25,7 @@ import Testing
         store.set(controlOptionK, for: .fixLayout)
         store.set(nil, for: .translate)
         let registrar = RecordingRegistrar()
-        let composition = AppComposition(hotKeyRegistrar: registrar, hotKeyStore: store)
+        let composition = AppComposition(hotKeyRegistrar: registrar, hotKeyStore: store, offerServices: { _ in })
         defer { composition.stop() }
 
         composition.start()
@@ -41,7 +42,7 @@ import Testing
         var presented = 0
         let composition = AppComposition(
             hotKeyRegistrar: RecordingRegistrar(), hotKeyStore: .forTest(#function), permission: macOS.permission(),
-            presentSettings: { _ in presented += 1 })
+            presentSettings: { _ in presented += 1 }, offerServices: { _ in })
         defer { composition.stop() }
 
         composition.start()
@@ -58,7 +59,7 @@ import Testing
         var presented = 0
         let composition = AppComposition(
             hotKeyRegistrar: RecordingRegistrar(), hotKeyStore: .forTest(#function), permission: macOS.permission(),
-            presentSettings: { _ in presented += 1 })
+            presentSettings: { _ in presented += 1 }, offerServices: { _ in })
         defer { composition.stop() }
 
         composition.start()
@@ -71,11 +72,30 @@ import Testing
         _ = NSApplication.shared
         let registrar = RecordingRegistrar()
         registrar.refused = [AppCommand.translate.defaultHotKey]
-        let composition = AppComposition(hotKeyRegistrar: registrar, hotKeyStore: .forTest(#function))
+        let composition = AppComposition(
+            hotKeyRegistrar: registrar, hotKeyStore: .forTest(#function), offerServices: { _ in })
         defer { composition.stop() }
 
         composition.start()
 
         #expect(composition.refusedHotKeys == [.translate])
+    }
+
+    /// The right-click Services reach the same two operations as the hotkeys, through one
+    /// provider that macOS asks by the names in Info.plist.
+    @Test func startingOffersTheServices() throws {
+        _ = NSApplication.shared
+        var offered: [NSObject] = []
+        let composition = AppComposition(
+            hotKeyRegistrar: RecordingRegistrar(), hotKeyStore: .forTest(#function),
+            offerServices: { offered.append($0) })
+        defer { composition.stop() }
+
+        composition.start()
+
+        let provider = try #require(offered.first as? TextServiceProvider)
+        #expect(offered.count == 1)
+        #expect(provider.responds(to: NSSelectorFromString("fixLayout:userData:error:")))
+        #expect(provider.responds(to: NSSelectorFromString("translate:userData:error:")))
     }
 }
