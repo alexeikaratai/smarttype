@@ -9,17 +9,19 @@ final class AppComposition {
     private let permission: AccessibilityPermission
     private let presentSettings: (NSWindow) -> Void
     var refusedHotKeys: Set<AppCommand> { hotKeys.refused }
+    /// One for both commands, so neither borrows the clipboard while the other has it.
+    private let clipboard = ClipboardTransaction()
     /// Built on first use, so a launch that never opens Settings never builds it.
     private lazy var settings = SettingsWindowController(
         hotKeys: hotKeys, permission: permission, present: presentSettings)
-    /// Built on first use too: the dictionary and the layout tables load with the first ⌃⌥L.
+    /// Built on first use too: the dictionary and the layout tables load with the first fix.
     private lazy var layoutFix = LayoutFixAction(
         corrector: LayoutCorrector(
             layouts: BuiltInLayouts().layouts,
             detector: LanguageDetector(scorers: [PhonotacticScorer(), SpellCheckScorer()])),
-        permission: permission)
-    /// Built on first use too: the panel, and the list of languages, wait for the first ⌃⌥T.
-    private lazy var translation = TranslateAction(permission: permission)
+        clipboard: clipboard, permission: permission)
+    /// Built on first use too: the panel waits for the first translation.
+    private lazy var translation = TranslateAction(clipboard: clipboard, permission: permission)
 
     init(
         hotKeyRegistrar: any HotKeyRegistering = CarbonHotKeyRegistrar(),

@@ -2,7 +2,7 @@ import AppKit
 import OSLog
 import SmartTypeCore
 
-/// ⌃⌥L: retypes the selected text as the other keyboard layout would have typed it, then
+/// Fix Layout (⌃⌥⇧L by default): retypes the selected text as the other keyboard layout would have typed it, then
 /// switches to that layout so the person keeps typing in it.
 final class LayoutFixAction {
     private enum Outcome {
@@ -22,7 +22,7 @@ final class LayoutFixAction {
 
     init(
         corrector: LayoutCorrector,
-        clipboard: ClipboardTransaction = ClipboardTransaction(),
+        clipboard: ClipboardTransaction,
         permission: AccessibilityPermission = AccessibilityPermission(),
         selectLayout: @escaping (String) -> Bool = { InputSourceSwitcher.select($0) },
         isSmartTypeFrontmost: @escaping () -> Bool = {
@@ -50,6 +50,8 @@ final class LayoutFixAction {
         guard !isRunning else { return }
         isRunning = true
         defer { isRunning = false }
+        // Translate has the clipboard: borrowing it now would lose the person's own.
+        guard !clipboard.isBorrowed else { return beep() }
 
         guard permission.isGranted else {
             Log.general.notice("Fix Layout: no Accessibility permission")
@@ -78,7 +80,7 @@ final class LayoutFixAction {
     }
 
     /// The timings in the log say where a slow fix spent its time; the copy includes waiting
-    /// for the hotkey's ⌃⌥ to come up.
+    /// for the hotkey's modifiers to come up.
     private func replaceSelection(since start: ContinuousClock.Instant) async -> Outcome {
         guard let text = await clipboard.copySelection() else { return .nothingSelected }
         let copied = start.duration(to: .now)

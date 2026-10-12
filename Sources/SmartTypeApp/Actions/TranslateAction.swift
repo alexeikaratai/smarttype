@@ -2,7 +2,7 @@ import AppKit
 import OSLog
 import SmartTypeEngines
 
-/// ⌃⌥T: translates the selected text in a panel at the pointer. The selection is copied the
+/// Translate (⌃⌥⇧T by default): translates the selected text in a panel at the pointer. The selection is copied the
 /// same way as for the layout fix, and the clipboard is given back.
 final class TranslateAction {
     private let makeCard: (String) -> TranslationViewModel
@@ -17,7 +17,7 @@ final class TranslateAction {
 
     init(
         makeCard: @escaping (String) -> TranslationViewModel = { TranslateAction.card(for: $0) },
-        clipboard: ClipboardTransaction = ClipboardTransaction(),
+        clipboard: ClipboardTransaction,
         permission: AccessibilityPermission = AccessibilityPermission(),
         panel: PanelController = PanelController(),
         isAvailable: @escaping () -> Bool = { AppCommand.translate.isAvailable },
@@ -41,6 +41,8 @@ final class TranslateAction {
         guard isAvailable() else { return beep() }
         // A press while the selection is being copied, the hotkey's auto-repeat included.
         guard !isCopying else { return }
+        // Fix Layout has the clipboard: borrowing it now would lose the person's own.
+        guard !clipboard.isBorrowed else { return beep() }
         guard permission.isGranted else {
             Log.general.notice("Translate: no Accessibility permission")
             if explain(.accessibility) {

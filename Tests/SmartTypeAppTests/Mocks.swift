@@ -82,12 +82,14 @@ final class FakeFrontApp {
     }
 
     /// `yielding` suspends at every wait, so a test can press again while a fix is running;
-    /// `onPause` sees every wait as it starts.
+    /// `onPause` sees every wait as it starts, and `holding` can keep one going.
     func clipboard(
-        isDenied: Bool = false, yielding: Bool = false, onPause: @escaping (Duration) -> Void = { _ in }
+        isDenied: Bool = false, yielding: Bool = false, onPause: @escaping (Duration) -> Void = { _ in },
+        holding: @escaping (Duration) async -> Void = { _ in }
     ) -> ClipboardTransaction {
         let pause: (Duration) async -> Void = { duration in
             onPause(duration)
+            await holding(duration)
             if yielding { await Task.yield() }
         }
         let keystrokes = KeystrokeSender(currentModifiers: { [] }, post: { self.receive($0) }, pause: pause)
@@ -168,5 +170,24 @@ extension TranslationChoices {
 extension HotKeyStore {
     static func forTest(_ test: String, file: String = #fileID) -> HotKeyStore {
         HotKeyStore(defaults: .forTest(test, part: "hotkeys", file: file))
+    }
+}
+
+/// Holds a wait until the test opens it.
+final class Gate {
+    private(set) var isHolding = false
+    private var held: CheckedContinuation<Void, Never>?
+
+    func hold() async {
+        await withCheckedContinuation { continuation in
+            held = continuation
+            isHolding = true
+        }
+    }
+
+    func open() {
+        isHolding = false
+        held?.resume()
+        held = nil
     }
 }

@@ -5,7 +5,14 @@ import AppKit
 /// The snapshot goes back only while the pasteboard is still SmartType's: a person who copies
 /// something meanwhile keeps it. A copy that leaves the pasteboard unchanged means nothing was
 /// selected, so whatever was there before is never taken for the selection.
+///
+/// Both commands share one transaction and check `isBorrowed` first. A command started while
+/// the other waits to give the pasteboard back would snapshot the text SmartType had just
+/// pasted, give that back, and leave the person's own clipboard lost (reproduced in a test).
 final class ClipboardTransaction {
+    /// An action has the pasteboard now, from the snapshot until it is given back.
+    private(set) var isBorrowed = false
+
     private let pasteboard: NSPasteboard
     private let keystrokes: KeystrokeSender
     private let isDenied: (NSPasteboard) -> Bool
@@ -32,6 +39,8 @@ final class ClipboardTransaction {
     @discardableResult
     func run<Result>(_ body: () async -> Result) async -> Result? {
         guard !isDenied(pasteboard), let snapshot = PasteboardSnapshot(of: pasteboard) else { return nil }
+        isBorrowed = true
+        defer { isBorrowed = false }
         ownChangeCount = nil
         didPaste = false
         let result = await body()
