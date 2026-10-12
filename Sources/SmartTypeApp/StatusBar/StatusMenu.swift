@@ -6,6 +6,7 @@ enum StatusMenu {
         _ menu: NSMenu,
         refusedHotKeys: Set<AppCommand>,
         needsAccess: Bool,
+        isAvailable: (AppCommand) -> Bool = \.isAvailable,
         perform: @escaping (AppCommand) -> Void,
         grantAccess: @escaping () -> Void,
         openSettings: @escaping () -> Void,
@@ -22,7 +23,7 @@ enum StatusMenu {
             menu.addItem(.separator())
         }
         for command in AppCommand.allCases {
-            menu.addItem(commandItem(command, perform: perform))
+            menu.addItem(commandItem(command, isAvailable: isAvailable(command), perform: perform))
         }
         menu.addItem(.separator())
         menu.addItem(hotKeysItem(refused: refusedHotKeys))
@@ -33,12 +34,20 @@ enum StatusMenu {
         menu.addItem(NSMenuItem(title: quitTitle, keyEquivalent: "q", handler: quit))
     }
 
-    private static func commandItem(_ command: AppCommand, perform: @escaping (AppCommand) -> Void) -> NSMenuItem {
+    /// A command this Mac cannot run stays in the menu, greyed out, saying what it needs.
+    private static func commandItem(
+        _ command: AppCommand, isAvailable: Bool, perform: @escaping (AppCommand) -> Void
+    ) -> NSMenuItem {
         let combo = command.defaultHotKey
-        let item = NSMenuItem(title: command.title, keyEquivalent: combo.key.label.lowercased()) {
-            perform(command)
-        }
+        let key = combo.key.label.lowercased()
+        let item =
+            isAvailable
+            ? NSMenuItem(title: command.title, keyEquivalent: key) { perform(command) }
+            : NSMenuItem(title: command.title, action: nil, keyEquivalent: key)
         item.keyEquivalentModifierMask = combo.modifiers.eventFlags
+        if !isAvailable {
+            item.toolTip = command.requirement
+        }
         return item
     }
 

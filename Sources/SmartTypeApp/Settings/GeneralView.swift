@@ -7,35 +7,43 @@ struct GeneralView: View {
     @State private var isConfirmingReset = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(AccessibilityPermission.settingName)
-                .font(.headline)
-            status
-            note(
-                String(
-                    localized: "Fix Layout needs it to copy the selected text and paste the fixed text back.",
-                    comment: "Settings ▸ General: why Accessibility is needed"))
-            if !accessibility.isGranted {
-                note(
-                    String(
-                        localized:
-                            "If SmartType is switched on in System Settings but is still not allowed here, the permission went stale after an update: reset it.",
-                        comment: "Settings ▸ General: when to reset"))
-                HStack {
-                    Button(
-                        String(
-                            localized: "Grant Access…",
-                            comment: "Button and menu item: add SmartType to the Accessibility list and open it")
-                    ) {
-                        accessibility.requestAccess()
+        Form {
+            Section {
+                LabeledContent(AccessibilityPermission.settingName) {
+                    status
+                }
+                if !accessibility.isGranted {
+                    HStack {
+                        Spacer()
+                        Button(
+                            String(
+                                localized: "Grant Access…",
+                                comment: "Button and menu item: add SmartType to the Accessibility list and open it")
+                        ) {
+                            accessibility.requestAccess()
+                        }
+                        Button(
+                            String(localized: "Reset Permission…", comment: "Button: clear a stale Accessibility grant")
+                        ) {
+                            isConfirmingReset = true
+                        }
                     }
-                    Button(String(localized: "Reset Permission…", comment: "Button: clear a stale Accessibility grant"))
-                    {
-                        isConfirmingReset = true
+                    .disabled(accessibility.isResetting)
+                }
+            } footer: {
+                VStack(alignment: .leading, spacing: 6) {
+                    note(
+                        String(
+                            localized: "Fix Layout needs it to copy the selected text and paste the fixed text back.",
+                            comment: "Settings ▸ General: why Accessibility is needed"))
+                    if !accessibility.isGranted {
+                        note(
+                            String(
+                                localized:
+                                    "If SmartType is switched on in System Settings but is still not allowed here, the permission went stale after an update: reset it.",
+                                comment: "Settings ▸ General: when to reset"))
                     }
                 }
-                .disabled(accessibility.isResetting)
-                .padding(.top, 4)
             }
         }
         .confirmationDialog(

@@ -43,7 +43,9 @@ import Testing
     }
 
     /// Released means freed: nothing else may keep the window or its SwiftUI content alive.
-    @Test func aClosedWindowIsFreed() throws {
+    /// Inside the glass, SwiftUI lets the content go on the run loop's next turn, after the
+    /// window (measured: within 50 ms), so the test waits for that.
+    @Test func aClosedWindowIsFreed() async throws {
         let controller = settings()
         weak var closedWindow: NSWindow?
         weak var closedModel: AccessibilityViewModel?
@@ -55,7 +57,7 @@ import Testing
         }
 
         #expect(closedWindow == nil)
-        #expect(closedModel == nil)
+        #expect(await waitUntil { closedModel == nil })
     }
 
     /// Coming back from System Settings brings the window forward, and the status follows.
@@ -81,6 +83,19 @@ import Testing
         content.layoutSubtreeIfNeeded()
 
         #expect(window.frame.size == content.fittingSize)
+    }
+
+    /// From macOS 26 the whole window is Liquid Glass: clear itself, with the glass under the
+    /// content, so the desktop shows through and the glass follows light and dark.
+    @Test func theWindowIsGlassFromMacOS26() throws {
+        guard #available(macOS 26, *) else { return }
+        let controller = settings()
+        controller.show()
+        let window = try #require(controller.window)
+
+        #expect(window.contentView is NSGlassEffectView)
+        #expect(!window.isOpaque)
+        #expect(window.backgroundColor == .clear)
     }
 
     @Test func escapeClosesTheWindow() throws {

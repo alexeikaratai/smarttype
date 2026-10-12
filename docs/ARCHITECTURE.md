@@ -1,6 +1,6 @@
 # SmartType — Architecture
 
-**Status:** the target design. Built so far: the menu-bar shell and global hotkeys (Stage 1), the correction core (2a), the Settings window (2b), ⌃⌥L fixing the selection (2c–2d), and the translation engine without its panel (3a). What each later stage adds is tracked in [DELIVERY.md](DELIVERY.md) and `CHANGELOG.md`.
+**Status:** the target design. Built so far: the menu-bar shell and global hotkeys (Stage 1), the correction core (2a), the Settings window (2b), ⌃⌥L fixing the selection (2c–2d), and ⌃⌥T translating the selection in a panel (3a–3b). What each later stage adds is tracked in [DELIVERY.md](DELIVERY.md) and `CHANGELOG.md`.
 **Scope:** the architecture of the MVP. AI integrations (local LLM translation and an LLM "judge") come in Phase 2; the extension points for them are reserved here.
 **Environment:** macOS 27, Xcode 27, Swift 6.4, Apple Silicon. Deployment target: macOS 14.
 **Companion docs:** [Business plan](BUSINESS.md) · [Delivery plan](DELIVERY.md)
@@ -94,8 +94,8 @@ AppDelegate
    │   ├─ LayoutCorrector (Core) ── LanguageDetector ── PhonotacticScorer, SpellCheckScorer
    │   └─ InputSourceSwitcher
    └─ TranslateAction
-       ├─ selection readers: AXSelectionReader → ClipboardSelectionReader
-       ├─ FallbackTranslator: [AppleTranslationEngine]      (lazy; Ollama joins in Phase 2)
+       ├─ ClipboardTransaction: ⌘C, as for the layout fix   (AX-first readers in Stage 4)
+       ├─ FallbackTranslator: [AppleTranslationEngine]      (per card; Ollama joins in Phase 2)
        └─ PanelController (lazy) ── FloatingPanel ── TranslationView ◄ TranslationViewModel
 ```
 - **Entry points.** Hotkeys and the menu go through `AppCommand`, a single routing point that the future settings UI will rebind. The context menu calls the actions' text-based API.
@@ -169,13 +169,13 @@ User    Action         Selection          Panel        Translator    Engine
  │ Esc / click outside ────────────────────►│ close ─► cancel task     │
 ```
 - **Close the panel first.** While the panel is the key window, a synthetic ⌘C would go to the panel itself.
-- **Selection readers.** A chain of `SelectionReader`s: `AXSelectionReader` reads `kAXSelectedTextAttribute` with no pasteboard, no privacy prompt, in about 1 ms. An empty or failed result falls through to `ClipboardSelectionReader` (⌘C inside a `ClipboardTransaction`).
-- **Direction** (decided 2026-10-12, BUSINESS §11). Any language Apple's engine supports (47 languages and variants on macOS 27, measured), into a language the person picks in the panel; the pick is remembered.
+- **Selection readers.** Stage 3 copies the selection with ⌘C inside a `ClipboardTransaction`, as the layout fix does, and gives the clipboard back. Stage 4 puts a chain of `SelectionReader`s in front: `AXSelectionReader` reads `kAXSelectedTextAttribute` with no pasteboard and no privacy prompt, in about 1 ms, and an empty or failed result falls through to the clipboard.
+- **Direction** (decided 2026-10-12, BUSINESS §11). Any language Apple's engine supports (21 on macOS 27.0.1, measured: 19 languages, with two variants each of English and Chinese), into a language the person picks in Settings ▸ Translation; the pick holds for every translation after it.
   - Unpicked, the target is the first of the person's macOS languages the text is not in (`TranslationTarget`, Core): with English then Russian, Russian goes into English and English into Russian.
-  - The source is recognized on the Mac (`SourceLanguage`, Engines). Sentences come back sure (1.00 for ru, de and fr); single words do not ("hello" 0.13, "привет" taken for Bulgarian at 0.53), so below 0.9 the person's languages go in as hints. A lone foreign word then reads as one of theirs, and the panel lets them pick the source.
-- **The engine cannot be interrupted.** A cancelled translation runs to the end and only then throws: 13.8 s for about 1,800 characters (measured). The action drops stale results instead of waiting for them, and text over 2,000 characters is refused with a message.
-- **Dismissal and cancellation.** `PanelController` reports dismissal and `TranslateAction` cancels its task. Pressing ⌃⌥T again cancels and restarts.
-- **Availability.** On macOS < 26 the MVP has no engine, so Translate «Перевести» is disabled, with the hint "Needs macOS 26" «Нужна macOS 26». Phase 2 adds Ollama for older systems.
+  - The source is recognized on the Mac (`SourceLanguage`, Engines). Sentences come back sure (1.00 for ru, de and fr); single words do not ("hello" 0.13, "привет" taken for Bulgarian at 0.53), so below 0.9 the person's languages go in as hints. A lone foreign word then reads as one of theirs, and Settings ▸ Translation lets them pick the source.
+- **The engine cannot be interrupted.** A cancelled translation runs to the end and only then throws: 13.8 s for about 1,800 characters (measured). Nothing waits for a dropped translation, and text over 2,000 characters is refused with a message.
+- **Dismissal and restarts.** Closing the panel drops its card, and a translation still running finishes into a card nobody shows. Pressing ⌃⌥T again closes the panel, copies the new selection and shows a new card. A card translates once.
+- **Availability.** On macOS < 26 the MVP has no engine: Translate «Перевести» stays in the menu greyed out, its tooltip saying "Needs macOS 26" «Нужна macOS 26», and ⌃⌥T beeps. Phase 2 adds Ollama for older systems.
 - **The MVP chain has one engine.** `FallbackTranslator` is already the seam, so Phase 2 only adds an engine to the list.
 
 ### 5.3 Permissions
@@ -306,25 +306,30 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 - **AppKit owns the shell.**
   - `LSUIElement` in Info.plist keeps the app out of the Dock. The code never calls `setActivationPolicy(.accessory)`: on SmartDock it could drop the status item at launch.
   - The menu bar is an `NSStatusItem` with an `NSMenu`.
-  - `FloatingPanel` is an `NSPanel` with `[.nonactivatingPanel, .titled, .fullSizeContentView]`. It can become key without activating the app, and has native corners and shadow.
-- **SwiftUI owns content.** Views are hosted by `NSHostingView` or `NSHostingController`, and their state lives in `@Observable` view models: the translation card's, and Settings' `AccessibilityViewModel`.
+  - `FloatingPanel` is a borderless, clear `NSPanel` with `.nonactivatingPanel`. It can become key without activating the app (a borderless window needs `canBecomeKey` for that), the card draws its own glass and corners, and the window's shadow follows the card.
+- **SwiftUI owns content.** Views are hosted by `NSHostingView` or `NSHostingController`, and their state lives in `@Observable` view models: the translation card's, and Settings' `AccessibilityViewModel` and `TranslationSettingsModel`.
 - **Menu** (English, with a Russian translation; ADR-014):
   - ⚠︎ Grant Access… «Разрешить доступ…», first, while Accessibility isn't granted.
   - Fix Layout ⌃⌥L «Исправить раскладку», and Translate ⌃⌥T «Перевести» (from Stage 3 disabled on macOS < 26).
   - Keyboard Shortcuts «Настройки хоткеев», a submenu showing the current bindings, and Settings… «Настройки…» ⌘,.
   - Quit SmartType «Выход».
 - **Translation card:**
-  - Header "RU → EN". The original is small (≤ 3 lines); the translation is large and selectable.
-  - Footer: the engine that answered, plus why other engines were skipped; a Copy button (↩).
-  - Liquid Glass on macOS 26+, `.regularMaterial` below.
-- **Settings window** (2b): an AppKit window with SwiftUI content, laid out as SmartDock's: the app's icon, name, version and "Made with ❤ by Alex Karatai" on top, segmented tabs below.
+  - Header: "RUSSIAN → ENGLISH", as text. The languages are picked in Settings ▸ Translation, not on the card.
+  - The original is small (≤ 3 lines); the translation is large and selectable.
+  - The card is 380pt wide and as tall as its text; past 320pt the translation scrolls.
+  - Footer: the engine that answered and "on this Mac", and Copy (↩), which then reads Copied. Why other engines were skipped joins in Phase 2, when there is more than one.
+  - No translation: a sentence saying why, and for a pair not downloaded a button to System Settings' Translation Languages.
+  - Liquid Glass from macOS 26 (`glassEffect` on the card, `.glass` buttons); the system material before it, a branch that only has to compile, since translation needs macOS 26.
+- **Settings window** (2b): an AppKit window with SwiftUI content, laid out as SmartDock's: the app's icon, name, version and "Made with ❤ by Alex Karatai" on top, segmented tabs below. General, Translation and Shortcuts are grouped forms, as in System Settings. From macOS 26 the whole window is Liquid Glass, as the translation card is: a clear window over an `NSGlassEffectView`, which follows light and dark (SmartDock's HUD material did not); the standard background before it.
   - General: the Accessibility status, under the name the running macOS gives it (Device Control and Data Access from macOS 27), with Grant Access… and Reset Permission….
+  - Translation: Translate from and Translate into, each Automatic or any language Apple's engine supports.
   - Shortcuts: read-only until Phase 3 makes them editable.
   - About: version and build, what SmartType does, GitHub and Changelog links, "Made with ❤ by Alex Karatai".
   - `SettingsWindowController` builds the window when it opens and frees it, with its view model, when it closes; a test pins that nothing keeps them alive. Esc and ⌘W close it: an agent app has no main menu, so nothing else answers ⌘W, and the key is matched by key code, because with Russian – PC active it types "ц".
 - **Panel behavior:**
   - Esc closes it via `cancelOperation`. A click outside closes it via resign-key, plus a mouse monitor that exists only while the panel is visible.
   - `PanelPlacement`, a pure and tested function, places it at the cursor and keeps it inside the screen's `visibleFrame`.
+  - The panel takes the card's size. When the translation lands, `fitToCard()` lays the card out and places it again from the pointer it opened at, in the same step: SwiftUI applies a change on its next pass, where AppKit grows the window from its bottom edge, and the card jumped up (measured).
 - **Why not `MenuBarExtra`:** no control over the status item, no non-activating panel, and opening Settings from an accessory app needs hacks.
 
 ## 9. Design patterns
@@ -415,10 +420,11 @@ Sources/SmartTypeApp/
   StatusBar/{StatusBarController, StatusMenu, NSMenuItem+Handler}
   ContextMenu/TextServiceProvider
   Actions/{LayoutFixAction, TranslateAction}
-  Panel/{FloatingPanel, PanelController, PanelPlacement, TranslationViewModel, TranslationView}
+  Panel/{FloatingPanel, PanelController, PanelPlacement, TranslationChoices, TranslationViewModel,
+         TranslationView, ProblemView, GlassStyle, Locale.Language+DisplayName}
   Permissions/{AccessibilityPermission, Onboarding}
-  Settings/{SettingsWindowController, SettingsWindow, SettingsView, GeneralView, ShortcutsView, AboutView,
-            AccessibilityViewModel, AppInfo}
+  Settings/{SettingsWindowController, SettingsWindow, SettingsView, GeneralView, TranslationSettingsView,
+            ShortcutsView, AboutView, AccessibilityViewModel, TranslationSettingsModel, AppInfo}
   System/HotKeys/{KeyCombo, HotKeyCenter, CarbonHotKeyRegistrar}
   System/Keyboard/{KeystrokeSender, InputSourceSwitcher}
   System/Selection/{SelectionReader, AXSelectionReader, ClipboardSelectionReader,

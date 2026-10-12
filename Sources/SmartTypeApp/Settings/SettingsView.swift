@@ -4,6 +4,7 @@ import SwiftUI
 /// The Settings window's content, laid out as SmartDock's: the app on top, then the tabs.
 struct SettingsView: View {
     let accessibility: AccessibilityViewModel
+    let translation: TranslationSettingsModel
     let shortcuts: [Shortcut]
     let info: AppInfo
     let openURL: (URL) -> Void
@@ -11,8 +12,9 @@ struct SettingsView: View {
     @State private var tab = SettingsTab.general
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             header
+                .padding(.horizontal, 24)
             Picker(selection: $tab) {
                 ForEach(SettingsTab.allCases, id: \.self) { tab in
                     Text(tab.title).tag(tab)
@@ -23,12 +25,15 @@ struct SettingsView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
+            // Grouped forms, as in System Settings, on the window's own background.
             selectedTab
+                .formStyle(.grouped)
+                .scrollContentBackground(.hidden)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 20)
-        .frame(width: 420, height: 400)
+        .padding(.bottom, 8)
+        .frame(width: 460, height: 420)
     }
 
     private var header: some View {
@@ -49,8 +54,9 @@ struct SettingsView: View {
     @ViewBuilder private var selectedTab: some View {
         switch tab {
         case .general: GeneralView(accessibility: accessibility)
+        case .translation: TranslationSettingsView(settings: translation)
         case .shortcuts: ShortcutsView(shortcuts: shortcuts)
-        case .about: AboutView(info: info, openURL: openURL)
+        case .about: AboutView(info: info, openURL: openURL).padding([.horizontal, .bottom], 24)
         }
     }
 }
@@ -58,12 +64,14 @@ struct SettingsView: View {
 /// The tabs, in the order the segmented control shows them.
 enum SettingsTab: CaseIterable {
     case general
+    case translation
     case shortcuts
     case about
 
     var title: String {
         switch self {
         case .general: String(localized: "General", comment: "Settings tab")
+        case .translation: String(localized: "Translation", comment: "Settings tab")
         case .shortcuts: String(localized: "Shortcuts", comment: "Settings tab")
         case .about: String(localized: "About", comment: "Settings tab")
         }

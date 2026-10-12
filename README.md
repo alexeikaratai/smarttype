@@ -17,19 +17,19 @@ SmartType lives in your menu bar and works in any app. Typed `ghbdtn` because th
 
 Everything runs on your Mac. There are no servers and no accounts, and while idle SmartType does no work at all.
 
-> **Status: in development.** SmartType already runs in the menu bar, both shortcuts are registered system-wide, and **Settings…** (⌘,) shows the Accessibility permission (Device Control and Data Access on macOS 27) with Grant Access and Reset Permission, the shortcuts and About. **⌃⌥L already fixes the selected text**; translation with ⌃⌥T arrives in the next stage ([delivery plan](docs/DELIVERY.md#stages)).
+> **Status: in development.** SmartType already runs in the menu bar, both shortcuts are registered system-wide, and **Settings…** (⌘,) shows the Accessibility permission (Device Control and Data Access on macOS 27) with Grant Access and Reset Permission, the translation languages, the shortcuts and About. **⌃⌥L already fixes the selected text, and ⌃⌥T translates it** (macOS 26+); the right-click Services and polish come next ([delivery plan](docs/DELIVERY.md#stages)).
 
 ## ✨ Features (planned for v0.1)
 
 | | Feature | Details |
 |---|---|---|
 | ⌨️ | **Layout fix** | ⌃⌥L converts the selection between U.S. QWERTY and Russian ЙЦУКЕН, Shift symbols and `ё` included, then switches the active layout |
-| 🌐 | **Translation panel** | ⌃⌥T shows the translation in a floating panel at the cursor: the original small, the translation large, Copy, Esc to close |
+| 🌐 | **Translation panel** | ⌃⌥T shows the translation in a Liquid Glass card at the cursor: which way it translates, the original small, the translation large, Copy, Esc to close. Languages are recognized, or picked in Settings |
 | 🖱️ | **Right-click Services** | Both commands in the context menu. From there the layout fix replaces the text natively, with no clipboard and native undo |
 | 🔒 | **On-device** | Apple's on-device translation; a local LLM comes later. Your text never leaves the Mac |
 | 📋 | **Clipboard-safe** | Whenever SmartType borrows the clipboard, it puts your content back |
 | ⚡ | **Zero idle cost** | Event-driven: no timers, no polling, 0% CPU while idle |
-| ⚙️ | **Settings** | The Accessibility status with Grant Access and Reset Permission (confirm, and SmartType restarts), the shortcuts, and About, laid out as SmartDock's |
+| ⚙️ | **Settings** | The Accessibility status with Grant Access and Reset Permission (confirm, and SmartType restarts), the translation languages, the shortcuts, and About, laid out as SmartDock's, in Liquid Glass on macOS 26+ |
 | 🌍 | **English and Russian** | The interface follows the language of macOS; pick another one per app in System Settings → General → Language & Region |
 | 🧩 | **Built to grow** | A new keyboard layout is one data file; translation engines plug in behind one protocol |
 

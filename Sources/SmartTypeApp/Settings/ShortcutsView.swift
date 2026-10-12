@@ -5,35 +5,43 @@ struct ShortcutsView: View {
     let shortcuts: [Shortcut]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(
-                String(
-                    localized: "They work in any app and in any keyboard layout.",
-                    comment: "Settings ▸ Shortcuts: intro")
-            )
-            .foregroundStyle(.secondary)
-            ForEach(shortcuts) { shortcut in
-                HStack {
-                    Text(shortcut.title)
-                    Spacer()
-                    if !shortcut.isRegistered {
-                        Text(String(localized: "not registered", comment: "After a shortcut macOS refused to register"))
-                            .foregroundStyle(.red)
+        Form {
+            Section {
+                ForEach(shortcuts) { shortcut in
+                    LabeledContent(shortcut.title) {
+                        HStack(spacing: 8) {
+                            if !shortcut.isRegistered {
+                                Text(
+                                    String(
+                                        localized: "not registered",
+                                        comment: "After a shortcut macOS refused to register")
+                                )
+                                .foregroundStyle(.red)
+                            }
+                            Text(verbatim: shortcut.keys)
+                                .monospaced()
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+                        }
                     }
-                    Text(verbatim: shortcut.keys)
-                        .monospaced()
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+                }
+            } footer: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(
+                        String(
+                            localized: "They work in any app and in any keyboard layout.",
+                            comment: "Settings ▸ Shortcuts: intro")
+                    )
+                    .foregroundStyle(.secondary)
+                    Text(
+                        String(
+                            localized: "Changing shortcuts comes in a later version",
+                            comment: "Shortcuts submenu and Settings ▸ Shortcuts")
+                    )
+                    .foregroundStyle(.tertiary)
                 }
             }
-            Text(
-                String(
-                    localized: "Changing shortcuts comes in a later version",
-                    comment: "Shortcuts submenu and Settings ▸ Shortcuts")
-            )
-            .font(.caption)
-            .foregroundStyle(.tertiary)
         }
     }
 }

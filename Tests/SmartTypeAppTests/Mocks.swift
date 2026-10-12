@@ -4,6 +4,7 @@ import CoreGraphics
 import Foundation
 
 @testable import SmartTypeApp
+@testable import SmartTypeEngines
 
 /// Stands in for Carbon: records what would have been registered, and lets a test press it.
 final class RecordingRegistrar: HotKeyRegistering {
@@ -73,6 +74,8 @@ final class FakeFrontApp {
     private(set) var pasted: [String] = []
     /// The pasteboard's types at each ⌘V.
     private(set) var typesAtPaste: [[NSPasteboard.PasteboardType]] = []
+    /// Runs as ⌘C arrives, for a test that checks what the screen looked like then.
+    var onCopy: () -> Void = {}
 
     /// One pasteboard per test, under a stable name, so runs do not pile them up.
     init(test: String = #function, file: String = #fileID) {
@@ -99,6 +102,7 @@ final class FakeFrontApp {
         switch Int(event.getIntegerValueField(.keyboardEventKeycode)) {
         case kVK_ANSI_C:
             copies += 1
+            onCopy()
             if selectsAnImage {
                 pasteboard.clearContents()
                 pasteboard.setData(Data([0x89, 0x50, 0x4E, 0x47]), forType: .png)
@@ -112,5 +116,57 @@ final class FakeFrontApp {
         default:
             break
         }
+    }
+}
+
+/// A translation engine that answers with the target's code in front of the text ("en: …"),
+/// fails when told to, and can hold its first answer until the test lets it go.
+actor FakeTranslationEngine: TranslationEngine {
+    nonisolated let name = "Fake"
+    private(set) var callCount = 0
+    private let failure: TranslationFailure?
+    private let holdsFirstAnswer: Bool
+    private var held: CheckedContinuation<Void, Never>?
+    private var waitingForTheFirstCall: [CheckedContinuation<Void, Never>] = []
+
+    init(failure: TranslationFailure? = nil, holdsFirstAnswer: Bool = false) {
+        self.failure = failure
+        self.holdsFirstAnswer = holdsFirstAnswer
+    }
+
+    func translate(_ text: String, from source: Locale.Language, to target: Locale.Language) async throws -> String {
+        callCount += 1
+        if holdsFirstAnswer, callCount == 1 {
+            await withCheckedContinuation { continuation in
+                held = continuation
+                for waiting in waitingForTheFirstCall {
+                    waiting.resume()
+                }
+                waitingForTheFirstCall = []
+            }
+        }
+        if let failure { throw failure }
+        return "\(target.languageCode?.identifier ?? "?"): \(text)"
+    }
+
+    /// Returns once the first call is being held.
+    func waitUntilAsked() async {
+        guard held == nil else { return }
+        await withCheckedContinuation { waitingForTheFirstCall.append($0) }
+    }
+
+    func releaseFirstAnswer() {
+        held?.resume()
+        held = nil
+    }
+}
+
+extension TranslationChoices {
+    /// A defaults domain per test, emptied first and never the app's own.
+    static func forTest(_ test: String, file: String = #fileID) -> TranslationChoices {
+        let suite = "com.smarttype.tests.\(file).\(test)".replacingOccurrences(of: "/", with: ".")
+        let defaults = UserDefaults(suiteName: suite) ?? UserDefaults()
+        defaults.removePersistentDomain(forName: suite)
+        return TranslationChoices(defaults: defaults)
     }
 }

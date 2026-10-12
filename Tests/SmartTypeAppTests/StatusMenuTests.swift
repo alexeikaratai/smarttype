@@ -14,14 +14,15 @@ import Testing
         refused: Set<AppCommand> = [],
         needsAccess: Bool = false,
         perform: @escaping (AppCommand) -> Void = { _ in },
+        isAvailable: @escaping (AppCommand) -> Bool = { _ in true },
         grantAccess: @escaping () -> Void = {},
         openSettings: @escaping () -> Void = {},
         quit: @escaping () -> Void = {}
     ) -> NSMenu {
         let menu = NSMenu()
         StatusMenu.fill(
-            menu, refusedHotKeys: refused, needsAccess: needsAccess, perform: perform, grantAccess: grantAccess,
-            openSettings: openSettings, quit: quit)
+            menu, refusedHotKeys: refused, needsAccess: needsAccess, isAvailable: isAvailable, perform: perform,
+            grantAccess: grantAccess, openSettings: openSettings, quit: quit)
         return menu
     }
 
@@ -50,6 +51,15 @@ import Testing
 
         #expect(lines.contains("Fix Layout  ⌃⌥L"))
         #expect(lines.contains("Translate  ⌃⌥T — not registered"))
+    }
+
+    /// Before macOS 26 there is no engine: Translate stays in the menu, greyed out, saying why.
+    @Test func aCommandThisMacCannotRunIsGreyedOutWithTheReason() throws {
+        let menu = filledMenu(isAvailable: { $0 != .translate })
+        let translate = try #require(menu.items.first { $0.title == AppCommand.translate.title })
+
+        #expect(translate.action == nil)
+        #expect(translate.toolTip == "Needs macOS 26")
     }
 
     /// While SmartType lacks the permission ⌃⌥L needs, the menu says so before anything else.

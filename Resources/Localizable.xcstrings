@@ -34,6 +34,39 @@
         }
       }
     },
+    "Apple does not translate between these languages." : {
+      "comment" : "Translation panel",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple не переводит между этими языками."
+          }
+        }
+      }
+    },
+    "Automatic" : {
+      "comment" : "Settings ▸ Translation: no fixed language",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически"
+          }
+        }
+      }
+    },
+    "Automatic: SmartType detects the language of the selection and translates it into the first of your languages it is not in. Your languages are in System Settings: General → Language & Region." : {
+      "comment" : "Settings ▸ Translation: what Automatic means",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически: SmartType определяет язык выделенного текста и переводит его на первый из ваших языков, на котором он не написан. Ваши языки — в Системных настройках: Основные → Язык и регион."
+          }
+        }
+      }
+    },
     "Cancel" : {
       "comment" : "Button: close the alert",
       "localizations" : {
@@ -63,6 +96,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Изменение сочетаний — в следующей версии"
+          }
+        }
+      }
+    },
+    "Copied" : {
+      "comment" : "Translation panel: after the translation was copied",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировано"
+          }
+        }
+      }
+    },
+    "Copy" : {
+      "comment" : "Translation panel: copies the translation",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Копировать"
           }
         }
       }
@@ -177,6 +232,17 @@
         }
       }
     },
+    "Needs macOS 26" : {
+      "comment" : "Menu: why Translate is greyed out",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужна macOS 26"
+          }
+        }
+      }
+    },
     "Not allowed" : {
       "comment" : "Settings ▸ General: Accessibility status",
       "localizations" : {
@@ -184,6 +250,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не разрешён"
+          }
+        }
+      }
+    },
+    "Open Translation Languages…" : {
+      "comment" : "Translation panel: opens System Settings",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть «Языки перевода»…"
           }
         }
       }
@@ -320,6 +397,28 @@
         }
       }
     },
+    "The translation did not work. Try again." : {
+      "comment" : "Translation panel",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевести не получилось. Попробуйте ещё раз."
+          }
+        }
+      }
+    },
+    "These languages are not downloaded yet: General → Language & Region → Translation Languages… in System Settings." : {
+      "comment" : "Translation panel: the language pair needs downloading",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эти языки ещё не скачаны: Основные → Язык и регион → Языки перевода… в Системных настройках."
+          }
+        }
+      }
+    },
     "They work in any app and in any keyboard layout." : {
       "comment" : "Settings ▸ Shortcuts: intro",
       "localizations" : {
@@ -342,6 +441,17 @@
         }
       }
     },
+    "Too long to translate here: over 2,000 characters." : {
+      "comment" : "Translation panel",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слишком длинно для перевода здесь: больше 2000 символов."
+          }
+        }
+      }
+    },
     "Translate" : {
       "comment" : "Command: translate the selection",
       "localizations" : {
@@ -349,6 +459,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Перевести"
+          }
+        }
+      }
+    },
+    "Translate from" : {
+      "comment" : "Settings ▸ Translation: the language of the selection",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переводить с"
+          }
+        }
+      }
+    },
+    "Translate into" : {
+      "comment" : "Settings ▸ Translation: the language of the translation",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переводить на"
+          }
+        }
+      }
+    },
+    "Translating…" : {
+      "comment" : "Translation panel: while the engine works",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевожу…"
+          }
+        }
+      }
+    },
+    "Translation" : {
+      "comment" : "Settings tab",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевод"
+          }
+        }
+      }
+    },
+    "Translation needs macOS 26." : {
+      "comment" : "Translation panel and Settings ▸ Translation: before macOS 26",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для перевода нужна macOS 26."
           }
         }
       }
@@ -371,6 +536,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "не зарегистрировано"
+          }
+        }
+      }
+    },
+    "on this Mac" : {
+      "comment" : "Translation panel: after the engine's name",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "на этом Mac"
           }
         }
       }

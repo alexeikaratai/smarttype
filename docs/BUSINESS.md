@@ -106,7 +106,7 @@ The MVP ships without telemetry. Until opt-in analytics exist, these metrics com
 4. **Next languages** after en/ru. What order for uk, he, ar?
 5. **Name.** Check "SmartType" for trademark and App Store collisions before any branding work.
 6. **Translation scope.** ru↔en only (the current plan), or any language → the user's language? The second needs on-device language detection with `NLLanguageRecognizer`; Apple's engine covers about two dozen languages.
-   **Decided on 2026-10-12:** any language Apple's engine supports, into a language the person picks; the source is detected, or picked too. Measured on macOS 27: 47 languages and variants. The defaults are settled in the Stage 3 plan.
+   **Decided on 2026-10-12:** any language Apple's engine supports, into a language the person picks; the source is detected, or picked too. Measured on macOS 27.0.1: 21, that is 19 languages, with two variants each of English and Chinese. The defaults are settled in the Stage 3 plan.
 7. **Text that can't be selected** (images, video, UI labels). Add on-screen OCR later? Vision supports Russian, but it needs the Screen Recording permission. Also: a dictionary card for single words (meanings, examples) in Phase 2?
 
 ## Sources

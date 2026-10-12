@@ -14,6 +14,27 @@ nonisolated enum AppCommand: CaseIterable, Sendable {
         }
     }
 
+    /// Whether this Mac can run the command: translation needs Apple's engine, from macOS 26.
+    var isAvailable: Bool {
+        switch self {
+        case .fixLayout:
+            return true
+        case .translate:
+            if #available(macOS 26, *) {
+                return true
+            }
+            return false
+        }
+    }
+
+    /// What a Mac needs for the command, said where it cannot run.
+    var requirement: String? {
+        switch self {
+        case .fixLayout: nil
+        case .translate: String(localized: "Needs macOS 26", comment: "Menu: why Translate is greyed out")
+        }
+    }
+
     var defaultHotKey: KeyCombo {
         switch self {
         case .fixLayout: KeyCombo(key: .l, modifiers: [.control, .option])

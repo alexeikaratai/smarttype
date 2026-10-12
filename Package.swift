@@ -45,7 +45,7 @@ let package = Package(
         // The executable keeps only `main.swift`.
         .target(
             name: "SmartTypeApp",
-            dependencies: ["SmartTypeCore"],
+            dependencies: ["SmartTypeCore", "SmartTypeEngines"],
             path: "Sources/SmartTypeApp",
             swiftSettings: strict + mainActorShell
         ),
@@ -69,7 +69,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SmartTypeAppTests",
-            dependencies: ["SmartTypeApp", "SmartTypeCore"],
+            dependencies: ["SmartTypeApp", "SmartTypeCore", "SmartTypeEngines"],
             path: "Tests/SmartTypeAppTests",
             swiftSettings: strict + mainActorShell
         ),

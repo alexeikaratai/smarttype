@@ -11,6 +11,15 @@ package struct AppleTranslationEngine: TranslationEngine {
 
     package init() {}
 
+    /// Every language Apple's engine supports, downloaded or not; empty before macOS 26.
+    /// `@concurrent`, so the non-Sendable `LanguageAvailability` is made and asked in one
+    /// isolation domain instead of crossing out of the caller's.
+    @concurrent
+    package static func supportedLanguages() async -> [Locale.Language] {
+        guard #available(macOS 26, *) else { return [] }
+        return await LanguageAvailability().supportedLanguages
+    }
+
     package func translate(_ text: String, from source: Locale.Language, to target: Locale.Language) async throws
         -> String
     {

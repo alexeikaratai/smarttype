@@ -18,6 +18,8 @@ final class AppComposition {
             layouts: BuiltInLayouts().layouts,
             detector: LanguageDetector(scorers: [PhonotacticScorer(), SpellCheckScorer()])),
         permission: permission)
+    /// Built on first use too: the panel, and the list of languages, wait for the first ⌃⌥T.
+    private lazy var translation = TranslateAction(permission: permission)
 
     init(
         hotKeyRegistrar: any HotKeyRegistering = CarbonHotKeyRegistrar(),
@@ -62,7 +64,7 @@ final class AppComposition {
         case .fixLayout:
             Task { [weak self] in await self?.layoutFix.fixSelection() }
         case .translate:
-            break  // Stage 3: the translation panel.
+            Task { [weak self] in await self?.translation.translateSelection() }
         }
     }
 
