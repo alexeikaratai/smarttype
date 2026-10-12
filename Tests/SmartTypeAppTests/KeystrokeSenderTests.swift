@@ -26,7 +26,7 @@ import Testing
         #expect(tap.events == ["down \(kVK_ANSI_C) ⌘", "up \(kVK_ANSI_C) ⌘"])
     }
 
-    /// The hotkey fires with ⌃⌥ still held, and ⌘C sent then would arrive as ⌃⌥⌘C.
+    /// The hotkey fires with its modifiers still held, and ⌘C sent then would arrive as ⌃⌥⇧⌘C.
     @Test func theKeysWaitUntilTheHotKeysModifiersAreReleased() async {
         var held: [CGEventFlags] = [[.maskControl, .maskAlternate], [.maskAlternate]]
         var pauses = 0

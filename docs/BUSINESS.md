@@ -26,7 +26,7 @@ It runs locally, needs no account, and does no work while idle.
 ## 4. Value proposition
 - **Fix in one keystroke.** Select the text, press ⌃⌥⇧L (or a shortcut of your own), done. The keyboard also switches to the right layout.
 - **Translate without switching apps.** ⌃⌥⇧T shows the translation next to the cursor; Esc dismisses it.
-- **Also in the right-click menu.** Both commands appear under Services («Службы») for selected text. From there, the layout fix replaces the text natively, without touching the clipboard.
+- **Also in the right-click menu (v0.1).** Both commands will appear under Services («Службы») for selected text. From there, the layout fix replaces the text natively, without touching the clipboard.
 - **Private by design.** Translation runs on-device now (Apple); a local LLM comes later. No servers, no accounts, no telemetry. Whenever SmartType borrows the clipboard, it puts the user's content back.
 - **Feather-light and native.** Swift/AppKit, no Electron, nothing running while idle.
 - **Built to grow.** A new keyboard layout is one data file; translation engines and AI "judges" plug in behind protocols.
@@ -41,27 +41,27 @@ It runs locally, needs no account, and does no work while idle.
 | Bob | — | popup + OCR | one-time purchase | translation only |
 | DeepL app | — | app / popup | freemium, cloud | text goes to the cloud |
 | Ditto | — | ⌘C twice → popup (Apple/DeepL) | — | clipboard-driven |
-| **SmartType** | **hotkey + context menu now, auto later** | **popup, on-device** | open core (§7) | both jobs in one native, local-first tool |
+| **SmartType** | **hotkey now, context menu in v0.1, auto later** | **popup, on-device** | free, MIT (§7) | both jobs in one native, local-first tool |
 
 **Gap:** we found no Mac tool that combines layout fixing with in-place translation, works local-first, and supports layouts beyond en/ru.
 
 ## 6. Product scope and roadmap
 | Phase | Scope | Exit criteria |
 |---|---|---|
-| **MVP (v0.1)** | ⌃⌥⇧L layout fix (en↔ru); ⌃⌥⇧T translation panel on Apple's on-device engine (macOS 26+); shortcuts a person can change (pulled forward from Phase 3 on 2026-10-12); both commands in the right-click Services menu; menu bar; permission onboarding | works in TextEdit, Notes, Mail, Safari, VS Code, Telegram; the clipboard is always restored; idle CPU 0% |
+| **MVP (v0.1)** | ⌃⌥⇧L layout fix (en↔ru); ⌃⌥⇧T translation panel on Apple's on-device engine (macOS 26+); shortcuts a person can change (pulled forward from Phase 3 on 2026-10-12); both commands in the right-click Services menu; menu bar; permission onboarding | works in TextEdit, Notes, Mail, Safari, VS Code, Telegram (checked in Stage 4); the clipboard is restored unless the person copied something meanwhile; idle CPU 0% |
 | **Phase 2 — AI** | local LLM engine (Ollama, `qwen2.5:3b`) in front of the Apple engine; LLM judge for ambiguous words | the panel shows which engine answered; instant fallback when Ollama is down |
 | **Phase 3 — Auto mode** | Punto-style fixing while typing; the user's installed layouts (uk, he, ar…) | false-positive rate under target on a test corpus |
 | **v1.0** | launch at login, updates, notarized builds, polished onboarding, website | public release |
 
-## 7. Business model and distribution (to decide)
+## 7. Business model and distribution
 **Options:**
 - **A.** Free and open source.
 - **B.** Closed freemium.
 - **C.** Open core.
 
-**Working assumption: C, open core with a one-time Pro purchase.**
-- The core (layout fix, on-device translation) is public. That builds trust and lets anyone verify the privacy claims.
-- The Pro features (local AI, auto mode) are paid. A one-time price fits: with no servers to pay for, there is no reason for a subscription.
+**Decided on 2026-10-12: A, free and open source under the MIT license.**
+- All of it is public, which builds trust and lets anyone verify the privacy claims.
+- There are no servers to pay for, so nothing has to be charged; a paid tier (open core, C) stays possible later for new work, since MIT does not stop it.
 
 **Distribution:**
 - Homebrew, through the author's tap, which SmartDock already uses: `brew install --cask alexeikaratai/tap/smarttype`.
@@ -91,22 +91,24 @@ The MVP ships without telemetry. Until opt-in analytics exist, these metrics com
 |---|---|---|
 | macOS privacy hardening. The macOS 27 SDK says the general pasteboard **asks** on programmatic reads; TCC rules also change. | prompts annoy users or features break | read the selection through Accessibility first; offer the context-menu path, which needs no clipboard; clear onboarding |
 | Uneven Accessibility support (Electron, Java, terminals) | the selection can't be read | ⌘C fallback; an app compatibility test matrix |
-| Synthetic ⌘C/⌘V while the hotkey's ⌃⌥ are still held | the copy or paste silently fails | wait until the modifiers are released (proven by Espanso and Sorla) |
+| Synthetic ⌘C/⌘V while the hotkey's modifiers are still held | the copy or paste silently fails | wait until the modifiers are released (proven by Espanso and Sorla) |
 | Editors that copy the whole line when nothing is selected (VS Code, JetBrains) | the layout fix pastes a converted line | stop when Accessibility reports an empty selection; ⌘Z restores the text |
 | Hotkey conflicts. Carbon lets several apps share a combo without reporting an error, so both react. | confusing double actions | defaults with three modifiers (⌃⌥⇧); registration errors shown in the menu; shortcuts a person can change, which refuse those macOS uses |
 | Apple ships similar system features | weaker differentiation | focus on layout fixing, bilingual workflows and local AI |
-| Niche market | limited revenue | more languages (uk, he, ar), auto mode, a Pro tier |
+| Niche market | few users | more languages (uk, he, ar), auto mode; a paid tier for later work stays possible |
 
 ## 11. Open questions for review
-1. **MVP translation.** Keep ⌃⌥T on Apple's on-device engine (macOS 26+ only), or move the whole translation feature to the AI phase?
+1. **MVP translation.** Keep Translate (⌃⌥⇧T) on Apple's on-device engine (macOS 26+ only), or move the whole translation feature to the AI phase?
    **Decided on 2026-10-12:** Apple's on-device engine. On macOS older than 26, Translate stays disabled until Phase 2's local LLM.
 2. **Minimum macOS.** Keep 14 (as in the spec), or raise it to 26? Raising it simplifies the Translation API and Liquid Glass and removes `#available` branches.
    **Decided on 2026-10-12:** macOS 14 stays. The layout fix runs there; translation checks for macOS 26 at run time.
 3. **Business model.** A, B or C?
+   **Decided on 2026-10-12:** A, free and open source under the MIT license (§7).
 4. **Next languages** after en/ru. What order for uk, he, ar?
 5. **Name.** Check "SmartType" for trademark and App Store collisions before any branding work.
+   **Decided on 2026-10-12:** keep SmartType, in the family of SmartDock, knowing what a web check found that day: an iOS keyboard app called SmartType (released 2026-06-19), "Smartype" word-completion software for medical transcription, and "SMARTYPE" marks for text-entry software (Saytech, filed 1992) and for a keyboard (KeyView), their status unknown. No Homebrew formula or cask uses the name. Of the names compared, SmartKeys and SmartLayout are taken by Mac apps in the same space; SmartRetype and SmartInput looked free. This is not a legal clearance: the trademark registers (USPTO, EUIPO) are the place for one.
 6. **Translation scope.** ru↔en only (the current plan), or any language → the user's language? The second needs on-device language detection with `NLLanguageRecognizer`; Apple's engine covers about two dozen languages.
-   **Decided on 2026-10-12:** any language Apple's engine supports, into a language the person picks; the source is detected, or picked too. Measured on macOS 27.0.1: 21, that is 19 languages, with two variants each of English and Chinese. The defaults are settled in the Stage 3 plan.
+   **Decided on 2026-10-12:** any language Apple's engine supports, into a language the person picks; the source is detected, or picked too. Measured on macOS 27.0.1: 21, that is 19 languages, with two variants each of English and Chinese. The defaults are in [ARCHITECTURE §5.2](ARCHITECTURE.md#52-translate-t).
 7. **Text that can't be selected** (images, video, UI labels). Add on-screen OCR later? Vision supports Russian, but it needs the Screen Recording permission. Also: a dictionary card for single words (meanings, examples) in Phase 2?
 
 ## Sources

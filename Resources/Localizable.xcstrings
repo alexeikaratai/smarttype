@@ -188,13 +188,13 @@
         }
       }
     },
-    "Fix Layout needs it to copy the selected text and paste the fixed text back." : {
+    "Fix Layout and Translate need it to copy the selected text, and Fix Layout to paste the fixed text back." : {
       "comment" : "Settings ▸ General: why Accessibility is needed",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Без него «Исправить раскладку» не сможет скопировать выделенный текст и вставить исправленный."
+            "value" : "Без него «Исправить раскладку» и «Перевести» не смогут скопировать выделенный текст, а «Исправить раскладку» — вставить исправленный."
           }
         }
       }
@@ -408,13 +408,13 @@
         }
       }
     },
-    "SmartType borrows the clipboard to fix the selection and gives it back afterwards. Allow it in System Settings ▸ Privacy & Security ▸ Paste from Other Apps, then quit and reopen SmartType." : {
+    "SmartType borrows the clipboard to fix or translate the selection and gives it back afterwards. Allow it in System Settings ▸ Privacy & Security ▸ Paste from Other Apps, then quit and reopen SmartType." : {
       "comment" : "Alert when pasting is denied: how to allow it",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "SmartType берёт буфер обмена на время исправления и потом возвращает его. Разрешите это в Системных настройках ▸ Конфиденциальность и безопасность ▸ Вставка из других приложений, затем закройте и снова откройте SmartType."
+            "value" : "SmartType берёт буфер обмена на время исправления или перевода и потом возвращает его. Разрешите это в Системных настройках ▸ Конфиденциальность и безопасность ▸ Вставка из других приложений, затем закройте и снова откройте SmartType."
           }
         }
       }
@@ -426,6 +426,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SmartType не может прочитать буфер обмена"
+          }
+        }
+      }
+    },
+    "SmartType copies the selected text to fix or translate it, and pastes a fix back. macOS allows that only to apps switched on in System Settings ▸ Privacy & Security ▸" : {
+      "comment" : "Alert when a command runs without Accessibility: followed by the permission's name",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SmartType копирует выделенный текст, чтобы исправить или перевести его, и вставляет исправленный. macOS разрешает это только приложениям, включённым в Системных настройках ▸ Конфиденциальность и безопасность ▸"
           }
         }
       }
@@ -442,7 +453,7 @@
       }
     },
     "SmartType needs a permission" : {
-      "comment" : "Alert when ⌃⌥L runs without Accessibility: title",
+      "comment" : "Alert when a command runs without Accessibility: title",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -503,17 +514,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Эта клавиша не подходит для сочетания."
-          }
-        }
-      }
-    },
-    "To fix the selected text, SmartType copies it and pastes the fixed text back. macOS allows that only to apps switched on in System Settings ▸ Privacy & Security ▸" : {
-      "comment" : "Alert when ⌃⌥L runs without Accessibility: followed by the permission's name",
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Чтобы исправить выделенный текст, SmartType копирует его и вставляет исправленный. macOS разрешает это только приложениям, включённым в Системных настройках ▸ Конфиденциальность и безопасность ▸"
           }
         }
       }

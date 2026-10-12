@@ -11,7 +11,8 @@ extension View {
         }
     }
 
-    /// Buttons on the card: glass from macOS 26, bordered before it.
+    /// Buttons on the card, and the shortcut fields in Settings ▸ Shortcuts: glass from macOS 26,
+    /// bordered before it. The shortcut fields show the bordered ones on macOS 14 and 15.
     @ViewBuilder func cardButtonStyle() -> some View {
         if #available(macOS 26, *) {
             buttonStyle(.glass)

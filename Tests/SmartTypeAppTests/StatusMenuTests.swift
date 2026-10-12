@@ -85,7 +85,7 @@ import Testing
         #expect(translate.toolTip == "Needs macOS 26")
     }
 
-    /// While SmartType lacks the permission ⌃⌥L needs, the menu says so before anything else.
+    /// While SmartType lacks the permission both commands need, the menu says so first.
     @Test func withoutThePermissionTheMenuOffersToGrantItFirst() throws {
         var granted = 0
         let menu = filledMenu(needsAccess: true, grantAccess: { granted += 1 })

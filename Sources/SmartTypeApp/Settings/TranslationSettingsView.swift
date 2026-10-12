@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings ▸ Translation: the languages ⌃⌥T translates from and into. The card only shows
+/// Settings ▸ Translation: the languages Translate works from and into. The card only shows
 /// them, so a pick made here holds for every translation after it.
 struct TranslationSettingsView: View {
     let settings: TranslationSettingsModel

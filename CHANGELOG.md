@@ -12,11 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **⌃⌥⇧T translates the selected text** in a panel next to the pointer, on the Mac itself:
   Apple's on-device translation, macOS 26 and later. The language of the text is
   recognized, and it goes into the first of your macOS languages it is not already in; to
-  always translate from or into a language of your choice, pick it in Settings ▸
-  Translation. The panel is a Liquid Glass card that says which way it translates, keeps
+  translate from a language of your choice, or into one (unless the text is already in it),
+  pick it in Settings ▸ Translation. The panel is a Liquid Glass card that says which way it translates, keeps
   the original small above the translation, and grows to fit it, from the edge next to the
   pointer. Select the translation, or copy it with ↩. Esc or a click elsewhere closes the
-  panel, and your clipboard comes back as it was. A pair of languages not downloaded yet
+  panel. Your clipboard is given back as soon as the selection is read; Copy puts the
+  translation on it. A pair of languages not downloaded yet
   comes with a button to the place in System Settings that downloads it. On older macOS,
   Translate is greyed out in the menu and says why.
 - SmartType has its own icon: one key with two legends, F and А, since the same key types
@@ -28,19 +29,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mixed text is decided word by word, with the macOS dictionary as the judge, so
   «Привет, ghbdtn» becomes «Привет, привет». SmartType borrows the clipboard for the copy
   and the paste and puts your own content back, unless you copied something in the
-  meantime; clipboard managers are told to skip what it writes. With nothing selected or
+  meantime; the other command, pressed meanwhile, beeps instead of taking the clipboard
+  over, and clipboard managers are told to skip what SmartType writes. With nothing selected or
   nothing to fix it beeps and changes nothing. Without the permission it needs, it says so
   and offers to grant it, and the menu shows «⚠︎ Grant Access…» until it is granted.
 - **Settings…** (⌘,) in the menu opens a Settings window laid out as SmartDock's. General
   shows whether SmartType may use Accessibility (Device Control and Data Access, as
-  macOS 27 calls it), which the layout fix needs to copy and paste the selected text,
-  with **Grant Access…** and **Reset Permission…**: after an
+  macOS 27 calls it), which both commands need to copy the selected text (and the layout
+  fix to paste it back), with **Grant Access…** and **Reset Permission…** while it is
+  missing: after an
   update macOS can keep SmartType switched on in the list while the permission no longer
   works, and the reset clears that and restarts SmartType so that macOS lists it again,
   ready to be switched back on; Settings opens next to it to show the status, as in
   SmartDock. Translation picks the languages Translate works from and into, Automatic
-  until you choose one. Shortcuts shows both commands' shortcuts and whether macOS
-  accepted them; About shows the version, links to GitHub and the release notes, and
+  until you choose one. Shortcuts shows and changes each command's shortcut and says
+  whether macOS accepted it; About shows the version, links to GitHub and the release notes, and
   "Made with ❤ by Alex Karatai". The window is built when it opens and freed when it
   closes, and SmartType still does no work while idle. Esc and ⌘W close it in any
   keyboard layout. On macOS 26 and later the window is Liquid Glass, as the translation
@@ -57,14 +60,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SmartType runs in the menu bar, with no Dock icon. Its shortcuts are registered
   system-wide and fire in any keyboard layout, because they are bound to physical keys,
   not letters. The menu lists both commands with their shortcuts, and Keyboard Shortcuts
-  shows whether macOS accepted each one. While idle the app uses 0.0% CPU, and about 17 MB
-  of memory until Settings is first opened.
+  shows whether macOS accepted each one. While idle the app uses 0.0% CPU and never wakes
+  up; it takes about 16 MB of memory at launch and 36–42 MB after Settings and
+  translations.
 - The interface speaks English and Russian and follows the language of macOS; another
   language can be chosen per app in System Settings → General → Language & Region. The
   build refuses to make the app while any string lacks a Russian translation, so a
   Russian menu never shows a stray English word.
 - Building, testing, formatting, coverage and versioning all go through `make`, the same
-  way as in SmartDock, and CI runs the same checks on every push.
+  way as in SmartDock, and CI runs the same checks on every push to `main` and `dev` and
+  on pull requests into them.
 - `make docs-check` fails the build when a link or anchor in the documentation no longer
   resolves, or when CLAUDE.md's file table no longer matches `Sources/`. Docs that drift
   from the code now stop CI instead of misleading the next reader. `make footprint` reports

@@ -1,7 +1,8 @@
 import AppKit
 import ApplicationServices
 
-/// Privacy & Security ▸ Accessibility, which ⌃⌥L needs to copy and paste in another app.
+/// Privacy & Security ▸ Accessibility, which both commands need to copy the selection in another
+/// app, and Fix Layout to paste the fixed text back.
 /// Every call here leaves the process, so each is a parameter whose default is the real thing.
 struct AccessibilityPermission {
     /// What to run in Terminal when SmartType could not reset the permission itself.

@@ -13,23 +13,23 @@
 
 ---
 
-SmartType lives in your menu bar and works in any app. Typed `ghbdtn` because the wrong layout was on? Select it, press **⌃⌥⇧L**, and it becomes `привет`; the keyboard also switches to the right layout. Need to understand or check a phrase in another language? Select it, press **⌃⌥⇧T**, and the translation appears next to the cursor. Both shortcuts can be changed in Settings, and both commands are also in the right-click **Services** menu.
+SmartType lives in your menu bar and works in any app. Typed `ghbdtn` because the wrong layout was on? Select it, press **⌃⌥⇧L**, and it becomes `привет`; the keyboard also switches to the right layout. Need to understand or check a phrase in another language? Select it, press **⌃⌥⇧T**, and the translation appears next to the cursor. Both shortcuts can be changed in Settings.
 
 Everything runs on your Mac. There are no servers and no accounts, and while idle SmartType does no work at all.
 
-> **Status: in development.** SmartType already runs in the menu bar, both shortcuts are registered system-wide and can be changed in Settings, and **Settings…** (⌘,) shows the Accessibility permission (Device Control and Data Access on macOS 27) with Grant Access and Reset Permission, the translation languages, the shortcuts and About. **⌃⌥⇧L already fixes the selected text, and ⌃⌥⇧T translates it** (macOS 26+); the right-click Services and polish come next ([delivery plan](docs/DELIVERY.md#stages)).
+> **Status: in development.** SmartType already runs in the menu bar, both shortcuts are registered system-wide and can be changed in Settings, and **Settings…** (⌘,) shows the Accessibility permission (Device Control and Data Access on macOS 27), with Grant Access and Reset Permission while it is missing, the translation languages, the shortcuts and About. **⌃⌥⇧L already fixes the selected text, and ⌃⌥⇧T translates it** (macOS 26+); the right-click Services and polish come next ([delivery plan](docs/DELIVERY.md#stages)).
 
 ## ✨ Features (planned for v0.1)
 
 | | Feature | Details |
 |---|---|---|
-| ⌨️ | **Layout fix** | ⌃⌥⇧L converts the selection between U.S. QWERTY and Russian ЙЦУКЕН, Shift symbols and `ё` included, then switches the active layout |
+| ⌨️ | **Layout fix** | ⌃⌥⇧L converts the selection between U.S. QWERTY and Russian – PC (ЙЦУКЕН), Shift symbols and `ё` included, then switches the active layout |
 | 🌐 | **Translation panel** | ⌃⌥⇧T shows the translation in a Liquid Glass card at the cursor: which way it translates, the original small, the translation large, Copy, Esc to close. Languages are recognized, or picked in Settings |
 | 🖱️ | **Right-click Services** | Both commands in the context menu. From there the layout fix replaces the text natively, with no clipboard and native undo |
 | 🔒 | **On-device** | Apple's on-device translation; a local LLM comes later. Your text never leaves the Mac |
 | 📋 | **Clipboard-safe** | Whenever SmartType borrows the clipboard, it puts your content back |
 | ⚡ | **Zero idle cost** | Event-driven: no timers, no polling, 0% CPU while idle |
-| ⚙️ | **Settings** | The Accessibility status with Grant Access and Reset Permission (confirm, and SmartType restarts), the translation languages, the shortcuts (click one and press new keys), and About, laid out as SmartDock's, in Liquid Glass on macOS 26+ |
+| ⚙️ | **Settings** | The Accessibility status, with Grant Access and Reset Permission while it is missing (confirm, and SmartType restarts), the translation languages, the shortcuts (click one and press new keys), and About, laid out as SmartDock's, in Liquid Glass on macOS 26+ |
 | 🌍 | **English and Russian** | The interface follows the language of macOS; pick another one per app in System Settings → General → Language & Region |
 | 🧩 | **Built to grow** | A new keyboard layout is one data file; translation engines plug in behind one protocol |
 
@@ -66,7 +66,7 @@ make run
 
 - macOS 14.0+ (Sonoma) to **run**; on-device translation needs macOS 26+.
 - Swift 6.2+ to **build**: the package declares `swift-tools-version: 6.2`.
-- Xcode 26+ or matching Command Line Tools.
+- Xcode 26+. The Command Line Tools alone are not enough: they lack `xcstringstool`, which `make app` uses for the Russian strings.
 
 ## 👤 Author
 

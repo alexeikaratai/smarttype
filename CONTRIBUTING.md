@@ -57,10 +57,10 @@ Naming, file organisation, access control, the concurrency rules and the princip
 
 ## Architecture in one paragraph
 
-Three targets today, split by isolation domain; a fourth, `SmartTypeEngines`, arrives with translation in Stage 3:
-- **`SmartTypeCore`** holds pure logic with no UI: keyboard layouts, conversion, language detection, correction.
-- **`SmartTypeEngines`** (Stage 3) will hold the translation engines behind one protocol.
-- **`SmartTypeApp`** is the main-actor shell: system adapters (hotkeys, keystrokes, clipboard, input sources, Accessibility), the actions, the menu and the Settings window; the translation panel (Stage 3) and the macOS Services provider (Stage 4) join it.
+Four targets, split by isolation domain:
+- **`SmartTypeCore`** holds pure logic with no UI: keyboard layouts, conversion, language detection, correction, and the rule that picks the language a translation goes into.
+- **`SmartTypeEngines`** holds the translation engines behind one protocol, the fallback chain and source-language recognition.
+- **`SmartTypeApp`** is the main-actor shell: system adapters (hotkeys, keystrokes, clipboard, input sources, Accessibility), the actions, the menu, the Settings window and the translation panel; the macOS Services provider joins it in Stage 4.
 - **`SmartType`** is the executable, with only `main.swift`.
 
 Dependencies flow one way and never back. **Put logic in Core whenever you can.** Details and decisions are in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -76,7 +76,7 @@ Tests use **Swift Testing** (`@Suite`, `@Test`, `#expect`) and run in parallel. 
 
 - Every call that leaves the process is injected with the real thing as the default. That covers synthetic keystrokes, the clipboard, input sources, Accessibility, alerts and translation. Tests pass recorders and never touch the developer's machine.
 - Tests use a private `NSPasteboard(name:)`, never the general one.
-- Wait for the event, never for a fixed time; a `waitUntil` helper goes into `TestSupport.swift` when the first test needs one.
+- Wait for the event, never for a fixed time: use `waitUntil` from `TestSupport.swift`.
 - Fakes live in each test target's `Mocks.swift`.
 
 ## Adding UI text
@@ -118,4 +118,4 @@ If the layout fix copies or pastes nothing, check Accessibility first; the hotke
 
 ## License
 
-To be decided before the repository goes public; see the [business plan](docs/BUSINESS.md#7-business-model-and-distribution-to-decide).
+MIT, decided on 2026-10-12; the LICENSE file arrives when the repository goes public, before the first release ([business plan](docs/BUSINESS.md#7-business-model-and-distribution)).

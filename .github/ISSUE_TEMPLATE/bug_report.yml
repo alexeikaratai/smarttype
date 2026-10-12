@@ -16,7 +16,7 @@ body:
       label: What happened?
       description: What did you expect instead?
       placeholder: |
-        I selected "ghbdtn" in Notes and pressed ⌃⌥L. The text stayed the same
+        I selected "ghbdtn" in Notes and pressed ⌃⌥⇧L. The text stayed the same
         and the Mac beeped; I expected "привет".
     validations:
       required: true
@@ -28,7 +28,7 @@ body:
       placeholder: |
         1. Type "ghbdtn" in Notes with the U.S. layout active
         2. Select the word
-        3. Press ⌃⌥L — nothing changes
+        3. Press ⌃⌥⇧L — nothing changes
     validations:
       required: true
 
@@ -37,7 +37,7 @@ body:
     attributes:
       label: App and command
       description: Which app were you typing in, and which command — hotkey, menu or right-click Services?
-      placeholder: Notes 4.12, hotkey ⌃⌥L
+      placeholder: Notes 4.12, hotkey ⌃⌥⇧L
     validations:
       required: true
 

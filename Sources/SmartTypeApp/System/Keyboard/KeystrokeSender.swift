@@ -3,7 +3,8 @@ import CoreGraphics
 
 /// Presses ⌘C and ⌘V in the frontmost app.
 ///
-/// The hotkey fires while ⌃⌥ are still held, and a ⌘C sent at that moment arrives as ⌃⌥⌘C
+/// The hotkey fires while its modifiers (⌃⌥⇧ by default) are still held, and a ⌘C sent at that
+/// moment arrives as ⌃⌥⇧⌘C
 /// and does nothing. So a press first waits for the physical modifiers to come up: explicit
 /// flags alone are not enough, as Espanso and Sorla measured too.
 struct KeystrokeSender {

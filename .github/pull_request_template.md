@@ -29,7 +29,7 @@ make format && make lint && make docs-check && make test && make app
 - [ ] New logic that *could* live in `SmartTypeCore` does, and is covered by tests
 - [ ] Calls that leave the process are injected, and no test touches the real clipboard,
       input source or Accessibility state
-- [ ] Version was **not** edited by hand — use `make bump V=x.y.z` if it needed changing
+- [ ] Version was **not** changed: it is bumped at release, with `make bump V=x.y.z`
 - [ ] `CHANGELOG.md` updated under `## [Unreleased]` for anything user-visible
 - [ ] `CLAUDE.md` / `docs/` / `README.md` updated if this changes architecture, commands or behaviour
 
