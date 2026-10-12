@@ -229,7 +229,7 @@ Carried over from SmartDock; they apply to any SwiftPM app built on this machine
   - Never give a local the name of a function in scope: the older compiler misresolves it inside macros such as `#require`.
   - A green local suite is not proof; the next CI run is.
 - **SPM's output layout moved in Swift 6.4.**
-  - `.build/release` becomes a symlink into `out/Products/Release`, modules are bundle directories, and the test bundle is named after the target.
+  - `.build/release` becomes a symlink into `out/Products/Release`, modules are bundle directories, and there is one test bundle per test target, named after it. `make coverage` reads every bundle: reading the first left `SmartTypeEngines` out of the report while every test passed (measured with Stage 3a).
   - Anything that reaches into `.build` by path must handle both layouts.
   - Recipes run under `set -e`.
   - When a toolchain changes, run every make target.
@@ -274,6 +274,12 @@ Keep this table current, as SmartDock does: one row per file, including the meas
 | `SmartTypeCore/Correction/LayoutTokenizer.swift` | Words (runs of non-whitespace, punctuation attached) and whitespace, in one pass. |
 | `SmartTypeCore/Correction/LayoutCorrector.swift` | A word's source is the only layout that could have typed it. One source for the whole selection: convert it whole. Mixed sources: decide word by word, and a tie keeps the word. The target is the layout of the last converted word. |
 | `SmartTypeCore/Correction/Correction.swift` | The fixed text and the layout to switch to. |
+| `SmartTypeCore/Translation/TranslationTarget.swift` | The language a translation goes into: the person's pick unless the text is already in it, else the first of their macOS languages the text is not in; text in all of them goes into English, English into Russian. |
+| `SmartTypeEngines/TranslationEngine.swift` | One way to translate, with a name the panel shows. Throws `TranslationFailure`, and lets cancellation through. |
+| `SmartTypeEngines/TranslationFailure.swift` | Why an engine did not translate: unavailable on this Mac, the pair not downloaded, the pair not supported, or failed. |
+| `SmartTypeEngines/FallbackTranslator.swift` | Asks engines in order and keeps every skipped one's reason. Checks for cancellation before each engine; cancellation is rethrown, never reported as a failure. |
+| `SmartTypeEngines/SourceLanguage.swift` | The source language, from `NLLanguageRecognizer`. Measured: sentences 1.00; "hello" 0.13 and "привет" read as Bulgarian at 0.53, so below 0.9 the person's languages are hints. |
+| `SmartTypeEngines/Apple/AppleTranslationEngine.swift` | Apple's on-device engine, macOS 26+: `LanguageAvailability` first, then `TranslationSession(installedSource:target:)`. Measured on macOS 27: ru→en 1.0 s cold, en→ru 0.34 s; a cancelled translation runs to the end before it throws (13.8 s for ~1,800 characters). Linked weakly without a flag (`otool -l`: LC_LOAD_WEAK_DYLIB). |
 | `SmartType/main.swift` | Entry point: `NSApplication` plus a top-level `AppDelegate`. `delegate` is weak, so the top-level constant is what keeps it alive. No `setActivationPolicy`; `LSUIElement` lives in `Resources/Info.plist`. |
 | `SmartTypeApp/App/AppDelegate.swift` | Builds `AppComposition` in `applicationDidFinishLaunching`. |
 | `SmartTypeApp/App/AppComposition.swift` | Composition root. Registers every `AppCommand`'s default hotkey, collects refusals for the menu, and owns `perform(_:)`, the single entry point for every command: Fix Layout runs `LayoutFixAction`, Translate only logs until Stage 3. Builds the Settings window controller and the layout fix on first use, so neither the window nor the dictionary loads before it is needed. At start, when the last run ended in a reset, it asks for Accessibility and opens Settings, as SmartDock does. `stop()` lets a test take its status item down. |
@@ -321,6 +327,7 @@ Keep this table current, as SmartDock does: one row per file, including the meas
 Swift Testing (`@Suite`, `@Test`, `#expect`), with suites running in parallel.
 
 - Logic lives in `SmartTypeCore` whenever it can, and is covered there: every layout, every conversion and correction case, every scorer rule.
+- The real Apple engine is tested only where its language pair is downloaded: the test's `.enabled` condition asks `LanguageAvailability`, so CI, which has no packs, skips it rather than fails.
 - Actions are tested with recorders at the process boundary; the real system calls are verified live (step 8).
 - Tests never touch the user's clipboard, input source or Accessibility state. Use a private `NSPasteboard(name:)`, an injected input-source switcher and an injected trust check.
 - Acceptance tests from the spec are written before the code that makes them pass (step 5).

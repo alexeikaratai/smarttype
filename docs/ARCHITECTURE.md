@@ -1,6 +1,6 @@
 # SmartType — Architecture
 
-**Status:** the target design. Built so far: the menu-bar shell and global hotkeys (Stage 1), the correction core (2a), the Settings window (2b), and ⌃⌥L fixing the selection (2c–2d). What each later stage adds is tracked in [DELIVERY.md](DELIVERY.md) and `CHANGELOG.md`.
+**Status:** the target design. Built so far: the menu-bar shell and global hotkeys (Stage 1), the correction core (2a), the Settings window (2b), ⌃⌥L fixing the selection (2c–2d), and the translation engine without its panel (3a). What each later stage adds is tracked in [DELIVERY.md](DELIVERY.md) and `CHANGELOG.md`.
 **Scope:** the architecture of the MVP. AI integrations (local LLM translation and an LLM "judge") come in Phase 2; the extension points for them are reserved here.
 **Environment:** macOS 27, Xcode 27, Swift 6.4, Apple Silicon. Deployment target: macOS 14.
 **Companion docs:** [Business plan](BUSINESS.md) · [Delivery plan](DELIVERY.md)
@@ -59,15 +59,15 @@ SmartType.app
 │      │                                  │                                │
 │      ▼                                  ▼                                │
 │ SmartTypeEngines · nonisolated     SmartTypeCore · pure, nonisolated     │
-│   TranslationEngine protocol ────►   layouts, converter, detection,      │
-│   Apple on-device engine             correction (Foundation only)        │
+│   TranslationEngine protocol         layouts, converter, detection,      │
+│   Apple on-device engine, language   correction, translation target      │
 │   Ollama, LLM judge (Phase 2)                                            │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 | Target | Owns | Depends on | Isolation |
 |---|---|---|---|
 | `SmartTypeCore` | languages, keyboard layouts, conversion, detection, correction | Foundation | nonisolated; data types `Sendable`; strict memory safety |
-| `SmartTypeEngines` | translation engines, fallback chain; HTTP transport and LLM in Phase 2 | Core, Translation (weak-linked) | nonisolated async |
+| `SmartTypeEngines` | translation engines, fallback chain, recognizing the source language; HTTP transport and LLM in Phase 2 | Foundation, Translation (linked weakly by itself, measured), NaturalLanguage | nonisolated async |
 | `SmartTypeApp` | system adapters, actions, UI, composition root | Core, Engines, AppKit, SwiftUI, Carbon | MainActor by default |
 | `SmartType` | process entry point | App | — |
 
@@ -170,7 +170,10 @@ User    Action         Selection          Panel        Translator    Engine
 ```
 - **Close the panel first.** While the panel is the key window, a synthetic ⌘C would go to the panel itself.
 - **Selection readers.** A chain of `SelectionReader`s: `AXSelectionReader` reads `kAXSelectedTextAttribute` with no pasteboard, no privacy prompt, in about 1 ms. An empty or failed result falls through to `ClipboardSelectionReader` (⌘C inside a `ClipboardTransaction`).
-- **Direction.** ru↔en, chosen by the dominant script.
+- **Direction** (decided 2026-10-12, BUSINESS §11). Any language Apple's engine supports (47 languages and variants on macOS 27, measured), into a language the person picks in the panel; the pick is remembered.
+  - Unpicked, the target is the first of the person's macOS languages the text is not in (`TranslationTarget`, Core): with English then Russian, Russian goes into English and English into Russian.
+  - The source is recognized on the Mac (`SourceLanguage`, Engines). Sentences come back sure (1.00 for ru, de and fr); single words do not ("hello" 0.13, "привет" taken for Bulgarian at 0.53), so below 0.9 the person's languages go in as hints. A lone foreign word then reads as one of theirs, and the panel lets them pick the source.
+- **The engine cannot be interrupted.** A cancelled translation runs to the end and only then throws: 13.8 s for about 1,800 characters (measured). The action drops stale results instead of waiting for them, and text over 2,000 characters is refused with a message.
 - **Dismissal and cancellation.** `PanelController` reports dismissal and `TranslateAction` cancels its task. Pressing ⌃⌥T again cancels and restarts.
 - **Availability.** On macOS < 26 the MVP has no engine, so Translate «Перевести» is disabled, with the hint "Needs macOS 26" «Нужна macOS 26». Phase 2 adds Ollama for older systems.
 - **The MVP chain has one engine.** `FallbackTranslator` is already the seam, so Phase 2 only adds an engine to the list.
@@ -354,7 +357,7 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 - **Logging.** `os.Logger` with one category per subsystem: today general, hotkeys and permissions; selection and translation join with their stages. User text is never logged; any diagnostic value derived from it uses `privacy: .private`.
 - **Testing.** Swift Testing, in three test targets:
   - Core: layouts round-trip, conversions, correction cases, scorers.
-  - Engines: fake engines, the chain, cancellation.
+  - Engines: fake engines, the chain, cancellation, source recognition on the real recognizer, and the real Apple engine where the pair is downloaded (skipped elsewhere, CI included).
   - App: the menu, the Settings window controller and its view models, `PanelPlacement`, and `PasteboardSnapshot` on a private `NSPasteboard`, so the user's clipboard is never touched. SwiftUI views hold no logic of their own and are verified live.
 
   Actions are tested with recorders injected at the process boundary (ADR-012); the real system calls are verified end to end.
@@ -402,8 +405,9 @@ Sources/SmartTypeCore/
   Detection/{Plausibility, WordScorer, LanguageProfile, PhonotacticScorer, LanguageDetector}
   Detection/Profiles/{English, Russian}
   Correction/{LayoutTokenizer, LayoutCorrector, Correction}
+  Translation/TranslationTarget
 Sources/SmartTypeEngines/
-  {TranslationEngine, TranslationFailure, FallbackTranslator}
+  {TranslationEngine, TranslationFailure, FallbackTranslator, SourceLanguage}
   Apple/AppleTranslationEngine
   (Phase 2: HTTPTransport, Ollama/{OllamaClient, OllamaChatDTO, OllamaTranslationEngine, TranslationPrompt})
 Sources/SmartTypeApp/

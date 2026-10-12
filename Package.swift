@@ -34,6 +34,13 @@ let package = Package(
             path: "Sources/SmartTypeCore",
             swiftSettings: strict + [.strictMemorySafety()]
         ),
+        // Translation engines and the chain between them, nonisolated async. Translation.framework
+        // links weakly by itself, its API beginning after macOS 14 (measured with otool).
+        .target(
+            name: "SmartTypeEngines",
+            path: "Sources/SmartTypeEngines",
+            swiftSettings: strict
+        ),
         // The AppKit shell as a library, so the test bundle can build a menu and read it back.
         // The executable keeps only `main.swift`.
         .target(
@@ -52,6 +59,12 @@ let package = Package(
             name: "SmartTypeCoreTests",
             dependencies: ["SmartTypeCore"],
             path: "Tests/SmartTypeCoreTests",
+            swiftSettings: strict
+        ),
+        .testTarget(
+            name: "SmartTypeEnginesTests",
+            dependencies: ["SmartTypeEngines"],
+            path: "Tests/SmartTypeEnginesTests",
             swiftSettings: strict
         ),
         .testTarget(

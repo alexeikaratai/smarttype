@@ -52,11 +52,11 @@ lint:
 # A per-file table for the library targets. The SmartType executable (main.swift) is not
 # linked into the test bundle, so it never appears here.
 #
-# The test bundle is located, not named: up to Swift 6.3 SPM names it after the package
-# (SmartTypePackageTests.xctest), from Swift 6.4 after the test target. The binary inside
-# always carries the bundle's own name, so deriving it from whatever *.xctest exists
-# serves both — CI runs Xcode 26, the dev machine Xcode 27.
-
+# The test bundles are located, not named: up to Swift 6.3 SPM builds one for the package
+# (SmartTypePackageTests.xctest), from Swift 6.4 one per test target, named after it. The
+# binary inside carries the bundle's name, and the report reads every bundle it finds, so
+# it serves both — CI runs Xcode 26, the dev machine Xcode 27. Reading only the first one
+# left whole targets out of the report while every test passed.
 coverage:
 	@echo "🧪 Running tests with coverage..."
 	@swift test --enable-code-coverage
@@ -64,14 +64,17 @@ coverage:
 	@set -e; \
 	bin=$$(swift build --show-bin-path); \
 	prof=$$(swift test --show-codecov-path); \
-	bundle=$$(ls -d "$$bin"/*.xctest 2>/dev/null | head -1); \
-	if [ -z "$$bundle" ]; then \
+	bundles=$$(ls -d "$$bin"/*.xctest 2>/dev/null); \
+	if [ -z "$$bundles" ]; then \
 		echo "❌ No .xctest bundle in $$bin — did the test build change layout again?"; \
 		exit 1; \
 	fi; \
-	binary="$$bundle/Contents/MacOS/$$(basename "$$bundle" .xctest)"; \
+	objects=""; \
+	for bundle in $$bundles; do \
+		objects="$$objects -object $$bundle/Contents/MacOS/$$(basename "$$bundle" .xctest)"; \
+	done; \
 	xcrun llvm-cov report \
-		"$$binary" \
+		$$objects \
 		-instr-profile="$$(dirname $$prof)/default.profdata" \
 		-ignore-filename-regex='.build|Tests/'
 
