@@ -14,6 +14,7 @@ final class LayoutFixAction {
     private let corrector: LayoutCorrector
     private let clipboard: ClipboardTransaction
     private let permission: AccessibilityPermission
+    private let readSelection: () -> String?
     private let selectLayout: (String) -> Bool
     private let isSmartTypeFrontmost: () -> Bool
     private let beep: () -> Void
@@ -24,6 +25,7 @@ final class LayoutFixAction {
         corrector: LayoutCorrector,
         clipboard: ClipboardTransaction,
         permission: AccessibilityPermission,
+        readSelection: @escaping () -> String? = { AXSelectionReader.read() },
         selectLayout: @escaping (String) -> Bool = { InputSourceSwitcher.select($0) },
         isSmartTypeFrontmost: @escaping () -> Bool = {
             NSWorkspace.shared.frontmostApplication?.processIdentifier == ProcessInfo.processInfo.processIdentifier
@@ -34,6 +36,7 @@ final class LayoutFixAction {
         self.corrector = corrector
         self.clipboard = clipboard
         self.permission = permission
+        self.readSelection = readSelection
         self.selectLayout = selectLayout
         self.isSmartTypeFrontmost = isSmartTypeFrontmost
         self.beep = beep
@@ -78,6 +81,13 @@ final class LayoutFixAction {
         }
         // ⌘C would go to SmartType's own window, not to the text the person meant.
         guard !isSmartTypeFrontmost() else { return beep() }
+        // An app that says nothing is selected gets no ⌘C: VS Code would copy the whole line and
+        // the fix retype it, and an app with nothing to copy beeps a second time. A selection it
+        // reports may be stale, so what is replaced is still what ⌘C copies.
+        if readSelection()?.allSatisfy(\.isWhitespace) == true {
+            Log.general.notice("Fix Layout: nothing selected, as Accessibility says")
+            return beep()
+        }
 
         let start = ContinuousClock.now
         switch await clipboard.run({ await self.replaceSelection(since: start) }) {

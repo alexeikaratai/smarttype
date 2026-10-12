@@ -19,14 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Apple's on-device translation, macOS 26 and later. The language of the text is
   recognized, and it goes into the first of your macOS languages it is not already in; to
   translate from a language of your choice, or into one (unless the text is already in it),
-  pick it in Settings ▸ Translation. The panel is a Liquid Glass card that says which way it translates, keeps
-  the original small above the translation, and grows to fit it, from the edge next to the
-  pointer. Select the translation, or copy it with ↩. Esc or a click elsewhere closes the
-  panel. Where the app tells it through Accessibility, the selection is read without
-  touching your clipboard, and macOS asks nothing about pasting; other apps get ⌘C, and your
-  clipboard is given back as soon as the selection is read. Copy puts the translation on it. A pair of languages not downloaded yet
-  comes with a button to the place in System Settings that downloads it. On older macOS,
-  Translate is greyed out in the menu and says why.
+  pick it in Settings ▸ Translation. The panel is a Liquid Glass card that says which way it
+  translates, keeps the original small above the translation, and grows to fit it, from the
+  edge next to the pointer. Select the translation, or copy it with ↩. Esc or a click
+  elsewhere closes the panel. Where the app tells it through Accessibility, the selection is
+  read without touching your clipboard, and macOS asks nothing about pasting; other apps get
+  ⌘C, and your clipboard is given back as soon as the selection is read. With nothing
+  selected it beeps, and where the app says so through Accessibility, it does not even copy.
+  Copy puts the translation on the clipboard. A pair of languages not downloaded yet comes
+  with a button to the place in System Settings that downloads it. On older macOS, Translate
+  is greyed out in the menu and says why.
 - SmartType has its own icon: one key with two legends, F and А, since the same key types
   either one depending on the layout, which is the very mix-up SmartType fixes. It shows in
   System Settings' permission lists, which had a blank square for it, and in Settings.
@@ -38,8 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the paste and puts your own content back, unless you copied something in the
   meantime; the other command, pressed meanwhile, beeps instead of taking the clipboard
   over, and clipboard managers are told to skip what SmartType writes. With nothing selected or
-  nothing to fix it beeps and changes nothing. Without the permission it needs, it says so
-  and offers to grant it, and the menu shows «⚠︎ Grant Access…» until it is granted.
+  nothing to fix it beeps and changes nothing. Where the app says through Accessibility that
+  nothing is selected, SmartType does not even copy: the app does not beep a second time, and
+  VS Code, which copies the whole line when nothing is selected, keeps that line as it is.
+  Without the permission it needs, it says so and offers to grant it, and the menu shows
+  «⚠︎ Grant Access…» until it is granted.
 - **Settings…** (⌘,) in the menu opens a Settings window laid out as SmartDock's. General
   shows whether SmartType may use Accessibility (Device Control and Data Access, as
   macOS 27 calls it), which both commands need to copy the selected text (and the layout
@@ -47,9 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   restarts SmartType and opens the list in System Settings, ready to be switched on; after
   an update macOS can keep SmartType switched on there while the permission no longer
   works, and the button clears that on the way. The menu's and the alerts' Grant Access do
-  the same, and Settings opens next to the list to show the status, as in SmartDock. Translation picks the languages Translate works from and into, Automatic
-  until you choose one. Shortcuts shows and changes each command's shortcut and says
-  whether macOS accepted it; About shows the version, links to GitHub and the release notes, and
+  the same, and Settings opens next to the list to show the status, as in SmartDock.
+  Translation picks the languages Translate works from and into, Automatic until you choose
+  one. Shortcuts shows and changes each command's shortcut and says whether macOS accepted
+  it; About shows the version, links to GitHub and the release notes, and
   "Made with ❤ by Alex Karatai". The window is built when it opens and freed when it
   closes, and SmartType still does no work while idle. Esc and ⌘W close it in any
   keyboard layout. On macOS 26 and later the window is Liquid Glass, as the translation

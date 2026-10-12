@@ -20,7 +20,8 @@ import Testing
         LayoutFixAction(
             corrector: LayoutCorrector(
                 layouts: BuiltInLayouts().layouts, detector: LanguageDetector(scorers: [PhonotacticScorer()])),
-            clipboard: clipboard, permission: trusted(), selectLayout: { _ in true }, isSmartTypeFrontmost: { false },
+            clipboard: clipboard, permission: trusted(), readSelection: { nil }, selectLayout: { _ in true },
+            isSmartTypeFrontmost: { false },
             beep: beep, explain: { _ in false })
     }
 

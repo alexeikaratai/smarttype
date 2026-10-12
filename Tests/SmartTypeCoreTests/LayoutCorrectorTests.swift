@@ -53,7 +53,7 @@ import Testing
     private let ukrainianLike: KeyboardLayout = {
         var output = KeyboardLayout.russianPC.output
         output[KeyStroke(keyCode: 0x01, shift: false)] = "і"
-        return KeyboardLayout(id: "test.ukrainian", language: Language(code: "uk", script: .cyrillic), output: output)
+        return KeyboardLayout(id: "test.ukrainian", language: Language(code: "uk"), output: output)
     }()
 
     private func threeLayoutCorrector(knowing known: [Language: Set<String>]) -> LayoutCorrector {

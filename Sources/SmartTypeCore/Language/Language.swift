@@ -1,15 +1,13 @@
-/// A natural language: its BCP 47 code and the script it is written in.
+/// A natural language, by its BCP 47 code.
 package struct Language: Hashable, Sendable, CustomStringConvertible {
     package let code: String
-    package let script: Script
 
-    package init(code: String, script: Script) {
+    package init(code: String) {
         self.code = code
-        self.script = script
     }
 
     package var description: String { code }
 
-    package static let english = Language(code: "en", script: .latin)
-    package static let russian = Language(code: "ru", script: .cyrillic)
+    package static let english = Language(code: "en")
+    package static let russian = Language(code: "ru")
 }

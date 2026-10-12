@@ -81,11 +81,18 @@ final class TranslateAction {
         }
     }
 
-    /// Accessibility first; ⌘C, with the clipboard borrowed, when the app does not say.
+    /// Accessibility first; ⌘C, with the clipboard borrowed, when the app does not say. An app
+    /// that says nothing is selected gets no ⌘C: it would beep a second time, and VS Code would
+    /// copy the whole line (measured: VS Code's empty answer is true).
     private func readTheSelection() async -> Selection {
-        if let text = readSelection(), !text.allSatisfy(\.isWhitespace) {
+        switch readSelection() {
+        case let text? where !text.allSatisfy(\.isWhitespace):
             Log.general.notice("Translate: the selection read through Accessibility")
             return .text(text)
+        case .some:
+            return .nothingSelected
+        case nil:
+            break
         }
         // Fix Layout has the clipboard: borrowing it now would lose the person's own.
         guard !clipboard.isBorrowed else { return .clipboardBusy }

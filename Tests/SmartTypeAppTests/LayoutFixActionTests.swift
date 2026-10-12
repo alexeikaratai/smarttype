@@ -15,13 +15,14 @@ import Testing
     private func action(
         _ app: FakeFrontApp, _ macOS: PermissionRecorder, _ outcome: Outcome,
         smartTypeIsFrontmost: Bool = false, pasteboardDenied: Bool = false, agrees: Bool = false,
-        yielding: Bool = false
+        yielding: Bool = false, accessibilitySelection: String? = nil
     ) -> LayoutFixAction {
         LayoutFixAction(
             corrector: LayoutCorrector(
                 layouts: BuiltInLayouts().layouts, detector: LanguageDetector(scorers: [PhonotacticScorer()])),
             clipboard: app.clipboard(isDenied: pasteboardDenied, yielding: yielding),
             permission: macOS.permission(),
+            readSelection: { accessibilitySelection },
             selectLayout: { layoutID in
                 outcome.layouts.append(layoutID)
                 return true
@@ -63,6 +64,7 @@ import Testing
                 layouts: BuiltInLayouts().layouts, detector: LanguageDetector(scorers: [PhonotacticScorer()])),
             clipboard: app.clipboard(),
             permission: trusted().permission(),
+            readSelection: { nil },
             selectLayout: { _ in
                 onPasteboardAtSwitch = app.pasteboard.string(forType: .string)
                 return true
@@ -192,5 +194,31 @@ import Testing
 
         #expect(fixed == "привет")
         #expect(outcome.explained.isEmpty)
+    }
+
+    /// With nothing selected VS Code's ⌘C copies the whole line, and the fix would retype it. An
+    /// app that says through Accessibility that nothing is selected gets no ⌘C at all.
+    @Test func nothingSelectedThroughAccessibilityBeepsAndCopiesNothing() async {
+        let app = FakeFrontApp()
+        app.selection = "ghbdtn"
+        let outcome = Outcome()
+
+        await action(app, trusted(), outcome, accessibilitySelection: "").fixSelection()
+
+        #expect(outcome.beeps == 1)
+        #expect(app.copies == 0)
+        #expect(app.pasted.isEmpty)
+    }
+
+    /// What Accessibility says may be stale, so the fix still copies what it replaces.
+    @Test func aSelectionThroughAccessibilityIsStillCopied() async {
+        let app = FakeFrontApp()
+        app.selection = "ghbdtn"
+        let outcome = Outcome()
+
+        await action(app, trusted(), outcome, accessibilitySelection: "something else").fixSelection()
+
+        #expect(app.copies == 1)
+        #expect(app.pasted == ["привет"])
     }
 }

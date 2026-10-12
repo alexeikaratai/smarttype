@@ -210,16 +210,31 @@ import Testing
         #expect(app.pasteboard.changeCount == changeCount)
     }
 
-    /// An app that tells nothing, or only blanks, through Accessibility still gets its ⌘C.
-    @Test(arguments: [String?.none, "  \n"])
-    func withoutAnAnswerThroughAccessibilityTheSelectionIsCopied(_ answer: String?) async {
+    /// An app that tells nothing through Accessibility still gets its ⌘C.
+    @Test func withoutAnAnswerThroughAccessibilityTheSelectionIsCopied() async {
         let app = FakeFrontApp()
         app.selection = "Привет"
         let panel = panel()
 
-        await action(app, trusted(), panel, Outcome(), accessibilitySelection: answer).translateSelection()
+        await action(app, trusted(), panel, Outcome(), accessibilitySelection: nil).translateSelection()
 
         #expect(app.copies == 1)
         #expect(panel.card?.original == "Привет")
+    }
+
+    /// An app that says nothing is selected gets no ⌘C: it would beep a second time, and VS Code
+    /// would copy the whole line (measured: VS Code answers an empty selection truthfully).
+    @Test(arguments: ["", "  \n"])
+    func nothingSelectedThroughAccessibilityBeepsOnceAndCopiesNothing(_ answer: String) async {
+        let app = FakeFrontApp()
+        app.selection = "the whole line"
+        let panel = panel()
+        let outcome = Outcome()
+
+        await action(app, trusted(), panel, outcome, accessibilitySelection: answer).translateSelection()
+
+        #expect(outcome.beeps == 1)
+        #expect(app.copies == 0)
+        #expect(!panel.isShown)
     }
 }

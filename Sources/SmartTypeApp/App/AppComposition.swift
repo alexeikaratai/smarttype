@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import OSLog
 import SmartTypeCore
 
@@ -63,9 +64,13 @@ final class AppComposition {
         }
     }
 
-    /// The one entry point for every command, whichever door it came through.
+    /// The one entry point for every command, whichever door it came through. The log names the
+    /// app in front and whether a password field holds Secure Input, never any text.
     func perform(_ command: AppCommand) {
-        Log.general.notice("Command: \(String(describing: command), privacy: .public)")
+        let app = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?"
+        Log.general.notice(
+            "Command: \(String(describing: command), privacy: .public) in \(app, privacy: .public), Secure Input \(IsSecureEventInputEnabled() ? "on" : "off", privacy: .public)"
+        )
         switch command {
         case .fixLayout:
             Task { [weak self] in await self?.layoutFix.fixSelection() }

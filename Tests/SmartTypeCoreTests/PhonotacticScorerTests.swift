@@ -38,6 +38,6 @@ import Testing
     }
 
     @Test func aLanguageWithoutAProfileIsUnknown() {
-        #expect(scorer.score("xyz", as: Language(code: "de", script: .latin)) == .unknown)
+        #expect(scorer.score("xyz", as: Language(code: "de")) == .unknown)
     }
 }
