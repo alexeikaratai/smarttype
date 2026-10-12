@@ -31,11 +31,13 @@ final class RecordingRegistrar: HotKeyRegistering {
 }
 
 /// Stands in for what `AccessibilityPermission` asks of macOS: the trust check, the system
-/// prompt, opening System Settings and running `tccutil`. Nothing reaches the real TCC.
+/// prompt, opening System Settings, running `tccutil` and relaunching. Nothing reaches the real
+/// TCC, and the test run never quits.
 final class PermissionRecorder {
     var isTrusted = false
     var exitStatus: Int32 = 0
     private(set) var prompts = 0
+    private(set) var relaunches = 0
     private(set) var openedURLs: [URL] = []
     private(set) var commands: [[String]] = []
     /// A defaults domain per test, emptied first and never the app's own.
@@ -55,7 +57,8 @@ final class PermissionRecorder {
             runTool: { tool, arguments in
                 self.commands.append([tool.path] + arguments)
                 return self.exitStatus
-            }
+            },
+            relaunch: { self.relaunches += 1 }
         )
     }
 }

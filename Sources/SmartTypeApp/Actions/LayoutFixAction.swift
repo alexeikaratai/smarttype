@@ -23,7 +23,7 @@ final class LayoutFixAction {
     init(
         corrector: LayoutCorrector,
         clipboard: ClipboardTransaction,
-        permission: AccessibilityPermission = AccessibilityPermission(),
+        permission: AccessibilityPermission,
         selectLayout: @escaping (String) -> Bool = { InputSourceSwitcher.select($0) },
         isSmartTypeFrontmost: @escaping () -> Bool = {
             NSWorkspace.shared.frontmostApplication?.processIdentifier == ProcessInfo.processInfo.processIdentifier
@@ -72,7 +72,7 @@ final class LayoutFixAction {
         guard permission.isGranted else {
             Log.general.notice("Fix Layout: no Accessibility permission")
             if explain(.accessibility) {
-                permission.requestAccess()
+                await permission.grantAccess()
             }
             return
         }

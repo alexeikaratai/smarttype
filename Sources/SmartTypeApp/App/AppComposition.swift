@@ -28,7 +28,7 @@ final class AppComposition {
         hotKeyRegistrar: any HotKeyRegistering = CarbonHotKeyRegistrar(),
         hotKeyStore: HotKeyStore = HotKeyStore(),
         statusBar: NSStatusBar = .system,
-        permission: AccessibilityPermission = AccessibilityPermission(),
+        permission: AccessibilityPermission = AccessibilityPermission(relaunch: { AppRelauncher.relaunch() }),
         presentSettings: @escaping (NSWindow) -> Void = { SettingsWindowController.bringToFront($0) },
         offerServices: @escaping (NSObject) -> Void = { AppComposition.offerToServices($0) }
     ) {

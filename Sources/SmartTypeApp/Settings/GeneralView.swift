@@ -4,8 +4,6 @@ import SwiftUI
 struct GeneralView: View {
     @Bindable var accessibility: AccessibilityViewModel
 
-    @State private var isConfirmingReset = false
-
     var body: some View {
         Form {
             Section {
@@ -18,24 +16,6 @@ struct GeneralView: View {
             } footer: {
                 notes
             }
-        }
-        .confirmationDialog(
-            String(localized: "Reset SmartType’s permission?", comment: "Reset confirmation: title"),
-            isPresented: $isConfirmingReset
-        ) {
-            Button(
-                String(
-                    localized: "Reset and Restart", comment: "Reset confirmation: the button that resets and relaunches"
-                ), role: .destructive
-            ) {
-                Task { await accessibility.reset() }
-            }
-        } message: {
-            Text(
-                String(
-                    localized:
-                        "SmartType leaves the list in System Settings and restarts, then asks again. Switch it on in the list that opens.",
-                    comment: "Reset confirmation: what happens"))
         }
         .alert(
             String(localized: "Couldn’t reset the permission", comment: "Alert after tccutil failed: title"),
@@ -50,6 +30,7 @@ struct GeneralView: View {
         }
     }
 
+    /// One button, from Settings as from the menu and the alerts: see `grantAccess()`.
     private var accessButtons: some View {
         HStack {
             Spacer()
@@ -58,13 +39,10 @@ struct GeneralView: View {
                     localized: "Grant Access…",
                     comment: "Button and menu item: add SmartType to the Accessibility list and open it")
             ) {
-                accessibility.requestAccess()
+                Task { await accessibility.grantAccess() }
             }
-            Button(String(localized: "Reset Permission…", comment: "Button: clear a stale Accessibility grant")) {
-                isConfirmingReset = true
-            }
+            .disabled(accessibility.isGranting)
         }
-        .disabled(accessibility.isResetting)
     }
 
     private var notes: some View {
@@ -78,8 +56,8 @@ struct GeneralView: View {
                 note(
                     String(
                         localized:
-                            "If SmartType is switched on in System Settings but is still not allowed here, the permission went stale after an update: reset it.",
-                        comment: "Settings ▸ General: when to reset"))
+                            "Grant Access… restarts SmartType and opens the list in System Settings: switch SmartType on there. An entry an update left behind is cleared on the way.",
+                        comment: "Settings ▸ General: what Grant Access does"))
             }
         }
     }

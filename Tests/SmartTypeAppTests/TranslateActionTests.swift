@@ -18,7 +18,7 @@ import Testing
     private func action(
         _ app: FakeFrontApp, _ macOS: PermissionRecorder, _ panel: PanelController, _ outcome: Outcome,
         isAvailable: Bool = true, pasteboardDenied: Bool = false, smartTypeIsFrontmost: Bool = false,
-        accessibilitySelection: String? = nil, test: String = #function
+        accessibilitySelection: String? = nil, agrees: Bool = false, test: String = #function
     ) -> TranslateAction {
         TranslateAction(
             makeCard: { text in
@@ -33,7 +33,7 @@ import Testing
             beep: { outcome.beeps += 1 },
             explain: { problem in
                 outcome.explained.append(problem)
-                return false
+                return agrees
             })
     }
 
@@ -137,6 +137,16 @@ import Testing
 
         #expect(outcome.explained == [.accessibility])
         #expect(app.copies == 0)
+    }
+
+    /// The alert's Grant Access does what the button in Settings does.
+    @Test func agreeingToTheExplanationGrantsAccess() async {
+        let macOS = PermissionRecorder()
+
+        await action(FakeFrontApp(), macOS, panel(), Outcome(), agrees: true).translateSelection()
+
+        #expect(macOS.commands.count == 1)
+        #expect(macOS.relaunches == 1)
     }
 
     @Test func aPasteboardSmartTypeMayNotReadIsExplained() async {

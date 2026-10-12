@@ -22,7 +22,10 @@ enum Onboarding {
                     localized:
                         "SmartType copies the selected text to fix or translate it, and pastes a fix back. macOS allows that only to apps switched on in System Settings ▸ Privacy & Security ▸",
                     comment: "Alert when a command runs without Accessibility: followed by the permission's name")
-                + " " + AccessibilityPermission.settingName + "."
+                + " " + AccessibilityPermission.settingName + ". "
+                + String(
+                    localized: "Grant Access… restarts SmartType and opens that list: switch it on there.",
+                    comment: "Alert when a command runs without Accessibility: after the permission's name")
             alert.addButton(
                 withTitle: String(
                     localized: "Grant Access…",

@@ -66,4 +66,34 @@ import Testing
     @Test func theCommandToRunByHandNamesThisApp() {
         #expect(PermissionRecorder().permission().manualResetCommand == "tccutil reset Accessibility com.smarttype.app")
     }
+
+    /// Grant Access, wherever it is pressed. After a rebuild or an update, System Settings keeps
+    /// SmartType switched on for a binary that is gone, and only clearing the entry helps; a
+    /// stale entry cannot be told from none, so it is always cleared. Only a process started
+    /// after that is listed again (measured), so SmartType relaunches and the new one asks.
+    @Test func grantingAccessClearsTheEntryAndRelaunchesToAsk() async {
+        let macOS = PermissionRecorder()
+
+        let didRelaunch = await macOS.permission().grantAccess()
+
+        #expect(didRelaunch)
+        #expect(macOS.commands == [["/usr/bin/tccutil", "reset", "Accessibility", "com.smarttype.app"]])
+        #expect(macOS.relaunches == 1)
+        #expect(macOS.permission().asksAfterNextLaunch)
+        #expect(macOS.prompts == 0)
+    }
+
+    /// `tccutil` refused: asking from this process still lists a SmartType that has no entry.
+    @Test func whenTheEntryCannotBeClearedThisProcessAsks() async {
+        let macOS = PermissionRecorder()
+        macOS.exitStatus = 1
+
+        let didRelaunch = await macOS.permission().grantAccess()
+
+        #expect(!didRelaunch)
+        #expect(macOS.relaunches == 0)
+        #expect(macOS.prompts == 1)
+        #expect(macOS.openedURLs.count == 1)
+        #expect(!macOS.permission().asksAfterNextLaunch)
+    }
 }

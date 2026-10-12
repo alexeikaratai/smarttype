@@ -88,13 +88,14 @@ import Testing
         #expect(macOS.prompts == 0)
     }
 
-    @Test func agreeingToTheExplanationAsksMacOSForAccess() async {
+    /// The alert's Grant Access does what the button in Settings does.
+    @Test func agreeingToTheExplanationGrantsAccess() async {
         let macOS = PermissionRecorder()
 
         await action(FakeFrontApp(), macOS, Outcome(), agrees: true).fixSelection()
 
-        #expect(macOS.prompts == 1)
-        #expect(macOS.openedURLs.count == 1)
+        #expect(macOS.commands.count == 1)
+        #expect(macOS.relaunches == 1)
     }
 
     /// ⌘C would go to SmartType's own window, not to the text the person meant.

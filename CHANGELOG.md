@@ -43,12 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings…** (⌘,) in the menu opens a Settings window laid out as SmartDock's. General
   shows whether SmartType may use Accessibility (Device Control and Data Access, as
   macOS 27 calls it), which both commands need to copy the selected text (and the layout
-  fix to paste it back), with **Grant Access…** and **Reset Permission…** while it is
-  missing: after an
-  update macOS can keep SmartType switched on in the list while the permission no longer
-  works, and the reset clears that and restarts SmartType so that macOS lists it again,
-  ready to be switched back on; Settings opens next to it to show the status, as in
-  SmartDock. Translation picks the languages Translate works from and into, Automatic
+  fix to paste it back), with one button, **Grant Access…**, while it is missing. It
+  restarts SmartType and opens the list in System Settings, ready to be switched on; after
+  an update macOS can keep SmartType switched on there while the permission no longer
+  works, and the button clears that on the way. The menu's and the alerts' Grant Access do
+  the same, and Settings opens next to the list to show the status, as in SmartDock. Translation picks the languages Translate works from and into, Automatic
   until you choose one. Shortcuts shows and changes each command's shortcut and says
   whether macOS accepted it; About shows the version, links to GitHub and the release notes, and
   "Made with ❤ by Alex Karatai". The window is built when it opens and freed when it

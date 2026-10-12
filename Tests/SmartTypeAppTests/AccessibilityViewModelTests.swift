@@ -6,7 +6,7 @@ import Testing
     /// Read when the window opens and again when it comes forward, never polled.
     @Test func theStatusIsReadAtTheStartAndOnRefreshOnly() {
         let macOS = PermissionRecorder()
-        let model = AccessibilityViewModel(permission: macOS.permission(), relaunch: {})
+        let model = AccessibilityViewModel(permission: macOS.permission())
         #expect(!model.isGranted)
 
         macOS.isTrusted = true
@@ -16,53 +16,39 @@ import Testing
         #expect(model.isGranted)
     }
 
-    @Test func grantingAccessGoesToMacOS() {
+    /// The one button: the entry is cleared, SmartType relaunches, and the next launch asks.
+    @Test func grantingAccessRelaunchesToAsk() async {
         let macOS = PermissionRecorder()
+        let model = AccessibilityViewModel(permission: macOS.permission())
 
-        AccessibilityViewModel(permission: macOS.permission(), relaunch: {}).requestAccess()
-
-        #expect(macOS.prompts == 1)
-        #expect(macOS.openedURLs.count == 1)
-    }
-
-    /// After a reset macOS lists SmartType again only for a process started later (measured),
-    /// so it relaunches, and the next launch asks.
-    @Test func aResetThatWentThroughRelaunchesToAskAgain() async {
-        let macOS = PermissionRecorder()
-        var relaunches = 0
-        let model = AccessibilityViewModel(permission: macOS.permission(), relaunch: { relaunches += 1 })
-
-        await model.reset()
+        await model.grantAccess()
 
         #expect(macOS.commands.count == 1)
-        #expect(relaunches == 1)
-        #expect(macOS.permission().asksAfterNextLaunch)
-        #expect(macOS.prompts == 0)
+        #expect(macOS.relaunches == 1)
         #expect(!model.isShowingResetFailure)
-        #expect(!model.isResetting)
+        #expect(!model.isGranting)
     }
 
-    @Test func aFailedResetOffersTheCommandToRunByHand() async {
+    @Test func whenTheEntryCannotBeClearedTheCommandIsOffered() async {
         let macOS = PermissionRecorder()
         macOS.exitStatus = 1
-        let model = AccessibilityViewModel(permission: macOS.permission(), relaunch: {})
+        let model = AccessibilityViewModel(permission: macOS.permission())
 
-        await model.reset()
+        await model.grantAccess()
 
         #expect(model.isShowingResetFailure)
         #expect(model.manualResetCommand == "tccutil reset Accessibility com.smarttype.app")
-        #expect(macOS.prompts == 0)
-        #expect(!macOS.permission().asksAfterNextLaunch)
-        #expect(!model.isResetting)
+        #expect(macOS.relaunches == 0)
+        #expect(!model.isGranting)
     }
 
-    @Test func theStatusIsReadAgainAfterAReset() async {
+    @Test func theStatusIsReadAgainAfterGranting() async {
         let macOS = PermissionRecorder()
         macOS.isTrusted = true
-        let model = AccessibilityViewModel(permission: macOS.permission(), relaunch: {})
+        let model = AccessibilityViewModel(permission: macOS.permission())
         macOS.isTrusted = false
 
-        await model.reset()
+        await model.grantAccess()
 
         #expect(!model.isGranted)
     }

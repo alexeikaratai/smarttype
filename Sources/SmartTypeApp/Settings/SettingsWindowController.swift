@@ -14,22 +14,19 @@ final class SettingsWindowController: NSObject {
     private let info: AppInfo
     private let openURL: (URL) -> Void
     private let present: (NSWindow) -> Void
-    private let relaunch: () -> Void
 
     init(
         hotKeys: HotKeyBindings,
-        permission: AccessibilityPermission = AccessibilityPermission(),
+        permission: AccessibilityPermission,
         info: AppInfo = AppInfo(),
         openURL: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
-        present: @escaping (NSWindow) -> Void = { SettingsWindowController.bringToFront($0) },
-        relaunch: @escaping () -> Void = { AppRelauncher.relaunch() }
+        present: @escaping (NSWindow) -> Void = { SettingsWindowController.bringToFront($0) }
     ) {
         self.hotKeys = hotKeys
         self.permission = permission
         self.info = info
         self.openURL = openURL
         self.present = present
-        self.relaunch = relaunch
         super.init()
     }
 
@@ -49,7 +46,7 @@ final class SettingsWindowController: NSObject {
     // MARK: - Private
 
     private func makeWindow() -> NSWindow {
-        let accessibility = AccessibilityViewModel(permission: permission, relaunch: relaunch)
+        let accessibility = AccessibilityViewModel(permission: permission)
         self.accessibility = accessibility
         let shortcuts = ShortcutsViewModel(bindings: hotKeys)
         self.shortcuts = shortcuts

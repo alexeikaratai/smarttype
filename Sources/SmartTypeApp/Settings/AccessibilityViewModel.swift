@@ -1,21 +1,17 @@
-import OSLog
 import Observation
 
-/// What Settings ▸ General shows about Accessibility, and its two fixes. The status is read
-/// when the window opens and whenever it comes forward, never polled.
+/// What Settings ▸ General shows about Accessibility, and its one fix. The status is read when
+/// the window opens and whenever it comes forward, never polled.
 @Observable final class AccessibilityViewModel {
     private(set) var isGranted: Bool
-    private(set) var isResetting = false
-    /// Raised when the reset did not go through; the alert then offers `manualResetCommand`.
+    private(set) var isGranting = false
+    /// Raised when the entry could not be cleared; the alert then offers `manualResetCommand`.
     var isShowingResetFailure = false
 
     private let permission: AccessibilityPermission
-    private let relaunch: () -> Void
 
-    /// `relaunch` has no default: a test that reset with the real one would quit the test run.
-    init(permission: AccessibilityPermission, relaunch: @escaping () -> Void) {
+    init(permission: AccessibilityPermission) {
         self.permission = permission
-        self.relaunch = relaunch
         isGranted = permission.isGranted
     }
 
@@ -25,22 +21,13 @@ import Observation
         isGranted = permission.isGranted
     }
 
-    func requestAccess() {
-        Log.permissions.notice("Accessibility: access requested")
-        permission.requestAccess()
-    }
-
-    /// Clears a stale grant. Only a process started after the reset puts SmartType back in the
-    /// list, so SmartType relaunches and asks from there.
-    func reset() async {
-        isResetting = true
-        let didReset = await permission.reset()
-        isResetting = false
-        Log.permissions.notice("Accessibility: reset \(didReset ? "done" : "refused", privacy: .public)")
-        if didReset {
-            permission.asksAfterNextLaunch = true
-            relaunch()
-        } else {
+    /// SmartType clears its entry and relaunches, and the new process asks; when the entry
+    /// cannot be cleared, this one asks and the alert gives the command to run by hand.
+    func grantAccess() async {
+        isGranting = true
+        let didRelaunch = await permission.grantAccess()
+        isGranting = false
+        if !didRelaunch {
             isShowingResetFailure = true
         }
         // Still current if the relaunch could not be scheduled and SmartType keeps running.

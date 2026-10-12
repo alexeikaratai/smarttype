@@ -32,8 +32,9 @@ import Testing
         #expect(settingsOpened == 1)
     }
 
-    /// The permission is read each time the menu opens, never polled.
-    @Test func theMenuReadsThePermissionEachTimeItOpens() throws {
+    /// The permission is read each time the menu opens, never polled. Its Grant Access does what
+    /// the button in Settings does.
+    @Test func theMenuReadsThePermissionEachTimeItOpens() async throws {
         let macOS = PermissionRecorder()
         let controller = StatusBarController(permission: macOS.permission())
         defer { controller.remove() }
@@ -48,7 +49,8 @@ import Testing
         macOS.isTrusted = true
         controller.menuNeedsUpdate(menu)
 
-        #expect(macOS.prompts == 1)
+        #expect(await waitUntil { macOS.relaunches == 1 })
+        #expect(macOS.commands.count == 1)
         #expect(!menu.items.contains { $0.title.hasSuffix("Grant Access…") })
     }
 }

@@ -28,7 +28,7 @@ final class TranslateAction {
     init(
         makeCard: @escaping (String) -> TranslationViewModel = { TranslateAction.card(for: $0) },
         clipboard: ClipboardTransaction,
-        permission: AccessibilityPermission = AccessibilityPermission(),
+        permission: AccessibilityPermission,
         panel: PanelController = PanelController(),
         readSelection: @escaping () -> String? = { AXSelectionReader.read() },
         isAvailable: @escaping () -> Bool = { AppCommand.translate.isAvailable },
@@ -56,7 +56,7 @@ final class TranslateAction {
         guard permission.isGranted else {
             Log.general.notice("Translate: no Accessibility permission")
             if explain(.accessibility) {
-                permission.requestAccess()
+                await permission.grantAccess()
             }
             return
         }

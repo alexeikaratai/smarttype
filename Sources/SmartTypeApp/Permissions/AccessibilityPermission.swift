@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import OSLog
 
 /// Privacy & Security ▸ Accessibility, which both commands need to copy the selection in another
 /// app, and Fix Layout to paste the fixed text back.
@@ -14,19 +15,23 @@ struct AccessibilityPermission {
     private let promptForTrust: () -> Void
     private let openURL: (URL) -> Void
     private let runTool: (URL, [String]) async -> Int32
+    private let relaunch: () -> Void
 
     private static let tccutil = URL(filePath: "/usr/bin/tccutil")
     private static let privacyPane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
     private static let asksAfterNextLaunchKey = "com.smarttype.asksForAccessibilityAfterNextLaunch"
 
-    /// The fallback ID covers a run outside the app bundle, which has none.
+    /// The fallback ID covers a run outside the app bundle, which has none. `relaunch` has no
+    /// default: a test that granted access with the real one would quit the test run, so only
+    /// the composition root passes it.
     init(
         bundleID: String = Bundle.main.bundleIdentifier ?? "com.smarttype.app",
         defaults: UserDefaults = .standard,
         checkTrust: @escaping () -> Bool = { AXIsProcessTrusted() },
         promptForTrust: @escaping () -> Void = { AccessibilityPermission.showSystemPrompt() },
         openURL: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
-        runTool: @escaping (URL, [String]) async -> Int32 = AccessibilityPermission.exitStatus(of:_:)
+        runTool: @escaping (URL, [String]) async -> Int32 = AccessibilityPermission.exitStatus(of:_:),
+        relaunch: @escaping () -> Void
     ) {
         // `tccutil reset Accessibility` without an ID resets every app on the Mac.
         precondition(!bundleID.isEmpty, "resetting Accessibility needs this app's bundle ID")
@@ -36,6 +41,7 @@ struct AccessibilityPermission {
         self.promptForTrust = promptForTrust
         self.openURL = openURL
         self.runTool = runTool
+        self.relaunch = relaunch
         manualResetCommand = "tccutil reset Accessibility \(bundleID)"
     }
 
@@ -71,8 +77,27 @@ struct AccessibilityPermission {
         }
     }
 
-    /// Forgets this app's Accessibility decision. After a rebuild or an update macOS keeps a
-    /// grant that no longer matches the binary, and only a reset lets it ask again.
+    /// Grant Access, wherever it is pressed: Settings, the menu or an alert. After a rebuild or
+    /// an update, System Settings keeps SmartType switched on for a binary that is gone, and only
+    /// clearing the entry helps. A stale entry cannot be told from none, since the TCC database
+    /// is closed to apps, so it is always cleared; with no entry that costs a relaunch. Only a
+    /// process started after the reset is listed again (measured), so SmartType relaunches and
+    /// the next launch asks. When the entry cannot be cleared, this process asks, and the result
+    /// is `false`.
+    @discardableResult
+    func grantAccess() async -> Bool {
+        let didReset = await reset()
+        Log.permissions.notice("Accessibility: reset \(didReset ? "done" : "refused", privacy: .public)")
+        guard didReset else {
+            requestAccess()
+            return false
+        }
+        asksAfterNextLaunch = true
+        relaunch()
+        return true
+    }
+
+    /// Forgets this app's Accessibility decision.
     func reset() async -> Bool {
         await runTool(Self.tccutil, ["reset", "Accessibility", bundleID]) == 0
     }

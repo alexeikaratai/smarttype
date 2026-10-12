@@ -14,7 +14,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private var perform: (AppCommand) -> Void = { _ in }
     private var openSettings: () -> Void = {}
 
-    init(statusBar: NSStatusBar = .system, permission: AccessibilityPermission = AccessibilityPermission()) {
+    init(statusBar: NSStatusBar = .system, permission: AccessibilityPermission) {
         self.statusBar = statusBar
         self.permission = permission
         statusItem = statusBar.statusItem(withLength: NSStatusItem.squareLength)
@@ -42,7 +42,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         StatusMenu.fill(
             menu, shortcuts: hotKeys?.shortcuts ?? [:], refusedHotKeys: hotKeys?.refused ?? [],
             needsAccess: !permission.isGranted, perform: perform,
-            grantAccess: { [permission] in permission.requestAccess() }, openSettings: openSettings,
+            grantAccess: { [permission] in Task { await permission.grantAccess() } }, openSettings: openSettings,
             quit: { NSApp.terminate(nil) })
     }
 }
