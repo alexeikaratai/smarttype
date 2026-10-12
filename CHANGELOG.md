@@ -22,8 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pick it in Settings ▸ Translation. The panel is a Liquid Glass card that says which way it translates, keeps
   the original small above the translation, and grows to fit it, from the edge next to the
   pointer. Select the translation, or copy it with ↩. Esc or a click elsewhere closes the
-  panel. Your clipboard is given back as soon as the selection is read; Copy puts the
-  translation on it. A pair of languages not downloaded yet
+  panel. Where the app tells it through Accessibility, the selection is read without
+  touching your clipboard, and macOS asks nothing about pasting; other apps get ⌘C, and your
+  clipboard is given back as soon as the selection is read. Copy puts the translation on it. A pair of languages not downloaded yet
   comes with a button to the place in System Settings that downloads it. On older macOS,
   Translate is greyed out in the menu and says why.
 - SmartType has its own icon: one key with two legends, F and А, since the same key types

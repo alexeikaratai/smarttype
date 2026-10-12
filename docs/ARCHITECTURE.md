@@ -55,7 +55,7 @@ SmartType.app
 │   Settings/     Settings window (AppKit) + its tabs (SwiftUI)            │
 │   Permissions/  Accessibility, onboarding                                │
 │   System/       adapters: hot keys, keystrokes, input sources,           │
-│                 selection readers (Stage 4), clipboard, spelling         │
+│                 selection (AX, then ⌘C), clipboard, spelling             │
 │      │                                  │                                │
 │      ▼                                  ▼                                │
 │ SmartTypeEngines · nonisolated     SmartTypeCore · pure, nonisolated     │
@@ -97,7 +97,7 @@ AppDelegate
    │   ├─ LayoutCorrector (Core) ── LanguageDetector ── PhonotacticScorer, SpellCheckScorer
    │   └─ InputSourceSwitcher
    └─ TranslateAction (lazy)
-       ├─ ClipboardTransaction: copy, give back             (AX-first readers in Stage 4)
+       ├─ AXSelectionReader first, then ClipboardTransaction: copy, give back
        ├─ FallbackTranslator: [AppleTranslationEngine]      (per card; Ollama joins in Phase 2)
        └─ PanelController (lazy) ── FloatingPanel ── TranslationView ◄ TranslationViewModel
 ```
@@ -163,8 +163,8 @@ User    Action        Clipboard         Front app     Core           TIS
 User    Action         Selection          Panel        Translator    Engine
  │ ⌃⌥⇧T─►│               │                  │             │            │
  │       │─ close if open ─────────────────►│             │            │
- │       │─ read ───────►│ ⌘C + restore     │             │            │
- │       │               │ AX first: St. 4  │             │            │
+ │       │─ read ───────►│ AX selected text │             │            │
+ │       │               │ else ⌘C+restore  │             │            │
  │       │◄─ "Привет" ───│                  │             │            │
  │       │─ show "Translating…" ───────────►│ near cursor │            │
  │       │─ translate ru→en ──────────────────────────────►│─ request ─►│
@@ -174,7 +174,7 @@ User    Action         Selection          Panel        Translator    Engine
 ```
 - **Close the panel first.** While the panel is the key window, a synthetic ⌘C would go to the panel itself.
 - **One owner of the clipboard.** While Fix Layout has it, Translate beeps (§5.1).
-- **Selection readers.** Stage 3 copies the selection with ⌘C inside a `ClipboardTransaction`, as the layout fix does, and gives the clipboard back. Stage 4 puts a chain of `SelectionReader`s in front: `AXSelectionReader` reads `kAXSelectedTextAttribute` with no pasteboard and no privacy prompt, in about 1 ms, and an empty or failed result falls through to the clipboard.
+- **Reading the selection** (4b). `AXSelectionReader` reads the focused element's `kAXSelectedTextAttribute`: no pasteboard, so the clipboard is not borrowed and macOS asks nothing about pasting. An empty, blank or failed answer falls through to ⌘C inside the `ClipboardTransaction`, as for the layout fix, with the clipboard given back; only that path waits for Fix Layout to give the clipboard back. Every call has a 0.25 s timeout, so a frozen app cannot hold SmartType for AX's default 6 s. The log says which path answered, never the text. There is no `SelectionReader` protocol yet: two readers are wired in `TranslateAction`, and the protocol arrives with a third, a per-app strategy.
 - **Direction** (decided 2026-10-12, BUSINESS §11). Any language Apple's engine supports (21 on macOS 27.0.1, measured: 19 languages, with two variants each of English and Chinese), into a language the person picks in Settings ▸ Translation; the pick holds for every translation after it.
   - Unpicked, the target is the first of the person's macOS languages the text is not in (`TranslationTarget`, Core): with English then Russian, Russian goes into English and English into Russian.
   - The source is recognized on the Mac (`SourceLanguage`, Engines). Sentences come back sure (1.00 for ru, de and fr); single words do not ("hello" 0.13, "привет" taken for Bulgarian at 0.53), so below 0.9 the person's languages go in as hints. A lone foreign word then reads as one of theirs, and Settings ▸ Translation lets them pick the source.
@@ -292,7 +292,7 @@ selection ─► tokenize: words with attached punctuation; whitespace kept as i
 | `KeyboardLayoutProvider` | built-in US QWERTY, Russian – PC | the user's installed layouts via `UCKeyTranslate` (uk, he, ar…), rebuilt when the enabled sources change |
 | `WordScorer` | phonotactic rules, macOS dictionary | LLM judge for ties (Phase 2) |
 | `TranslationEngine` | Apple on-device (macOS 26+), Stage 3 | Ollama local LLM (Phase 2), others |
-| `SelectionReader` (Stage 4) | AX, then the clipboard; Stage 3 copies with ⌘C | per-app strategies |
+| Reading the selection | `AXSelectionReader`, then ⌘C, wired in `TranslateAction` | per-app strategies, when a `SelectionReader` protocol joins with the third reader |
 | Typing monitor | — | `CGEventTap` auto mode (Phase 3) |
 | Entry points | hotkeys, the menu bar and Services (context menu) | App Intents → Shortcuts and Spotlight actions (macOS 26) |
 ```
@@ -345,8 +345,8 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 | Ports and adapters | protocols where they're consumed; macOS adapters in `System/`, the Accessibility trust check in `Permissions/` | C calls (Carbon, TIS, AX, CGEvent) stay in adapters; features use at most Carbon's key-code constants |
 | Composition root + constructor injection | `AppComposition` | one place knows the concrete types; no singletons, no service locator |
 | Command | `AppCommand` from hotkeys and the menu | one routing point; Settings rebinds commands, not code |
-| Strategy | `TranslationEngine`, `WordScorer`, `KeyboardLayoutProvider`, `SelectionReader` (Stage 4) | swap behavior without touching callers |
-| Chain of responsibility | `FallbackTranslator`; selection readers (AX → clipboard, Stage 4) | ordered fallbacks that keep the reasons |
+| Strategy | `TranslationEngine`, `WordScorer`, `KeyboardLayoutProvider` | swap behavior without touching callers |
+| Chain of responsibility | `FallbackTranslator`; reading the selection (AX, then ⌘C) | ordered fallbacks that keep the reasons |
 | Facade | `LanguageDetector` over the scorers; `ClipboardTransaction` over the pasteboard and keystrokes | callers make one intention-revealing call |
 | Scoped transaction | `ClipboardTransaction.run { }`, one instance for both commands | the restore can't be forgotten; one owner of the clipboard at a time (`isBorrowed`; the other command beeps) |
 | MVVM + window controller | `TranslationViewModel` + `TranslationView` with `PanelController`; `AccessibilityViewModel` + Settings views with `SettingsWindowController` | SwiftUI renders state, AppKit owns windowing |
@@ -365,7 +365,7 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
   - Typed domain errors (`TranslationFailure`: unavailable, languages not installed, unsupported languages, failed; `FallbackTranslator.NoTranslation` with every engine's reason) become user-facing messages in the UI layer. Reading the selection answers `nil` rather than throwing.
   - Cancellation is never shown as an error.
   - Nothing selected and nothing to fix are a beep; a missing permission is explained in an alert.
-- **Logging.** `os.Logger` with one category per subsystem: today general, hotkeys and permissions; translation logs under general, and selection joins with Stage 4. User text is never logged; any diagnostic value derived from it uses `privacy: .private`.
+- **Logging.** `os.Logger` with one category per subsystem: today general, hotkeys and permissions; translation and the selection path log under general. User text is never logged; any diagnostic value derived from it uses `privacy: .private`.
 - **Testing.** Swift Testing, in three test targets:
   - Core: layouts round-trip, conversions, correction cases, scorers.
   - Engines: fake engines, the chain, cancellation, source recognition on the real recognizer, and the real Apple engine where the pair is downloaded (skipped elsewhere, CI included).
@@ -391,7 +391,7 @@ CGEventTap (listen-only, own thread) ── KeyStroke ──► WordBuffer ─�
 | 003 | One data file per keyboard layout, keyed by physical key; pairs derived | adding uk/he/ar is one file each; same shape as `UCKeyTranslate` output and event-tap input | a protocol per language pair (as in the original spec) |
 | 004 | Carbon `RegisterEventHotKey` | system-wide, needs no permission, zero idle cost | `CGEventTap` (needs Input Monitoring, always running) |
 | 005 | Clipboard transaction for the hotkey layout fix | replaces exactly what was copied; works in every app; reliable undo | replacing text through AX (support and undo vary by app) |
-| 006 | Read the selection through AX first for translation (Stage 4; until then ⌘C) | no pasteboard prompt on macOS 27, no clipboard churn, ~1 ms | ⌘C only |
+| 006 | Read the selection through AX first for translation | no pasteboard prompt on macOS 27, no clipboard churn, ~1 ms | ⌘C only |
 | 007 | Apple Translation via `TranslationSession(installedSource:target:)`, macOS 26+ | no coupling to UI; testable on current macOS | a SwiftUI `.translationTask` bridge for macOS 15 |
 | 008 | Event-driven only | zero idle cost | timers, polling |
 | 009 | Swift 6 strict concurrency, warnings as errors | data-race safety, a clean codebase | Swift 5 mode |

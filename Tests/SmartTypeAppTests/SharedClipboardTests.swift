@@ -25,7 +25,8 @@ import Testing
     }
 
     private func translate(
-        _ clipboard: ClipboardTransaction, beep: @escaping () -> Void = {}, test: String = #function
+        _ clipboard: ClipboardTransaction, beep: @escaping () -> Void = {}, accessibilitySelection: String? = nil,
+        test: String = #function
     ) -> TranslateAction {
         TranslateAction(
             makeCard: { text in
@@ -37,7 +38,8 @@ import Testing
             clipboard: clipboard, permission: trusted(),
             panel: PanelController(
                 present: { _ in }, pointer: { .zero }, visibleFrame: { _ in .zero }, watchClicks: { _ in {} }),
-            isAvailable: { true }, isSmartTypeFrontmost: { false }, beep: beep, explain: { _ in false })
+            readSelection: { accessibilitySelection }, isAvailable: { true }, isSmartTypeFrontmost: { false },
+            beep: beep, explain: { _ in false })
     }
 
     /// Translate pressed while a fix waits to give the clipboard back would snapshot the text
@@ -90,6 +92,29 @@ import Testing
         await translating.value
 
         #expect(beeps == 1)
+        #expect(app.copies == copies)
+        #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
+    }
+
+    /// Read through Accessibility, a translation needs no clipboard, so a fix holding it does
+    /// not stand in the way.
+    @Test func translateReadThroughAccessibilityDoesNotWaitForTheClipboard() async {
+        let app = FakeFrontApp()
+        app.pasteboard.setString("the person's clipboard", forType: .string)
+        app.selection = "ghbdtn"
+        let gate = Gate()
+        let clipboard = app.clipboard(holding: { if $0 == .milliseconds(250) { await gate.hold() } })
+        var beeps = 0
+        let translation = translate(clipboard, beep: { beeps += 1 }, accessibilitySelection: "Привет")
+
+        let fixing = Task { await fix(clipboard).fixSelection() }
+        #expect(await waitUntil { gate.isHolding })
+        let copies = app.copies
+        await translation.translateSelection()
+        gate.open()
+        await fixing.value
+
+        #expect(beeps == 0)
         #expect(app.copies == copies)
         #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
     }

@@ -18,7 +18,7 @@ import Testing
     private func action(
         _ app: FakeFrontApp, _ macOS: PermissionRecorder, _ panel: PanelController, _ outcome: Outcome,
         isAvailable: Bool = true, pasteboardDenied: Bool = false, smartTypeIsFrontmost: Bool = false,
-        test: String = #function
+        accessibilitySelection: String? = nil, test: String = #function
     ) -> TranslateAction {
         TranslateAction(
             makeCard: { text in
@@ -28,7 +28,8 @@ import Testing
                     copy: { _ in }, openURL: { _ in })
             },
             clipboard: app.clipboard(isDenied: pasteboardDenied), permission: macOS.permission(), panel: panel,
-            isAvailable: { isAvailable }, isSmartTypeFrontmost: { smartTypeIsFrontmost },
+            readSelection: { accessibilitySelection }, isAvailable: { isAvailable },
+            isSmartTypeFrontmost: { smartTypeIsFrontmost },
             beep: { outcome.beeps += 1 },
             explain: { problem in
                 outcome.explained.append(problem)
@@ -182,5 +183,33 @@ import Testing
 
         #expect(outcome.beeps == 1)
         #expect(!panel.isShown)
+    }
+
+    /// Accessibility answers first: no ⌘C, so the clipboard is not borrowed at all and macOS
+    /// asks nothing about pasting (ADR-006).
+    @Test func aSelectionAccessibilityReadsIsTranslatedWithoutTheClipboard() async {
+        let app = FakeFrontApp()
+        app.pasteboard.setString("the person's clipboard", forType: .string)
+        let changeCount = app.pasteboard.changeCount
+        let panel = panel()
+
+        await action(app, trusted(), panel, Outcome(), accessibilitySelection: "Привет").translateSelection()
+
+        #expect(panel.card?.original == "Привет")
+        #expect(app.copies == 0)
+        #expect(app.pasteboard.changeCount == changeCount)
+    }
+
+    /// An app that tells nothing, or only blanks, through Accessibility still gets its ⌘C.
+    @Test(arguments: [String?.none, "  \n"])
+    func withoutAnAnswerThroughAccessibilityTheSelectionIsCopied(_ answer: String?) async {
+        let app = FakeFrontApp()
+        app.selection = "Привет"
+        let panel = panel()
+
+        await action(app, trusted(), panel, Outcome(), accessibilitySelection: answer).translateSelection()
+
+        #expect(app.copies == 1)
+        #expect(panel.card?.original == "Привет")
     }
 }

@@ -17,7 +17,7 @@ SmartType lives in your menu bar and works in any app. Typed `ghbdtn` because th
 
 Everything runs on your Mac. There are no servers and no accounts, and while idle SmartType does no work at all.
 
-> **Status: in development.** SmartType already runs in the menu bar, both shortcuts are registered system-wide and can be changed in Settings, and **Settings…** (⌘,) shows the Accessibility permission (Device Control and Data Access on macOS 27), with Grant Access and Reset Permission while it is missing, the translation languages, the shortcuts and About. **⌃⌥⇧L already fixes the selected text, and ⌃⌥⇧T translates it** (macOS 26+); the right-click Services work too, and reading the selection through Accessibility and polish come next ([delivery plan](docs/DELIVERY.md#stages)).
+> **Status: in development.** SmartType already runs in the menu bar, both shortcuts are registered system-wide and can be changed in Settings, and **Settings…** (⌘,) shows the Accessibility permission (Device Control and Data Access on macOS 27), with Grant Access and Reset Permission while it is missing, the translation languages, the shortcuts and About. **⌃⌥⇧L already fixes the selected text, and ⌃⌥⇧T translates it** (macOS 26+); the right-click Services work too, and Translate reads the selection through Accessibility where the app allows; polish comes next ([delivery plan](docs/DELIVERY.md#stages)).
 
 ## ✨ Features (planned for v0.1)
 
@@ -25,7 +25,7 @@ Everything runs on your Mac. There are no servers and no accounts, and while idl
 |---|---|---|
 | ⌨️ | **Layout fix** | ⌃⌥⇧L converts the selection between U.S. QWERTY and Russian – PC (ЙЦУКЕН), Shift symbols and `ё` included, then switches the active layout |
 | 🌐 | **Translation panel** | ⌃⌥⇧T shows the translation in a Liquid Glass card at the cursor: which way it translates, the original small, the translation large, Copy, Esc to close. Languages are recognized, or picked in Settings |
-| 🖱️ | **Right-click Services** | Both commands in the context menu. From there the layout fix replaces the text natively, with no clipboard and native undo |
+| 🖱️ | **Right-click Services** | Both commands in the context menu of Mac apps such as TextEdit, Notes, Mail and Safari. From there the layout fix replaces the text natively, with no clipboard and native undo. Electron apps (VS Code, Slack) build their own menus without Services; the shortcuts work there |
 | 🔒 | **On-device** | Apple's on-device translation; a local LLM comes later. Your text never leaves the Mac |
 | 📋 | **Clipboard-safe** | Whenever SmartType borrows the clipboard, it puts your content back |
 | ⚡ | **Zero idle cost** | Event-driven: no timers, no polling, 0% CPU while idle |
