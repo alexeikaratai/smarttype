@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The translation panel's Copy button is just its icon, which turns into a checkmark once the
+  translation is copied. ↩ still copies, and VoiceOver and the tooltip still say Copy.
+
 ## [0.2.0] — 2026-10-13
 
 ### Added

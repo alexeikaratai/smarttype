@@ -77,21 +77,25 @@ struct TranslationView: View {
                 .foregroundStyle(.tertiary)
             }
             Spacer()
+            // The icon alone, decided 2026-10-13: the word stays the label VoiceOver reads and the
+            // tooltip, and ↩ still copies.
             Button(action: card.copyTranslation) {
-                if card.isCopied {
-                    Label(
-                        String(localized: "Copied", comment: "Translation panel: after the translation was copied"),
-                        systemImage: "checkmark")
-                } else {
-                    Label(
-                        String(localized: "Copy", comment: "Translation panel: copies the translation"),
-                        systemImage: "doc.on.doc")
-                }
+                Label(copyTitle, systemImage: card.isCopied ? "checkmark" : "doc.on.doc")
+                    .labelStyle(.iconOnly)
             }
+            .help(copyTitle)
             .keyboardShortcut(.defaultAction)
             .cardButtonStyle()
             .disabled(!card.state.isTranslated)
         }
+    }
+}
+
+extension TranslationView {
+    private var copyTitle: String {
+        card.isCopied
+            ? String(localized: "Copied", comment: "Translation panel: after the translation was copied")
+            : String(localized: "Copy", comment: "Translation panel: copies the translation")
     }
 }
 
