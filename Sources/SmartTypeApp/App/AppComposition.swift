@@ -1,6 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 import OSLog
+import ServiceManagement
 import SmartTypeCore
 
 /// Builds the object graph once. The only place that knows the concrete types.
@@ -8,6 +9,7 @@ final class AppComposition {
     private let hotKeys: HotKeyBindings
     private let statusBar: StatusBarController
     private let permission: AccessibilityPermission
+    private let loginItem: any LoginItemRegistering
     private let presentSettings: (NSWindow) -> Void
     private let offerServices: (NSObject) -> Void
     var refusedHotKeys: Set<AppCommand> { hotKeys.refused }
@@ -15,7 +17,7 @@ final class AppComposition {
     private let clipboard = ClipboardTransaction()
     /// Built on first use, so a launch that never opens Settings never builds it.
     private lazy var settings = SettingsWindowController(
-        hotKeys: hotKeys, permission: permission, present: presentSettings)
+        hotKeys: hotKeys, permission: permission, loginItem: loginItem, present: presentSettings)
     /// Built on first use too: the dictionary and the layout tables load with the first fix.
     private lazy var layoutFix = LayoutFixAction(
         corrector: LayoutCorrector(
@@ -30,12 +32,14 @@ final class AppComposition {
         hotKeyStore: HotKeyStore = HotKeyStore(),
         statusBar: NSStatusBar = .system,
         permission: AccessibilityPermission = AccessibilityPermission(relaunch: { AppRelauncher.relaunch() }),
+        loginItem: any LoginItemRegistering = SMAppService.mainApp,
         presentSettings: @escaping (NSWindow) -> Void = { SettingsWindowController.bringToFront($0) },
         offerServices: @escaping (NSObject) -> Void = { AppComposition.offerToServices($0) }
     ) {
         hotKeys = HotKeyBindings(registrar: hotKeyRegistrar, store: hotKeyStore)
         self.statusBar = StatusBarController(statusBar: statusBar, permission: permission)
         self.permission = permission
+        self.loginItem = loginItem
         self.presentSettings = presentSettings
         self.offerServices = offerServices
     }

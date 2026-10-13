@@ -1,5 +1,6 @@
 import AppKit
 import Carbon.HIToolbox
+import ServiceManagement
 import Testing
 
 @testable import SmartTypeApp
@@ -13,12 +14,14 @@ import Testing
     private func settings(
         _ macOS: PermissionRecorder = PermissionRecorder(),
         hotKeys: HotKeyBindings? = nil,
+        loginItem: LoginItemRecorder = LoginItemRecorder(),
         present: @escaping (NSWindow) -> Void = { _ in },
         test: String = #function
     ) -> SettingsWindowController {
         SettingsWindowController(
             hotKeys: hotKeys ?? HotKeyBindings(registrar: RecordingRegistrar(), store: .forTest(test)),
-            permission: macOS.permission(), openURL: { _ in }, present: present)
+            permission: macOS.permission(), loginItem: loginItem, openURL: { _ in }, openLoginItems: {},
+            present: present)
     }
 
     @Test func showingTwiceBringsTheSameWindowForward() {
@@ -52,15 +55,29 @@ import Testing
         let controller = settings()
         weak var closedWindow: NSWindow?
         weak var closedModel: AccessibilityViewModel?
+        weak var closedLoginModel: OpenAtLoginViewModel?
         try autoreleasepool {
             controller.show()
             closedWindow = controller.window
             closedModel = controller.accessibility
+            closedLoginModel = controller.openAtLogin
             try #require(controller.window).close()
         }
 
         #expect(closedWindow == nil)
-        #expect(await waitUntil { closedModel == nil })
+        #expect(await waitUntil { closedModel == nil && closedLoginModel == nil })
+    }
+
+    /// Open at Login follows too: it may have been changed in System Settings' Login Items.
+    @Test func comingForwardReadsOpenAtLoginAgain() {
+        let loginItem = LoginItemRecorder()
+        let controller = settings(loginItem: loginItem)
+        controller.show()
+
+        loginItem.status = .enabled
+        controller.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification))
+
+        #expect(controller.openAtLogin?.isOn == true)
     }
 
     /// Coming back from System Settings brings the window forward, and the status follows.

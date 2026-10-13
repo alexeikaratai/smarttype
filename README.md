@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.0-blue?style=flat-square" alt="Version 0.1.0"/>
+  <img src="https://img.shields.io/badge/version-0.2.0-blue?style=flat-square" alt="Version 0.2.0"/>
   <img src="https://img.shields.io/badge/macOS-14.0%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+"/>
   <img src="https://img.shields.io/badge/Apple%20silicon-only-000000?style=flat-square" alt="Apple silicon only"/>
   <img src="https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.2"/>
@@ -26,7 +26,7 @@ A menu-bar app. Select text anywhere and press a shortcut:
 | **⌃⌥⇧T** | Translate | The translation opens in a panel at the pointer. ↩ copies it, Esc closes it. Apple's on-device translation, macOS 26+. |
 
 - **Right-click → Services** has both commands too. From there, Fix Layout replaces the text in place with the app's own undo, and needs neither the clipboard nor any permission.
-- **Settings** (⌘, in the menu): your own shortcuts, the translation languages, and the Accessibility status.
+- **Settings** (⌘, in the menu): your own shortcuts, the translation languages, the Accessibility status, and Open at Login.
 - **English and Russian** interface, following the language of macOS.
 
 ## 📸 Screenshot
@@ -59,11 +59,11 @@ Other ways to install:
 | | |
 |---|---|
 | **Mac** | Apple silicon, macOS 14+. Translate needs macOS 26+. |
-| **Accessibility** | Both shortcuts copy and paste the selection, which needs this permission. |
+| **Accessibility** | Both shortcuts need it to copy the selected text, and Fix Layout to paste the fix back. |
 | **Paste from Other Apps** | From macOS 15.4, macOS may ask before SmartType reads what it copied; allow it. |
 | **Translation languages** | Download the pair once: System Settings → General → Language & Region → Translation Languages. |
 
-VS Code and other Electron apps have no Services menu; the shortcuts work there.
+VS Code and other Electron apps have no Services in their right-click menu; the shortcuts work there.
 
 ## 🛠️ Development
 

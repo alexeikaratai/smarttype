@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-13
+
+### Added
+
+- **Open at Login.** Settings ▸ General has a switch that starts SmartType when you log in, so
+  its shortcuts work right after a restart. It stays off until you turn it on. If you turned
+  SmartType off in System Settings' Login Items, the switch says so, with a button that opens
+  them.
+
 ## [0.1.0] — 2026-10-12
 
 ### Added
@@ -80,7 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   system-wide and fire in any keyboard layout, because they are bound to physical keys,
   not letters. The menu lists both commands with their shortcuts, and Keyboard Shortcuts
   shows whether macOS accepted each one. While idle the app uses 0.0% CPU and never wakes
-  up; it takes about 16 MB of memory at launch and 36–42 MB after Settings and
+  up; it takes about 16 MB of memory at launch and 29–42 MB after Settings and
   translations.
 - The interface speaks English and Russian and follows the language of macOS; another
   language can be chosen per app in System Settings → General → Language & Region. The
