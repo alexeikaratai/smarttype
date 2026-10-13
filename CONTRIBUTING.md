@@ -95,7 +95,7 @@ The interface is English with a Russian translation, and follows the language of
 make bump V=1.2.3
 ```
 
-The version appears in the `Makefile`, two keys in `Resources/Info.plist`, the README badge and `CHANGELOG.md`. `make bump` is the only thing that knows all of them, and it finishes with `make version-check`.
+The version appears in the `Makefile`, two keys in `Resources/Info.plist`, the README badge and `CHANGELOG.md`. `make bump` is the only thing that knows all of them. It runs `make version-check`, then redraws the README pictures with `make shot` (not on CI).
 
 ## Commits and pull requests
 

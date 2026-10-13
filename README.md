@@ -59,11 +59,11 @@ Other ways to install:
 | | |
 |---|---|
 | **Mac** | Apple silicon, macOS 14+. Translate needs macOS 26+. |
-| **Accessibility** | Both shortcuts copy and paste the selection, which needs this permission. |
+| **Accessibility** | Both shortcuts need it to copy the selected text, and Fix Layout to paste the fix back. |
 | **Paste from Other Apps** | From macOS 15.4, macOS may ask before SmartType reads what it copied; allow it. |
 | **Translation languages** | Download the pair once: System Settings → General → Language & Region → Translation Languages. |
 
-VS Code and other Electron apps have no Services menu; the shortcuts work there.
+VS Code and other Electron apps have no Services in their right-click menu; the shortcuts work there.
 
 ## 🛠️ Development
 

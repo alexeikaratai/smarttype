@@ -414,7 +414,7 @@ help:
 	@echo "    make footprint     Idle CPU, wakeups and memory of the running app"
 	@echo ""
 	@echo "  Tooling:"
-	@echo "    make doctor        Verify dev environment (swift, xcode, gh)"
+	@echo "    make doctor        Verify dev environment (swift, Xcode, swift-format, llvm-cov, codesign, gh, git)"
 	@echo "    make actions-check Compare GitHub Actions versions vs latest (requires gh)"
 	@echo "    make logs          Stream live $(APP_NAME) logs (Ctrl+C to stop)"
 	@echo ""
