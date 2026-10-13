@@ -42,7 +42,7 @@ import Testing
         var presented = 0
         let composition = AppComposition(
             hotKeyRegistrar: RecordingRegistrar(), hotKeyStore: .forTest(#function), permission: macOS.permission(),
-            presentSettings: { _ in presented += 1 }, offerServices: { _ in })
+            loginItem: LoginItemRecorder(), presentSettings: { _ in presented += 1 }, offerServices: { _ in })
         defer { composition.stop() }
 
         composition.start()

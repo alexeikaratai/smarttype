@@ -1,5 +1,6 @@
 import AppKit
 import OSLog
+import ServiceManagement
 import SwiftUI
 
 /// Owns the Settings window: AppKit for the window, SwiftUI for everything in it. The window is
@@ -7,25 +8,32 @@ import SwiftUI
 final class SettingsWindowController: NSObject {
     private(set) var window: NSWindow?
     private(set) var accessibility: AccessibilityViewModel?
+    private(set) var openAtLogin: OpenAtLoginViewModel?
     private(set) var shortcuts: ShortcutsViewModel?
 
     private let hotKeys: HotKeyBindings
     private let permission: AccessibilityPermission
+    private let loginItem: any LoginItemRegistering
     private let info: AppInfo
     private let openURL: (URL) -> Void
+    private let openLoginItems: () -> Void
     private let present: (NSWindow) -> Void
 
     init(
         hotKeys: HotKeyBindings,
         permission: AccessibilityPermission,
+        loginItem: any LoginItemRegistering,
         info: AppInfo = AppInfo(),
         openURL: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
+        openLoginItems: @escaping () -> Void = { SMAppService.openSystemSettingsLoginItems() },
         present: @escaping (NSWindow) -> Void = { SettingsWindowController.bringToFront($0) }
     ) {
         self.hotKeys = hotKeys
         self.permission = permission
+        self.loginItem = loginItem
         self.info = info
         self.openURL = openURL
+        self.openLoginItems = openLoginItems
         self.present = present
         super.init()
     }
@@ -48,11 +56,13 @@ final class SettingsWindowController: NSObject {
     private func makeWindow() -> NSWindow {
         let accessibility = AccessibilityViewModel(permission: permission)
         self.accessibility = accessibility
+        let openAtLogin = OpenAtLoginViewModel(loginItem: loginItem, openLoginItems: openLoginItems)
+        self.openAtLogin = openAtLogin
         let shortcuts = ShortcutsViewModel(bindings: hotKeys)
         self.shortcuts = shortcuts
         let content = SettingsView(
-            accessibility: accessibility, translation: TranslationSettingsModel(), shortcuts: shortcuts, info: info,
-            openURL: openURL)
+            accessibility: accessibility, openAtLogin: openAtLogin, translation: TranslationSettingsModel(),
+            shortcuts: shortcuts, info: info, openURL: openURL)
         let window = SettingsWindow(
             contentRect: .zero, styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: true)
         window.title = String(localized: "SmartType Settings", comment: "Settings window title, read out by VoiceOver")
@@ -88,9 +98,11 @@ final class SettingsWindowController: NSObject {
 // MARK: - NSWindowDelegate
 
 extension SettingsWindowController: NSWindowDelegate {
-    /// Back from System Settings: the person may have just switched SmartType on.
+    /// Back from System Settings: the person may have just switched SmartType on, in the
+    /// Accessibility list or in Login Items.
     func windowDidBecomeKey(_ notification: Notification) {
         accessibility?.refresh()
+        openAtLogin?.refresh()
     }
 
     /// A recording under way gives the hotkeys back before the window goes.
@@ -98,6 +110,7 @@ extension SettingsWindowController: NSWindowDelegate {
         shortcuts?.stopRecording()
         window = nil
         accessibility = nil
+        openAtLogin = nil
         shortcuts = nil
     }
 }

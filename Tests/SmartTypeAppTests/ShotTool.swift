@@ -26,8 +26,9 @@ import Testing
         macOS.isTrusted = true
         let controller = SettingsWindowController(
             hotKeys: HotKeyBindings(registrar: RecordingRegistrar(), store: .forTest(#function)),
-            permission: macOS.permission(), info: AppInfo(version: environment["SHOT_VERSION"] ?? "?", build: ""),
-            openURL: { _ in },
+            permission: macOS.permission(), loginItem: LoginItemRecorder(),
+            info: AppInfo(version: environment["SHOT_VERSION"] ?? "?", build: ""), openURL: { _ in },
+            openLoginItems: {},
             present: { window in
                 // Pinned, or the picture follows the appearance of the moment (SmartDock). A test
                 // process cannot take the focus from the app in front, so the close button stays

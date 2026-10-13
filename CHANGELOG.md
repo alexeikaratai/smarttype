@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Open at Login.** Settings ▸ General has a switch that starts SmartType when you log in, so
+  its shortcuts work right after a restart. It stays off until you turn it on. If you turned
+  SmartType off in System Settings' Login Items, the switch says so and opens them for you.
+
 ## [0.1.0] — 2026-10-12
 
 ### Added

@@ -4,6 +4,7 @@ import SwiftUI
 /// The Settings window's content, laid out as SmartDock's: the app on top, then the tabs.
 struct SettingsView: View {
     let accessibility: AccessibilityViewModel
+    let openAtLogin: OpenAtLoginViewModel
     let translation: TranslationSettingsModel
     let shortcuts: ShortcutsViewModel
     let info: AppInfo
@@ -53,7 +54,7 @@ struct SettingsView: View {
 
     @ViewBuilder private var selectedTab: some View {
         switch tab {
-        case .general: GeneralView(accessibility: accessibility)
+        case .general: GeneralView(accessibility: accessibility, openAtLogin: openAtLogin)
         case .translation: TranslationSettingsView(settings: translation)
         case .shortcuts: ShortcutsView(model: shortcuts)
         case .about: AboutView(info: info, openURL: openURL).padding([.horizontal, .bottom], 24)

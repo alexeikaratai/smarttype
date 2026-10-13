@@ -59,7 +59,7 @@ Naming, file organisation, access control, the concurrency rules and the princip
 Four targets, split by isolation domain:
 - **`SmartTypeCore`** holds pure logic with no UI: keyboard layouts, conversion, language detection, correction, and the rule that picks the language a translation goes into.
 - **`SmartTypeEngines`** holds the translation engines behind one protocol, the fallback chain and source-language recognition.
-- **`SmartTypeApp`** is the main-actor shell: system adapters (hotkeys, keystrokes, clipboard, input sources, Accessibility), the actions, the menu, the Settings window, the translation panel and the macOS Services provider.
+- **`SmartTypeApp`** is the main-actor shell: system adapters (hotkeys, keystrokes, clipboard, input sources, Accessibility, the login item), the actions, the menu, the Settings window, the translation panel and the macOS Services provider.
 - **`SmartType`** is the executable, with only `main.swift`.
 
 Dependencies flow one way and never back. **Put logic in Core whenever you can.** The principles behind the design, and a row for every source file, are in [CLAUDE.md](CLAUDE.md).

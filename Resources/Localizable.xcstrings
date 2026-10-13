@@ -320,6 +320,17 @@
         }
       }
     },
+    "Open Login Items…" : {
+      "comment" : "Settings ▸ General: button that opens System Settings' Login Items",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть объекты входа…"
+          }
+        }
+      }
+    },
     "Open Translation Languages…" : {
       "comment" : "Translation panel: opens System Settings",
       "localizations" : {
@@ -327,6 +338,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Открыть «Языки перевода»…"
+          }
+        }
+      }
+    },
+    "Open at Login" : {
+      "comment" : "Settings ▸ General: the switch that starts SmartType at login, named as macOS names it",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открывать при входе"
           }
         }
       }
@@ -419,6 +441,17 @@
         }
       }
     },
+    "SmartType is turned off in System Settings’ Login Items. Turn it on there." : {
+      "comment" : "Settings ▸ General: Open at Login was turned off in System Settings",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SmartType выключен в объектах входа в Системных настройках. Включите его там."
+          }
+        }
+      }
+    },
     "SmartType needs a permission" : {
       "comment" : "Alert when a command runs without Accessibility: title",
       "localizations" : {
@@ -437,6 +470,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Пробел"
+          }
+        }
+      }
+    },
+    "Starts SmartType when you log in, so the shortcuts work from the start." : {
+      "comment" : "Settings ▸ General: what Open at Login does",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SmartType запускается при входе в систему, и сочетания клавиш работают сразу."
           }
         }
       }
@@ -591,6 +635,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Это сочетание уже занято macOS."
+          }
+        }
+      }
+    },
+    "macOS did not change it. Try again, or set it in System Settings’ Login Items." : {
+      "comment" : "Settings ▸ General: macOS refused to change Open at Login",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS не дал это изменить. Попробуйте ещё раз или включите SmartType в объектах входа в Системных настройках."
           }
         }
       }
