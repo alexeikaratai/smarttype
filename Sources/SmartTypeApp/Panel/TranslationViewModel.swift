@@ -4,7 +4,7 @@ import SmartTypeCore
 import SmartTypeEngines
 
 /// The translation card's state: the text, the two languages, and how the translation went.
-/// The languages are the ones picked in Settings ▸ Translation, or worked out from the text.
+/// The languages come from the person's list in Settings ▸ Languages and from the text.
 @Observable final class TranslationViewModel {
     enum State: Equatable {
         case translating
@@ -39,16 +39,17 @@ import SmartTypeEngines
     private let openURL: (URL) -> Void
 
     init(
-        original: String, translator: FallbackTranslator, choices: TranslationChoices, preferred: [Locale.Language],
+        original: String, translator: FallbackTranslator, choices: TranslationChoices,
         copy: @escaping (String) -> Void, openURL: @escaping (URL) -> Void
     ) {
         self.original = original
         self.translator = translator
         self.copy = copy
         self.openURL = openURL
-        let source = choices.source ?? Self.detect(original, preferred: preferred)
+        let languages = choices.languages
+        let source = choices.source ?? Self.detect(original, preferred: languages)
         self.source = source
-        target = TranslationTarget.choose(for: source, preferred: preferred, picked: choices.target)
+        target = TranslationTarget.choose(for: source, preferred: languages)
     }
 
     func translate() async {
@@ -79,10 +80,14 @@ import SmartTypeEngines
         }
     }
 
+    // MARK: - Private
+
     private static func detect(_ text: String, preferred: [Locale.Language]) -> Locale.Language {
         SourceLanguage.detect(text, preferred: preferred) ?? preferred.first ?? Locale.Language(identifier: "en")
     }
 }
+
+// MARK: - TranslationViewModel.Problem
 
 extension TranslationViewModel.Problem {
     init(_ failure: TranslationFailure?) {

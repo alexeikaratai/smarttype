@@ -2,11 +2,11 @@ import Foundation
 import Observation
 import SmartTypeEngines
 
-/// Settings ▸ Translation: the languages to translate from and into. `nil` is automatic: the
-/// source is detected, and the target is the first of the person's languages the text is not in.
+/// Settings ▸ Languages, the translation part: the person's languages, the primary first, and
+/// "Read text as", which overrides recognition when it keeps getting a language wrong.
 @Observable final class TranslationSettingsModel {
+    private(set) var languages: [Locale.Language]
     private(set) var source: Locale.Language?
-    private(set) var target: Locale.Language?
     private var supported: [Locale.Language] = []
 
     private let choices: TranslationChoices
@@ -21,18 +21,48 @@ import SmartTypeEngines
     ) {
         self.choices = choices
         self.supportedLanguages = supportedLanguages
+        languages = choices.languages
         source = choices.source
-        target = choices.target
     }
 
-    /// The pickers' rows, by name. The picks are always among them, so a picker never shows a
-    /// selection it has no row for while the engine's list is on its way.
-    var languages: [Locale.Language] {
+    var primary: Locale.Language? { languages.first }
+
+    func isPrimary(_ language: Locale.Language) -> Bool {
+        primary?.isSameLanguage(as: language) == true
+    }
+
+    /// A translation always needs a language to go into.
+    var canRemove: Bool { languages.count > 1 }
+
+    /// What Apple's engine translates and the list does not hold yet, by name.
+    var addable: [Locale.Language] {
+        Self.byName(supported.filter { !holds($0, in: languages) })
+    }
+
+    /// The rows of "Read text as": the engine's languages and the person's. A pick always has a
+    /// row, so the picker never shows a selection without one while the engine's list is on its way.
+    var readableLanguages: [Locale.Language] {
         var rows = supported
-        for pick in [source, target].compactMap(\.self) where !rows.contains(pick) {
-            rows.append(pick)
+        for language in languages + [source].compactMap(\.self) where !holds(language, in: rows) {
+            rows.append(language)
         }
-        return rows.sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+        return Self.byName(rows)
+    }
+
+    /// Moves the language to the top; the one it replaces becomes the next, where text in the
+    /// new primary goes.
+    func makePrimary(_ language: Locale.Language) {
+        save([language] + languages.filter { !$0.isSameLanguage(as: language) })
+    }
+
+    /// A language already in the list stays where it is: the list keeps one entry per language.
+    func add(_ language: Locale.Language) {
+        save(languages + [language])
+    }
+
+    func remove(_ language: Locale.Language) {
+        guard canRemove else { return }
+        save(languages.filter { !$0.isSameLanguage(as: language) })
     }
 
     func pick(source language: Locale.Language?) {
@@ -40,16 +70,27 @@ import SmartTypeEngines
         source = language
     }
 
-    func pick(target language: Locale.Language?) {
-        choices.target = language
-        target = language
-    }
-
-    /// Asks Apple's engine once per window. Its list says "en-US" where a stored pick says "en",
-    /// and `Locale.Language` compares identifiers, so both take the shortest form.
+    /// Asks Apple's engine once per window. It lists a language once per region ("en-US",
+    /// "en-GB": English nine times on macOS 27.0.1, measured) where the person's list says "en",
+    /// and `Locale.Language` compares identifiers (measured), so both take one regionless form.
     func loadLanguages() async {
         guard !hasAskedForLanguages else { return }
         hasAskedForLanguages = true
-        supported = await supportedLanguages().map { Locale.Language(identifier: $0.minimalIdentifier) }
+        supported = TranslationChoices.oneEach(await supportedLanguages())
+    }
+
+    // MARK: - Private
+
+    private func save(_ list: [Locale.Language]) {
+        choices.languages = list
+        languages = choices.languages
+    }
+
+    private func holds(_ language: Locale.Language, in list: [Locale.Language]) -> Bool {
+        list.contains { $0.isSameLanguage(as: language) }
+    }
+
+    private static func byName(_ languages: [Locale.Language]) -> [Locale.Language] {
+        languages.sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
     }
 }

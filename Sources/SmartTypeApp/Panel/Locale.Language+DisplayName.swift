@@ -11,7 +11,19 @@ extension Locale.Language {
     /// would read "Russian (Poland)". Traditional Chinese keeps "(Taiwan)": the script stays, and
     /// "zh-TW" is that script's shortest name (measured).
     var displayNameWithoutRegion: String {
-        Locale.Language(languageCode: languageCode, script: script).displayName
+        withoutRegion.displayName
+    }
+
+    /// The language and its script: a translation needs no region, and macOS and Apple's engine
+    /// list several of them for one language ("en-US", "en-GB").
+    var withoutRegion: Locale.Language {
+        Locale.Language(languageCode: languageCode, script: script)
+    }
+
+    /// `==` compares how a language was made: "ru" from an identifier is not "ru" from its parts,
+    /// as "en-US" is not "en" (measured). The shortest identifier is what both mean.
+    func isSameLanguage(as other: Locale.Language) -> Bool {
+        minimalIdentifier == other.minimalIdentifier
     }
 
     /// Capitalized, as in a list: Russian names of languages begin with a small letter.

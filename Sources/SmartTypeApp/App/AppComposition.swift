@@ -68,8 +68,10 @@ final class AppComposition {
         }
     }
 
-    /// The one entry point for every command, whichever door it came through. The log names the
-    /// app in front and whether a password field holds Secure Input, never any text.
+    /// The one entry point for the hotkeys and the menu, which act on the selection. Services
+    /// bring their text with them, so the provider calls the actions' Services doors instead.
+    /// The log names the app in front and whether a password field holds Secure Input, never
+    /// any text.
     func perform(_ command: AppCommand) {
         let app = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?"
         Log.general.notice(
@@ -83,17 +85,19 @@ final class AppComposition {
         }
     }
 
-    /// AppKit keeps the provider, and macOS reads the app's Services again: a build run from
-    /// anywhere shows them once LaunchServices knows the bundle, not only from /Applications
-    /// (measured with `lsregister` and `pbs -dump`).
-    static func offerToServices(_ provider: NSObject) {
-        NSApp.servicesProvider = provider
-        NSUpdateDynamicServices()
-    }
-
     /// Takes the status item out of the menu bar; used when a test is done with it.
     func stop() {
         hotKeys.pause()
         statusBar.remove()
+    }
+
+    // MARK: - Private
+
+    /// AppKit keeps the provider, and macOS reads the app's Services again: a build run from
+    /// anywhere shows them once LaunchServices knows the bundle, not only from /Applications
+    /// (measured with `lsregister` and `pbs -dump`).
+    private static func offerToServices(_ provider: NSObject) {
+        NSApp.servicesProvider = provider
+        NSUpdateDynamicServices()
     }
 }

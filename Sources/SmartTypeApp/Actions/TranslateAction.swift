@@ -81,6 +81,27 @@ final class TranslateAction {
         }
     }
 
+    /// The Services door: macOS hands the text over, so nothing is copied and no permission is
+    /// needed.
+    func translateText(_ text: String) async {
+        guard isAvailable(), !text.allSatisfy(\.isWhitespace) else { return beep() }
+        await translate(text)
+    }
+
+    /// The core operation, which both doors share.
+    func translate(_ text: String) async {
+        let card = makeCard(text)
+        panel.show(card)
+        let start = ContinuousClock.now
+        await card.translate()
+        panel.fitToCard()
+        Log.general.notice(
+            "Translate: \(String(describing: card.state.problem), privacy: .public) after \(Int(start.duration(to: .now) / .milliseconds(1))) ms"
+        )
+    }
+
+    // MARK: - Private
+
     /// Accessibility first; ⌘C, with the clipboard borrowed, when the app does not say. An app
     /// that says nothing is selected gets no ⌘C: it would beep a second time, and VS Code would
     /// copy the whole line (measured: VS Code's empty answer is true).
@@ -104,32 +125,11 @@ final class TranslateAction {
         return .text(text)
     }
 
-    /// The Services door: macOS hands the text over, so nothing is copied and no permission is
-    /// needed.
-    func translateText(_ text: String) async {
-        guard isAvailable(), !text.allSatisfy(\.isWhitespace) else { return beep() }
-        await translate(text)
-    }
-
-    /// The core operation, which both doors share.
-    func translate(_ text: String) async {
-        let card = makeCard(text)
-        panel.show(card)
-        let start = ContinuousClock.now
-        await card.translate()
-        panel.fitToCard()
-        Log.general.notice(
-            "Translate: \(String(describing: card.state.problem), privacy: .public) after \(Int(start.duration(to: .now) / .milliseconds(1))) ms"
-        )
-    }
-
-    /// The real card: Apple's engine, the person's macOS languages, and the picks made in
-    /// Settings ▸ Translation.
-    static func card(for text: String) -> TranslationViewModel {
+    /// The real card: Apple's engine, and the languages set in Settings ▸ Languages.
+    private static func card(for text: String) -> TranslationViewModel {
         TranslationViewModel(
             original: text, translator: FallbackTranslator(engines: [AppleTranslationEngine()]),
             choices: TranslationChoices(),
-            preferred: Locale.preferredLanguages.map { Locale.Language(identifier: $0) },
             copy: { text in
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
@@ -137,6 +137,8 @@ final class TranslateAction {
             openURL: { NSWorkspace.shared.open($0) })
     }
 }
+
+// MARK: - TranslationViewModel.State
 
 extension TranslationViewModel.State {
     /// For the log: the problem, or "translated", never the text.

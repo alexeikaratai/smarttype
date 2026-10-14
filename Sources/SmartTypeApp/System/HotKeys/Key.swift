@@ -29,7 +29,7 @@ nonisolated struct Key: Hashable, Sendable {
 
     private static let characterKeys: [UInt16: Name] = Dictionary(
         uniqueKeysWithValues: KeyStroke.ansiKeyCodes.compactMap { code in
-            KeyboardLayout.usQwerty.output[KeyStroke(keyCode: code, shift: false)].map {
+            KeyboardLayout.usQwerty.output[KeyStroke(keyCode: code, isShifted: false)].map {
                 (code, Name(label: $0.uppercased(), menu: $0))
             }
         })

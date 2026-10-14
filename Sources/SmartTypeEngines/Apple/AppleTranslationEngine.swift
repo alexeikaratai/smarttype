@@ -6,7 +6,7 @@ import Translation
 ///
 /// Translation.framework is linked weakly without any flag, since its API begins after
 /// macOS 14 (measured with `otool -l`: LC_LOAD_WEAK_DYLIB), so the app still starts there.
-package struct AppleTranslationEngine: TranslationEngine {
+package struct AppleTranslationEngine: Translating {
     package let name = "Apple"
 
     package init() {}

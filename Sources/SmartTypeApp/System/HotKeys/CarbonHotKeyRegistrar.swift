@@ -48,6 +48,8 @@ final class CarbonHotKeyRegistrar: HotKeyRegistering {
         hotKeys.removeAll()
     }
 
+    // MARK: - Private
+
     fileprivate func deliver(_ id: UInt32) {
         onPress?(id)
     }
@@ -69,6 +71,8 @@ final class CarbonHotKeyRegistrar: HotKeyRegistering {
         return status == noErr
     }
 }
+
+// MARK: - Carbon callback
 
 /// "SMTY" — tags our hotkeys, so an event registered by anything else is never taken for one.
 private nonisolated let hotKeySignature: OSType = "SMTY".utf8.reduce(0) { $0 << 8 | OSType($1) }

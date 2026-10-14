@@ -77,7 +77,7 @@ coverage:
 	@set -e; \
 	bin=$$(swift build --show-bin-path); \
 	prof=$$(swift test --show-codecov-path); \
-	bundles=$$(ls -d "$$bin"/*.xctest 2>/dev/null); \
+	bundles=$$(ls -d "$$bin"/*.xctest 2>/dev/null || true); \
 	if [ -z "$$bundles" ]; then \
 		echo "❌ No .xctest bundle in $$bin — did the test build change layout again?"; \
 		exit 1; \
@@ -362,6 +362,8 @@ actions-check:
 			status="?"; \
 		elif [ "$$current" = "$$latest" ]; then \
 			status="✅ up-to-date"; \
+		elif [ "$$current_major" = "0" ]; then \
+			status="⬆️  update (0.x is pinned in full): $$current → $$latest"; \
 		elif [ "$$current_major" = "$$latest_major" ]; then \
 			status="✅ up-to-date (major pinned)"; \
 		else \

@@ -38,10 +38,10 @@ import Testing
     @Test func aKeyThatTypesSeveralCharactersIsMatchedWhole() {
         let ligature = KeyboardLayout(
             id: "test.ligature", language: .english,
-            output: [KeyStroke(keyCode: 0x0B, shift: false): "لا", KeyStroke(keyCode: 0x00, shift: false): "ل"])
+            output: [KeyStroke(keyCode: 0x0B, isShifted: false): "لا", KeyStroke(keyCode: 0x00, isShifted: false): "ل"])
         let plain = KeyboardLayout(
             id: "test.plain", language: .english,
-            output: [KeyStroke(keyCode: 0x0B, shift: false): "b", KeyStroke(keyCode: 0x00, shift: false): "a"])
+            output: [KeyStroke(keyCode: 0x0B, isShifted: false): "b", KeyStroke(keyCode: 0x00, isShifted: false): "a"])
 
         #expect(LayoutConverter(from: ligature, to: plain).convert("لال") == "ba")
     }

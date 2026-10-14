@@ -6,12 +6,12 @@ import Testing
 @Suite struct TextServiceProviderTests {
     /// The pasteboard macOS hands a service: a private one here, never the person's clipboard.
     private func pasteboard(_ text: String?, test: String = #function) -> NSPasteboard {
-        let pasteboard = NSPasteboard(name: .init("com.smarttype.tests.services.\(test)"))
-        pasteboard.clearContents()
+        let handedOver = NSPasteboard(name: .init("com.smarttype.tests.services.\(test)"))
+        handedOver.clearContents()
         if let text {
-            pasteboard.setString(text, forType: .string)
+            handedOver.setString(text, forType: .string)
         }
-        return pasteboard
+        return handedOver
     }
 
     @Test func theFixedTextGoesBackToReplaceTheSelection() {

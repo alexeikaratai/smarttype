@@ -1,31 +1,5 @@
 import Carbon.HIToolbox
 
-/// Why a combination cannot be a shortcut.
-enum HotKeyProblem: Equatable {
-    /// Esc, a modifier or a keypad key: a key `Key` has no name for.
-    case unsupportedKey
-    /// ⌘ alone would take keys every app uses: a global ⌘C would stop copying everywhere. Some
-    /// macOS 15 builds refuse ⌥ or ⌥⇧ alone.
-    case needsControlOrCommandOption
-    case usedByMacOS
-    case usedBy(AppCommand)
-
-    var message: String {
-        switch self {
-        case .unsupportedKey:
-            String(localized: "This key can’t be part of a shortcut.", comment: "Settings ▸ Shortcuts: refused key")
-        case .needsControlOrCommandOption:
-            String(
-                localized: "Hold ⌃, or ⌘ together with ⌥.", comment: "Settings ▸ Shortcuts: refused modifiers")
-        case .usedByMacOS:
-            String(localized: "macOS already uses it.", comment: "Settings ▸ Shortcuts: a system shortcut")
-        case .usedBy(let command):
-            String(localized: "Already used by", comment: "Settings ▸ Shortcuts: before the other command's name")
-                + " " + command.title
-        }
-    }
-}
-
 /// What a shortcut may be. Carbon registers nearly anything, ⌘C and ⌘Space included, and
 /// reports a clash only within one process (measured), so the rules are SmartType's own.
 enum HotKeyRules {
@@ -33,10 +7,7 @@ enum HotKeyRules {
         with combo: KeyCombo, for command: AppCommand, current: [AppCommand: KeyCombo], macOS: Set<KeyCombo>
     ) -> HotKeyProblem? {
         guard combo.key.isSupported else { return .unsupportedKey }
-        let modifiers = combo.modifiers
-        guard modifiers.contains(.control) || modifiers.isSuperset(of: [.command, .option]) else {
-            return .needsControlOrCommandOption
-        }
+        guard combo.modifiers.isEnoughForAShortcut else { return .needsControlOrCommandOption }
         if macOS.contains(combo) {
             return .usedByMacOS
         }
@@ -72,5 +43,32 @@ enum HotKeyRules {
                 else { return nil }
                 return KeyCombo(key: Key(code: code), modifiers: Modifiers(carbonFlags: flags))
             })
+    }
+}
+
+// MARK: - HotKeyProblem
+
+/// Why a combination cannot be a shortcut.
+enum HotKeyProblem: Equatable {
+    /// Esc, a modifier or a keypad key: a key `Key` has no name for.
+    case unsupportedKey
+    /// Neither ⌃ nor ⌘ with ⌥; `Modifiers.isEnoughForAShortcut` says why.
+    case needsControlOrCommandOption
+    case usedByMacOS
+    case usedBy(AppCommand)
+
+    var message: String {
+        switch self {
+        case .unsupportedKey:
+            String(localized: "This key can’t be part of a shortcut.", comment: "Settings ▸ Shortcuts: refused key")
+        case .needsControlOrCommandOption:
+            String(
+                localized: "Hold ⌃, or ⌘ together with ⌥.", comment: "Settings ▸ Shortcuts: refused modifiers")
+        case .usedByMacOS:
+            String(localized: "macOS already uses it.", comment: "Settings ▸ Shortcuts: a system shortcut")
+        case .usedBy(let command):
+            String(localized: "Already used by", comment: "Settings ▸ Shortcuts: before the other command's name")
+                + " " + command.title
+        }
     }
 }

@@ -27,7 +27,9 @@ struct TranslationView: View {
         .cardBackground(cornerRadius: Self.cornerRadius)
     }
 
-    /// "RUSSIAN → ENGLISH": the picks themselves live in Settings ▸ Translation.
+    // MARK: - Private
+
+    /// "RUSSIAN → ENGLISH": the languages themselves are set in Settings ▸ Languages.
     private var direction: some View {
         HStack(spacing: 5) {
             Text(card.source.displayNameWithoutRegion)
@@ -89,15 +91,15 @@ struct TranslationView: View {
             .disabled(!card.state.isTranslated)
         }
     }
-}
 
-extension TranslationView {
     private var copyTitle: String {
         card.isCopied
             ? String(localized: "Copied", comment: "Translation panel: after the translation was copied")
             : String(localized: "Copy", comment: "Translation panel: copies the translation")
     }
 }
+
+// MARK: - TranslationViewModel.State
 
 extension TranslationViewModel.State {
     var isTranslated: Bool {

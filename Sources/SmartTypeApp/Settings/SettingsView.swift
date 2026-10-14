@@ -55,24 +55,26 @@ struct SettingsView: View {
     @ViewBuilder private var selectedTab: some View {
         switch tab {
         case .general: GeneralView(accessibility: accessibility, openAtLogin: openAtLogin)
-        case .translation: TranslationSettingsView(settings: translation)
+        case .languages: LanguagesView(translation: translation)
         case .shortcuts: ShortcutsView(model: shortcuts)
         case .about: AboutView(info: info, openURL: openURL).padding([.horizontal, .bottom], 24)
         }
     }
 }
 
+// MARK: - SettingsTab
+
 /// The tabs, in the order the segmented control shows them.
 enum SettingsTab: CaseIterable {
     case general
-    case translation
+    case languages
     case shortcuts
     case about
 
     var title: String {
         switch self {
         case .general: String(localized: "General", comment: "Settings tab")
-        case .translation: String(localized: "Translation", comment: "Settings tab")
+        case .languages: String(localized: "Languages", comment: "Settings tab")
         case .shortcuts: String(localized: "Shortcuts", comment: "Settings tab")
         case .about: String(localized: "About", comment: "Settings tab")
         }

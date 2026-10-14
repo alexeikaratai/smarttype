@@ -2,45 +2,10 @@ import AppKit
 import Testing
 
 @testable import SmartTypeApp
-@testable import SmartTypeCore
-@testable import SmartTypeEngines
 
 @Suite struct SharedClipboardTests {
     init() {
         _ = NSApplication.shared
-    }
-
-    private func trusted() -> AccessibilityPermission {
-        let macOS = PermissionRecorder()
-        macOS.isTrusted = true
-        return macOS.permission()
-    }
-
-    private func fix(_ clipboard: ClipboardTransaction, beep: @escaping () -> Void = {}) -> LayoutFixAction {
-        LayoutFixAction(
-            corrector: LayoutCorrector(
-                layouts: BuiltInLayouts().layouts, detector: LanguageDetector(scorers: [PhonotacticScorer()])),
-            clipboard: clipboard, permission: trusted(), readSelection: { nil }, selectLayout: { _ in true },
-            isSmartTypeFrontmost: { false },
-            beep: beep, explain: { _ in false })
-    }
-
-    private func translate(
-        _ clipboard: ClipboardTransaction, beep: @escaping () -> Void = {}, accessibilitySelection: String? = nil,
-        test: String = #function
-    ) -> TranslateAction {
-        TranslateAction(
-            makeCard: { text in
-                TranslationViewModel(
-                    original: text, translator: FallbackTranslator(engines: [FakeTranslationEngine()]),
-                    choices: .forTest(test), preferred: [Locale.Language(identifier: "en")], copy: { _ in },
-                    openURL: { _ in })
-            },
-            clipboard: clipboard, permission: trusted(),
-            panel: PanelController(
-                present: { _ in }, pointer: { .zero }, visibleFrame: { _ in .zero }, watchClicks: { _ in {} }),
-            readSelection: { accessibilitySelection }, isAvailable: { true }, isSmartTypeFrontmost: { false },
-            beep: beep, explain: { _ in false })
     }
 
     /// Translate pressed while a fix waits to give the clipboard back would snapshot the text
@@ -53,17 +18,17 @@ import Testing
         app.selection = "ghbdtn"
         let gate = Gate()
         let clipboard = app.clipboard(holding: { if $0 == .milliseconds(250) { await gate.hold() } })
-        var beeps = 0
-        let translation = translate(clipboard, beep: { beeps += 1 })
+        let outcome = ActionOutcome()
+        let translation = TranslateAction.forTest(clipboard, .trusted(), outcome)
 
-        let fixing = Task { await fix(clipboard).fixSelection() }
+        let fixing = Task { await LayoutFixAction.forTest(clipboard, .trusted()).fixSelection() }
         #expect(await waitUntil { gate.isHolding })
         let copies = app.copies
         await translation.translateSelection()
         gate.open()
         await fixing.value
 
-        #expect(beeps == 1)
+        #expect(outcome.beeps == 1)
         #expect(app.copies == copies)
         #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
         await translation.translateSelection()
@@ -82,17 +47,17 @@ import Testing
             isHeld = true
             await gate.hold()
         })
-        var beeps = 0
-        let fixing = fix(clipboard, beep: { beeps += 1 })
+        let outcome = ActionOutcome()
+        let fixing = LayoutFixAction.forTest(clipboard, .trusted(), outcome)
 
-        let translating = Task { await translate(clipboard).translateSelection() }
+        let translating = Task { await TranslateAction.forTest(clipboard, .trusted()).translateSelection() }
         #expect(await waitUntil { gate.isHolding })
         let copies = app.copies
         await fixing.fixSelection()
         gate.open()
         await translating.value
 
-        #expect(beeps == 1)
+        #expect(outcome.beeps == 1)
         #expect(app.copies == copies)
         #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
     }
@@ -105,17 +70,17 @@ import Testing
         app.selection = "ghbdtn"
         let gate = Gate()
         let clipboard = app.clipboard(holding: { if $0 == .milliseconds(250) { await gate.hold() } })
-        var beeps = 0
-        let translation = translate(clipboard, beep: { beeps += 1 }, accessibilitySelection: "Привет")
+        let outcome = ActionOutcome()
+        let translation = TranslateAction.forTest(clipboard, .trusted(), outcome, accessibilitySelection: "Привет")
 
-        let fixing = Task { await fix(clipboard).fixSelection() }
+        let fixing = Task { await LayoutFixAction.forTest(clipboard, .trusted()).fixSelection() }
         #expect(await waitUntil { gate.isHolding })
         let copies = app.copies
         await translation.translateSelection()
         gate.open()
         await fixing.value
 
-        #expect(beeps == 0)
+        #expect(outcome.beeps == 0)
         #expect(app.copies == copies)
         #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
     }

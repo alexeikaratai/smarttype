@@ -48,10 +48,11 @@ import Testing
     }
 
     /// What another version or a hand edit may leave behind reads as nothing, never as the
-    /// wrong keys.
+    /// wrong keys. A bare L (0) or ⇧L (4) would take the letter from every app.
     @Test(arguments: [
         ["keyCode": 37], ["modifiers": 3], ["keyCode": 999, "modifiers": 3], ["keyCode": kVK_Escape, "modifiers": 3],
-        ["keyCode": 37, "modifiers": 16], ["keyCode": -1, "modifiers": 3],
+        ["keyCode": 37, "modifiers": 16], ["keyCode": -1, "modifiers": 3], ["keyCode": 37, "modifiers": 0],
+        ["keyCode": 37, "modifiers": 4], ["keyCode": 37, "modifiers": 8],
     ])
     func aStoredValueThatIsNoShortcutReadsAsNothing(_ storage: [String: Int]) {
         #expect(KeyCombo(storage: storage) == nil)

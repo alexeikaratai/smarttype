@@ -6,7 +6,7 @@ import NaturalLanguage
 /// Sentences come back sure: 1.00 for Russian, German and French (measured). Single words do
 /// not: "hello" scores 0.13, and "привет" is taken for Bulgarian at 0.53. So below 0.9 the
 /// person's own languages go in as hints, which settles those, at the price of reading a lone
-/// foreign word ("Bonjour") as one of them; Settings ▸ Translation lets the person pick the
+/// foreign word ("Bonjour") as one of them; Settings ▸ Languages lets the person pick the
 /// source then.
 package enum SourceLanguage {
     package static func detect(_ text: String, preferred: [Locale.Language]) -> Locale.Language? {

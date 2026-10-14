@@ -1,6 +1,6 @@
 /// Scores a word by the letter sequences its language never uses: `.impossible` when it has
 /// one, `.unknown` otherwise. Finding no forbidden pair is not evidence of a real word.
-package struct PhonotacticScorer: WordScorer, Sendable {
+package struct PhonotacticScorer: WordScoring, Sendable {
     private let profiles: [Language: LanguageProfile]
 
     package init(profiles: [LanguageProfile] = [.english, .russian]) {

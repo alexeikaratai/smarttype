@@ -17,9 +17,15 @@ import Translation
     }
 
     @Test func aPairAppleDoesNotSupportIsSaidSo() async {
-        await #expect(throws: TranslationFailure.unsupportedLanguages) {
+        await #expect(throws: Self.failureForAnUnsupportedPair) {
             try await AppleTranslationEngine().translate("Привет", from: ru, to: Locale.Language(identifier: "xx"))
         }
+    }
+
+    /// Below macOS 26 there is no engine to ask, so no pair gets as far as being unsupported.
+    private static var failureForAnUnsupportedPair: TranslationFailure {
+        guard #available(macOS 26, *) else { return .unavailable }
+        return .unsupportedLanguages
     }
 
     static func isInstalled(_ source: String, _ target: String) async -> Bool {

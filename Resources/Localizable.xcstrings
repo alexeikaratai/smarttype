@@ -23,6 +23,17 @@
         }
       }
     },
+    "Add Language…" : {
+      "comment" : "Settings ▸ Languages: adds a language to the list",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить язык…"
+          }
+        }
+      }
+    },
     "Allowed" : {
       "comment" : "Settings ▸ General: Accessibility status",
       "localizations" : {
@@ -68,7 +79,7 @@
       }
     },
     "Automatic" : {
-      "comment" : "Settings ▸ Translation: no fixed language",
+      "comment" : "Settings ▸ Languages: no fixed language",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -78,19 +89,19 @@
         }
       }
     },
-    "Automatic: SmartType detects the language of the selection and translates it into the first of your languages it is not in. Your languages are in System Settings: General → Language & Region." : {
-      "comment" : "Settings ▸ Translation: what Automatic means",
+    "Automatic recognizes the language of each selection. Pick one only if it keeps getting yours wrong." : {
+      "comment" : "Settings ▸ Languages: what Automatic means for Read text as",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Автоматически: SmartType определяет язык выделенного текста и переводит его на первый из ваших языков, на котором он не написан. Ваши языки — в Системных настройках: Основные → Язык и регион."
+            "value" : "«Автоматически» определяет язык каждого выделения. Выберите язык, только если ваш постоянно определяется неверно."
           }
         }
       }
     },
     "Back to the default shortcut" : {
-      "comment" : "Settings ▸ Shortcuts: tooltip of the reset button",
+      "comment" : "Settings ▸ Shortcuts: the reset button, read by VoiceOver and shown as its tooltip",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -276,6 +287,17 @@
         }
       }
     },
+    "Languages" : {
+      "comment" : "Settings tab",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Языки"
+          }
+        }
+      }
+    },
     "Made with ❤ by Alex Karatai" : {
       "comment" : "Settings header and About: the author's signature",
       "localizations" : {
@@ -283,6 +305,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Сделано с ❤ — Alex Karatai"
+          }
+        }
+      }
+    },
+    "Make Primary" : {
+      "comment" : "Settings ▸ Languages: moves a language to the top",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сделать основным"
           }
         }
       }
@@ -353,6 +386,17 @@
         }
       }
     },
+    "Primary" : {
+      "comment" : "Settings ▸ Languages: the language translations go into",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основной"
+          }
+        }
+      }
+    },
     "Quit SmartType" : {
       "comment" : "Status menu item",
       "localizations" : {
@@ -360,6 +404,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выход"
+          }
+        }
+      }
+    },
+    "Read text as" : {
+      "comment" : "Settings ▸ Languages: the language of the selection",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Язык текста"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "comment" : "Settings ▸ Languages: removes a language from the list",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить"
           }
         }
       }
@@ -485,6 +551,17 @@
         }
       }
     },
+    "Text in any other language is translated into the primary one, and text in the primary one into the next. The list also helps recognize short words." : {
+      "comment" : "Settings ▸ Languages: how the list decides a translation",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текст на любом другом языке переводится на основной, а текст на основном — на следующий в списке. Список также помогает распознавать короткие слова."
+          }
+        }
+      }
+    },
     "The translation did not work. Try again." : {
       "comment" : "Translation panel",
       "localizations" : {
@@ -551,28 +628,6 @@
         }
       }
     },
-    "Translate from" : {
-      "comment" : "Settings ▸ Translation: the language of the selection",
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Переводить с"
-          }
-        }
-      }
-    },
-    "Translate into" : {
-      "comment" : "Settings ▸ Translation: the language of the translation",
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Переводить на"
-          }
-        }
-      }
-    },
     "Translating…" : {
       "comment" : "Translation panel: while the engine works",
       "localizations" : {
@@ -584,19 +639,8 @@
         }
       }
     },
-    "Translation" : {
-      "comment" : "Settings tab",
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перевод"
-          }
-        }
-      }
-    },
     "Translation needs macOS 26." : {
-      "comment" : "Translation panel and Settings ▸ Translation: before macOS 26",
+      "comment" : "Translation panel and Settings ▸ Languages: before macOS 26",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -624,6 +668,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Версия"
+          }
+        }
+      }
+    },
+    "Your languages" : {
+      "comment" : "Settings ▸ Languages: the list's heading",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваши языки"
           }
         }
       }

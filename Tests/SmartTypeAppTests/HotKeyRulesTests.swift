@@ -9,10 +9,10 @@ import Testing
     }
 
     private func problem(
-        _ combo: KeyCombo, for command: AppCommand = .fixLayout, macOS: Set<KeyCombo> = []
+        _ shortcut: KeyCombo, for command: AppCommand = .fixLayout, macOS: Set<KeyCombo> = []
     ) -> HotKeyProblem? {
         let current = Dictionary(uniqueKeysWithValues: AppCommand.allCases.map { ($0, $0.defaultHotKey) })
-        return HotKeyRules.problem(with: combo, for: command, current: current, macOS: macOS)
+        return HotKeyRules.problem(with: shortcut, for: command, current: current, macOS: macOS)
     }
 
     @Test(arguments: [[.control], [.control, .shift], [.control, .option], [.option, .command], Modifiers.all])
@@ -59,8 +59,8 @@ import Testing
     @Test(arguments: [
         HotKeyProblem.unsupportedKey, .needsControlOrCommandOption, .usedByMacOS, .usedBy(.translate),
     ])
-    func everyRefusalSaysWhy(_ problem: HotKeyProblem) {
-        #expect(!problem.message.isEmpty)
+    func everyRefusalSaysWhy(_ refusal: HotKeyProblem) {
+        #expect(!refusal.message.isEmpty)
     }
 
     @Test func aClashNamesTheOtherCommand() {

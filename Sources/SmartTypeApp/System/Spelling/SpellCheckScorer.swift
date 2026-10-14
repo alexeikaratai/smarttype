@@ -4,7 +4,7 @@ import SmartTypeCore
 /// The macOS dictionary as one more opinion for the language detector. A word spelled
 /// correctly in a language is `known` there; a misspelling is only `unknown`, since it may be
 /// a name the dictionary has never seen.
-struct SpellCheckScorer: WordScorer {
+struct SpellCheckScorer: WordScoring {
     private let check: (String, String) -> Bool
 
     init(isSpelledCorrectly: @escaping (String, String) -> Bool = { SpellCheckScorer.isSpelledCorrectly($0, in: $1) }) {

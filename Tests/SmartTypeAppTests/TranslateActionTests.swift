@@ -2,58 +2,21 @@ import AppKit
 import Testing
 
 @testable import SmartTypeApp
-@testable import SmartTypeEngines
 
+/// The hotkey door: copy, translate in the panel, give the clipboard back, and every guard
+/// before it.
 @Suite struct TranslateActionTests {
     init() {
         _ = NSApplication.shared
-    }
-
-    /// Everything the action did besides the keys and the panel.
-    private final class Outcome {
-        var beeps = 0
-        var explained: [Onboarding.Problem] = []
-    }
-
-    private func action(
-        _ app: FakeFrontApp, _ macOS: PermissionRecorder, _ panel: PanelController, _ outcome: Outcome,
-        isAvailable: Bool = true, pasteboardDenied: Bool = false, smartTypeIsFrontmost: Bool = false,
-        accessibilitySelection: String? = nil, agrees: Bool = false, test: String = #function
-    ) -> TranslateAction {
-        TranslateAction(
-            makeCard: { text in
-                TranslationViewModel(
-                    original: text, translator: FallbackTranslator(engines: [FakeTranslationEngine()]),
-                    choices: .forTest(test), preferred: [Locale.Language(identifier: "en-US")],
-                    copy: { _ in }, openURL: { _ in })
-            },
-            clipboard: app.clipboard(isDenied: pasteboardDenied), permission: macOS.permission(), panel: panel,
-            readSelection: { accessibilitySelection }, isAvailable: { isAvailable },
-            isSmartTypeFrontmost: { smartTypeIsFrontmost },
-            beep: { outcome.beeps += 1 },
-            explain: { problem in
-                outcome.explained.append(problem)
-                return agrees
-            })
-    }
-
-    private func trusted() -> PermissionRecorder {
-        let macOS = PermissionRecorder()
-        macOS.isTrusted = true
-        return macOS
-    }
-
-    private func panel() -> PanelController {
-        PanelController(present: { _ in }, pointer: { .zero }, visibleFrame: { _ in .zero }, watchClicks: { _ in {} })
     }
 
     @Test func theSelectionIsTranslatedInThePanelAndTheClipboardGivenBack() async {
         let app = FakeFrontApp()
         app.pasteboard.setString("the person's clipboard", forType: .string)
         app.selection = "Привет, как дела?"
-        let panel = panel()
+        let panel = PanelController.forTest()
 
-        await action(app, trusted(), panel, Outcome()).translateSelection()
+        await TranslateAction.forTest(app.clipboard(), .trusted(), panel: panel).translateSelection()
 
         #expect(panel.card?.original == "Привет, как дела?")
         #expect(panel.card?.state == .translated("en: Привет, как дела?", engine: "Fake"))
@@ -72,7 +35,7 @@ import Testing
                 heightWhileTranslating = $0.frame.height
             }, pointer: { .zero }, visibleFrame: { _ in .zero }, watchClicks: { _ in {} })
 
-        await action(app, trusted(), panel, Outcome()).translateSelection()
+        await TranslateAction.forTest(app.clipboard(), .trusted(), panel: panel).translateSelection()
 
         let shown = try #require(presented)
         #expect(shown.frame.height > heightWhileTranslating)
@@ -82,23 +45,24 @@ import Testing
     @Test func anOpenPanelClosesBeforeTheCopy() async {
         let app = FakeFrontApp()
         app.selection = "Привет"
-        let panel = panel()
-        let fix = action(app, trusted(), panel, Outcome())
-        await fix.translateSelection()
+        let panel = PanelController.forTest()
+        let translation = TranslateAction.forTest(app.clipboard(), .trusted(), panel: panel)
+        await translation.translateSelection()
         var panelWasShownAtCopy: Bool?
         app.onCopy = { panelWasShownAtCopy = panel.isShown }
 
-        await fix.translateSelection()
+        await translation.translateSelection()
 
         #expect(panelWasShownAtCopy == false)
         #expect(panel.isShown)
     }
 
     @Test func withNothingSelectedItBeepsAndShowsNothing() async {
-        let panel = panel()
-        let outcome = Outcome()
+        let panel = PanelController.forTest()
+        let outcome = ActionOutcome()
 
-        await action(FakeFrontApp(), trusted(), panel, outcome).translateSelection()
+        await TranslateAction.forTest(FakeFrontApp().clipboard(), .trusted(), outcome, panel: panel)
+            .translateSelection()
 
         #expect(outcome.beeps == 1)
         #expect(!panel.isShown)
@@ -108,10 +72,10 @@ import Testing
     @Test func aBlankSelectionBeepsAndShowsNothing() async {
         let app = FakeFrontApp()
         app.selection = "  \n "
-        let panel = panel()
-        let outcome = Outcome()
+        let panel = PanelController.forTest()
+        let outcome = ActionOutcome()
 
-        await action(app, trusted(), panel, outcome).translateSelection()
+        await TranslateAction.forTest(app.clipboard(), .trusted(), outcome, panel: panel).translateSelection()
 
         #expect(outcome.beeps == 1)
         #expect(!panel.isShown)
@@ -120,9 +84,9 @@ import Testing
     @Test func beforeMacOS26ItOnlyBeeps() async {
         let app = FakeFrontApp()
         app.selection = "Привет"
-        let outcome = Outcome()
+        let outcome = ActionOutcome()
 
-        await action(app, trusted(), panel(), outcome, isAvailable: false).translateSelection()
+        await TranslateAction.forTest(app.clipboard(), .trusted(), outcome, isAvailable: false).translateSelection()
 
         #expect(outcome.beeps == 1)
         #expect(app.copies == 0)
@@ -131,9 +95,9 @@ import Testing
     @Test func withoutAccessibilityItExplainsAndCopiesNothing() async {
         let app = FakeFrontApp()
         app.selection = "Привет"
-        let outcome = Outcome()
+        let outcome = ActionOutcome()
 
-        await action(app, PermissionRecorder(), panel(), outcome).translateSelection()
+        await TranslateAction.forTest(app.clipboard(), PermissionRecorder(), outcome).translateSelection()
 
         #expect(outcome.explained == [.accessibility])
         #expect(app.copies == 0)
@@ -143,7 +107,7 @@ import Testing
     @Test func agreeingToTheExplanationGrantsAccess() async {
         let macOS = PermissionRecorder()
 
-        await action(FakeFrontApp(), macOS, panel(), Outcome(), agrees: true).translateSelection()
+        await TranslateAction.forTest(FakeFrontApp().clipboard(), macOS, agrees: true).translateSelection()
 
         #expect(macOS.commands.count == 1)
         #expect(macOS.relaunches == 1)
@@ -152,9 +116,9 @@ import Testing
     @Test func aPasteboardSmartTypeMayNotReadIsExplained() async {
         let app = FakeFrontApp()
         app.selection = "Привет"
-        let outcome = Outcome()
+        let outcome = ActionOutcome()
 
-        await action(app, trusted(), panel(), outcome, pasteboardDenied: true).translateSelection()
+        await TranslateAction.forTest(app.clipboard(isDenied: true), .trusted(), outcome).translateSelection()
 
         #expect(outcome.explained == [.pasteboard])
         #expect(app.copies == 0)
@@ -163,78 +127,12 @@ import Testing
     @Test func inSmartTypesOwnWindowItOnlyBeeps() async {
         let app = FakeFrontApp()
         app.selection = "Привет"
-        let outcome = Outcome()
+        let outcome = ActionOutcome()
 
-        await action(app, trusted(), panel(), outcome, smartTypeIsFrontmost: true).translateSelection()
-
-        #expect(outcome.beeps == 1)
-        #expect(app.copies == 0)
-    }
-
-    /// The Services door: macOS hands the text over, so nothing is copied, and no Accessibility
-    /// is needed.
-    @Test func textFromServicesIsTranslatedInThePanel() async {
-        let app = FakeFrontApp()
-        let panel = panel()
-
-        await action(app, PermissionRecorder(), panel, Outcome()).translateText("Привет")
-
-        #expect(panel.card?.original == "Привет")
-        #expect(panel.card?.state == .translated("en: Привет", engine: "Fake"))
-        #expect(app.copies == 0)
-    }
-
-    @Test(arguments: [(true, "  "), (false, "Привет")])
-    func textFromServicesThatCannotBeTranslatedBeeps(_ isAvailable: Bool, _ text: String) async {
-        let panel = panel()
-        let outcome = Outcome()
-
-        await action(FakeFrontApp(), trusted(), panel, outcome, isAvailable: isAvailable).translateText(text)
-
-        #expect(outcome.beeps == 1)
-        #expect(!panel.isShown)
-    }
-
-    /// Accessibility answers first: no ⌘C, so the clipboard is not borrowed at all and macOS
-    /// asks nothing about pasting (ADR-006).
-    @Test func aSelectionAccessibilityReadsIsTranslatedWithoutTheClipboard() async {
-        let app = FakeFrontApp()
-        app.pasteboard.setString("the person's clipboard", forType: .string)
-        let changeCount = app.pasteboard.changeCount
-        let panel = panel()
-
-        await action(app, trusted(), panel, Outcome(), accessibilitySelection: "Привет").translateSelection()
-
-        #expect(panel.card?.original == "Привет")
-        #expect(app.copies == 0)
-        #expect(app.pasteboard.changeCount == changeCount)
-    }
-
-    /// An app that tells nothing through Accessibility still gets its ⌘C.
-    @Test func withoutAnAnswerThroughAccessibilityTheSelectionIsCopied() async {
-        let app = FakeFrontApp()
-        app.selection = "Привет"
-        let panel = panel()
-
-        await action(app, trusted(), panel, Outcome(), accessibilitySelection: nil).translateSelection()
-
-        #expect(app.copies == 1)
-        #expect(panel.card?.original == "Привет")
-    }
-
-    /// An app that says nothing is selected gets no ⌘C: it would beep a second time, and VS Code
-    /// would copy the whole line (measured: VS Code answers an empty selection truthfully).
-    @Test(arguments: ["", "  \n"])
-    func nothingSelectedThroughAccessibilityBeepsOnceAndCopiesNothing(_ answer: String) async {
-        let app = FakeFrontApp()
-        app.selection = "the whole line"
-        let panel = panel()
-        let outcome = Outcome()
-
-        await action(app, trusted(), panel, outcome, accessibilitySelection: answer).translateSelection()
+        await TranslateAction.forTest(app.clipboard(), .trusted(), outcome, smartTypeIsFrontmost: true)
+            .translateSelection()
 
         #expect(outcome.beeps == 1)
         #expect(app.copies == 0)
-        #expect(!panel.isShown)
     }
 }

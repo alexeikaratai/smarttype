@@ -17,18 +17,23 @@ struct ShortcutField: View {
             }
             .cardButtonStyle()
             if !model.isDefault(command) {
+                // The words stay the label VoiceOver reads, as on the panel's Copy button.
                 Button {
                     model.reset(command)
                 } label: {
-                    Image(systemName: "arrow.counterclockwise")
+                    Label(resetTitle, systemImage: "arrow.counterclockwise")
+                        .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
-                .help(
-                    String(
-                        localized: "Back to the default shortcut",
-                        comment: "Settings ▸ Shortcuts: tooltip of the reset button"))
+                .help(resetTitle)
             }
         }
+    }
+
+    private var resetTitle: String {
+        String(
+            localized: "Back to the default shortcut",
+            comment: "Settings ▸ Shortcuts: the reset button, read by VoiceOver and shown as its tooltip")
     }
 
     private var title: String {

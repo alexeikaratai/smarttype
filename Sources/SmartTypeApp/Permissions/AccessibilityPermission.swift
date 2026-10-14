@@ -102,12 +102,6 @@ struct AccessibilityPermission {
         await runTool(Self.tccutil, ["reset", "Accessibility", bundleID]) == 0
     }
 
-    /// The literal key: the C constant `kAXTrustedCheckOptionPrompt` is imported as a mutable
-    /// global, which Swift 6 rejects.
-    static func showSystemPrompt() {
-        _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
-    }
-
     /// Runs a tool without blocking the main thread.
     static func exitStatus(of tool: URL, _ arguments: [String]) async -> Int32 {
         await withCheckedContinuation { continuation in
@@ -123,5 +117,13 @@ struct AccessibilityPermission {
                 continuation.resume(returning: -1)
             }
         }
+    }
+
+    // MARK: - Private
+
+    /// The literal key: the C constant `kAXTrustedCheckOptionPrompt` is imported as a mutable
+    /// global, which Swift 6 rejects.
+    private static func showSystemPrompt() {
+        _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
     }
 }

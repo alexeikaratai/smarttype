@@ -52,7 +52,7 @@ import Testing
     /// Russian – PC with the S key typing Ukrainian "і" instead of "ы", enough to tell them apart.
     private let ukrainianLike: KeyboardLayout = {
         var output = KeyboardLayout.russianPC.output
-        output[KeyStroke(keyCode: 0x01, shift: false)] = "і"
+        output[KeyStroke(keyCode: 0x01, isShifted: false)] = "і"
         return KeyboardLayout(id: "test.ukrainian", language: Language(code: "uk"), output: output)
     }()
 
@@ -86,9 +86,9 @@ import Testing
     /// A key that types nothing in the other layout, like a dead key, leaves its text as it is.
     @Test func aKeyTheOtherLayoutLacksLeavesTheTextAlone() {
         var output = KeyboardLayout.russianPC.output
-        output[KeyStroke(keyCode: 0x0C, shift: false)] = nil
+        output[KeyStroke(keyCode: 0x0C, isShifted: false)] = nil
         let withoutQ = KeyboardLayout(id: "test.withoutQ", language: .russian, output: output)
-        let corrector = LayoutCorrector(layouts: [.usQwerty, withoutQ], detector: LanguageDetector(scorers: []))
-        #expect(corrector.correct("q") == nil)
+        let detector = LanguageDetector(scorers: [])
+        #expect(LayoutCorrector(layouts: [.usQwerty, withoutQ], detector: detector).correct("q") == nil)
     }
 }

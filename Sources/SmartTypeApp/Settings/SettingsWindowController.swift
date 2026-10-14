@@ -10,10 +10,12 @@ final class SettingsWindowController: NSObject {
     private(set) var accessibility: AccessibilityViewModel?
     private(set) var openAtLogin: OpenAtLoginViewModel?
     private(set) var shortcuts: ShortcutsViewModel?
+    private(set) var translation: TranslationSettingsModel?
 
     private let hotKeys: HotKeyBindings
     private let permission: AccessibilityPermission
     private let loginItem: any LoginItemRegistering
+    private let makeTranslation: () -> TranslationSettingsModel
     private let info: AppInfo
     private let openURL: (URL) -> Void
     private let openLoginItems: () -> Void
@@ -23,6 +25,7 @@ final class SettingsWindowController: NSObject {
         hotKeys: HotKeyBindings,
         permission: AccessibilityPermission,
         loginItem: any LoginItemRegistering,
+        makeTranslation: @escaping () -> TranslationSettingsModel = { TranslationSettingsModel() },
         info: AppInfo = AppInfo(),
         openURL: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
         openLoginItems: @escaping () -> Void = { SMAppService.openSystemSettingsLoginItems() },
@@ -31,6 +34,7 @@ final class SettingsWindowController: NSObject {
         self.hotKeys = hotKeys
         self.permission = permission
         self.loginItem = loginItem
+        self.makeTranslation = makeTranslation
         self.info = info
         self.openURL = openURL
         self.openLoginItems = openLoginItems
@@ -60,9 +64,11 @@ final class SettingsWindowController: NSObject {
         self.openAtLogin = openAtLogin
         let shortcuts = ShortcutsViewModel(bindings: hotKeys)
         self.shortcuts = shortcuts
+        let translation = makeTranslation()
+        self.translation = translation
         let content = SettingsView(
-            accessibility: accessibility, openAtLogin: openAtLogin, translation: TranslationSettingsModel(),
-            shortcuts: shortcuts, info: info, openURL: openURL)
+            accessibility: accessibility, openAtLogin: openAtLogin, translation: translation, shortcuts: shortcuts,
+            info: info, openURL: openURL)
         let window = SettingsWindow(
             contentRect: .zero, styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: true)
         window.title = String(localized: "SmartType Settings", comment: "Settings window title, read out by VoiceOver")
@@ -112,5 +118,6 @@ extension SettingsWindowController: NSWindowDelegate {
         accessibility = nil
         openAtLogin = nil
         shortcuts = nil
+        translation = nil
     }
 }

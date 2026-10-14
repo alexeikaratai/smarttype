@@ -4,13 +4,12 @@ import Testing
 @testable import SmartTypeCore
 
 @Suite struct TranslationTargetTests {
-    /// This Mac's languages, measured: English first, then Russian.
+    /// The person's list, the primary first: here English, then Russian.
     private let preferred = [Locale.Language(identifier: "en-US"), Locale.Language(identifier: "ru-PL")]
 
-    private func target(from source: String, picked: String? = nil, preferred: [Locale.Language]? = nil) -> String? {
+    private func target(from source: String, preferred: [Locale.Language]? = nil) -> String? {
         TranslationTarget.choose(
-            for: Locale.Language(identifier: source), preferred: preferred ?? self.preferred,
-            picked: picked.map { Locale.Language(identifier: $0) }
+            for: Locale.Language(identifier: source), preferred: preferred ?? self.preferred
         ).languageCode?.identifier
     }
 
@@ -20,13 +19,17 @@ import Testing
         #expect(target(from: source) == expected)
     }
 
-    @Test func aPickedLanguageWins() {
-        #expect(target(from: "ru", picked: "de") == "de")
+    /// The primary wins for any other language, Polish included.
+    @Test func thePrimaryWins() {
+        let list = ["ru", "en"].map { Locale.Language(identifier: $0) }
+        #expect(target(from: "pl", preferred: list) == "ru")
+        #expect(target(from: "en", preferred: list) == "ru")
     }
 
-    /// A pick the text is already in would translate nothing, so the usual rule takes over.
-    @Test func aPickTheTextIsAlreadyInIsPassedOver() {
-        #expect(target(from: "en", picked: "en") == "ru")
+    /// Text already in the primary goes into the next language of the list.
+    @Test func textInThePrimaryGoesIntoTheNext() {
+        let list = ["ru", "pl", "en"].map { Locale.Language(identifier: $0) }
+        #expect(target(from: "ru", preferred: list) == "pl")
     }
 
     @Test func textInThePersonsOnlyLanguageGoesIntoEnglish() {

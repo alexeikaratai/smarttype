@@ -9,22 +9,22 @@ package struct LayoutCorrector {
     private let layouts: [String: KeyboardLayout]
     private let converters: [String: [LayoutConverter]]
     /// For every character some layout types, the IDs of the layouts that type it.
-    private let typists: [Character: Set<String>]
+    private let layoutIDsByCharacter: [Character: Set<String>]
     private let detector: LanguageDetector
 
     package init(layouts: [KeyboardLayout], detector: LanguageDetector) {
         self.layouts = Dictionary(uniqueKeysWithValues: layouts.map { ($0.id, $0) })
         self.detector = detector
         var converters: [String: [LayoutConverter]] = [:]
-        var typists: [Character: Set<String>] = [:]
+        var layoutIDsByCharacter: [Character: Set<String>] = [:]
         for source in layouts {
             converters[source.id] = layouts.filter { $0.id != source.id }.map { LayoutConverter(from: source, to: $0) }
             for text in source.keyStrokesByText.keys where text.count == 1 {
-                typists[Character(text), default: []].insert(source.id)
+                layoutIDsByCharacter[Character(text), default: []].insert(source.id)
             }
         }
         self.converters = converters
-        self.typists = typists
+        self.layoutIDsByCharacter = layoutIDsByCharacter
     }
 
     /// `nil` when nothing would change.
@@ -41,11 +41,13 @@ package struct LayoutCorrector {
         return correction
     }
 
+    // MARK: - Private
+
     /// The only layout that could have typed `word`; characters no layout types don't count.
     private func sourceLayout(of word: String) -> String? {
-        let typistsPerCharacter = word.compactMap { typists[$0] }
-        guard let first = typistsPerCharacter.first else { return nil }
-        let candidates = typistsPerCharacter.reduce(first) { $0.intersection($1) }
+        let layoutIDsPerCharacter = word.compactMap { layoutIDsByCharacter[$0] }
+        guard let first = layoutIDsPerCharacter.first else { return nil }
+        let candidates = layoutIDsPerCharacter.reduce(first) { $0.intersection($1) }
         return candidates.count == 1 ? candidates.first : nil
     }
 
@@ -80,12 +82,15 @@ package struct LayoutCorrector {
     private func betterReading(of word: String, typedIn source: String) -> (text: String, layoutID: String)? {
         guard let language = layouts[source]?.language else { return nil }
         let asTyped = detector.plausibility(of: letters(word), as: language)
-        let candidates = converters[source, default: []].map { converter in
+        let readings = converters[source, default: []].map { converter in
             let text = converter.convert(word)
-            return (text, converter.target.id, detector.plausibility(of: letters(text), as: converter.target.language))
+            let plausibility = detector.plausibility(of: letters(text), as: converter.target.language)
+            return (text: text, layoutID: converter.target.id, plausibility: plausibility)
         }
-        guard let best = candidates.max(by: { $0.2 < $1.2 }), best.2 > asTyped else { return nil }
-        return (best.0, best.1)
+        guard let best = readings.max(by: { $0.plausibility < $1.plausibility }), best.plausibility > asTyped else {
+            return nil
+        }
+        return (best.text, best.layoutID)
     }
 
     private func totalPlausibility(_ tokens: [Token], _ converter: LayoutConverter) -> Int {

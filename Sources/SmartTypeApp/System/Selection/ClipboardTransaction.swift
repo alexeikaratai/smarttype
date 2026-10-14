@@ -56,8 +56,11 @@ final class ClipboardTransaction {
 
     /// ⌘C in the frontmost app. `nil` when nothing was selected, or the selection is not text.
     func copySelection() async -> String? {
+        // Counted from once the hotkey's keys are up: whatever lands while they are held is not
+        // the selection.
+        guard await keystrokes.waitForModifiersReleased() else { return nil }
         let before = pasteboard.changeCount
-        guard await keystrokes.press(.copy) else { return nil }
+        guard keystrokes.send(.copy) else { return nil }
         // The app copies on its own time: up to half a second, in 10 ms steps. Its types show
         // up only once it has written, and reading them asks the person nothing.
         for _ in 0..<50 {
@@ -92,6 +95,8 @@ final class ClipboardTransaction {
         return pasteboard.accessBehavior == .alwaysDeny
     }
 }
+
+// MARK: - Pasteboard types
 
 extension NSPasteboard.PasteboardType {
     /// The nspasteboard.org markers: clipboard managers skip what carries them.

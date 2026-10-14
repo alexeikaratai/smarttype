@@ -40,9 +40,9 @@ import Testing
 
     /// For selected text in any app; without `NSRequiredContext`, macOS registers a service but
     /// does not show it. The port is the app's own name, which `servicesProvider` listens on.
-    @Test(arguments: ["fixLayout", "translate"])
-    func aServiceTakesTheSelectedText(_ message: String) throws {
-        let service = try #require(try Self.services()[message])
+    @Test(arguments: AppCommand.allCases)
+    func aServiceTakesTheSelectedText(_ command: AppCommand) throws {
+        let service = try #require(try Self.services()[command.storageName])
 
         #expect(service["NSSendTypes"] as? [String] == ["public.utf8-plain-text"])
         #expect(service["NSRequiredContext"] != nil)
@@ -52,18 +52,22 @@ import Testing
 
     /// The fix gives its text back to replace the selection; Translate only reads.
     @Test func onlyTheFixReturnsText() throws {
-        let services = try Self.services()
+        let declared = try Self.services()
 
-        #expect(services["fixLayout"]?["NSReturnTypes"] as? [String] == ["public.utf8-plain-text"])
-        #expect(services["translate"]?["NSReturnTypes"] == nil)
+        #expect(declared["fixLayout"]?["NSReturnTypes"] as? [String] == ["public.utf8-plain-text"])
+        #expect(declared["translate"]?["NSReturnTypes"] == nil)
     }
 
     @Test func everyTitleHasARussianOne() throws {
         let data = try Data(contentsOf: Self.resources.appending(path: "ServicesMenu.xcstrings"))
         let catalog = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let strings = try #require(catalog["strings"] as? [String: [String: Any]])
+        let titles = try Self.services().values.map {
+            try #require(($0["NSMenuItem"] as? [String: String])?["default"])
+        }
 
-        for title in ["SmartType: Fix Layout", "SmartType: Translate"] {
+        #expect(titles.count == AppCommand.allCases.count)
+        for title in titles {
             let russian = (strings[title]?["localizations"] as? [String: [String: [String: String]]])?["ru"]?[
                 "stringUnit"]?["value"]
             #expect(russian?.isEmpty == false, "\(title) has no Russian title")

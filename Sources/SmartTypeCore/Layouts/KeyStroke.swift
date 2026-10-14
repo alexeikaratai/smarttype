@@ -1,14 +1,6 @@
 /// A physical key, pressed with or without Shift. Layouts are keyed by it, so two layouts
 /// pair up by the keys a person pressed, not by the letters they meant.
 package struct KeyStroke: Hashable, Sendable {
-    package let keyCode: UInt16
-    package let shift: Bool
-
-    package init(keyCode: UInt16, shift: Bool) {
-        self.keyCode = keyCode
-        self.shift = shift
-    }
-
     /// The 47 character keys of an ANSI keyboard, row by row: the order every built-in
     /// layout lists its characters in. Values are macOS virtual key codes (`kVK_ANSI_*`);
     /// a test in the app target pins them to Carbon's constants.
@@ -18,4 +10,12 @@ package struct KeyStroke: Hashable, Sendable {
         0x00, 0x01, 0x02, 0x03, 0x05, 0x04, 0x26, 0x28, 0x25, 0x29, 0x27,  // a s d f g h j k l ; '
         0x06, 0x07, 0x08, 0x09, 0x0B, 0x2D, 0x2E, 0x2B, 0x2F, 0x2C,  // z x c v b n m , . /
     ]
+
+    package let keyCode: UInt16
+    package let isShifted: Bool
+
+    package init(keyCode: UInt16, isShifted: Bool) {
+        self.keyCode = keyCode
+        self.isShifted = isShifted
+    }
 }

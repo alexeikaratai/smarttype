@@ -15,20 +15,24 @@ import Testing
         #expect(Set(layout.output.values).count == layout.output.count)
     }
 
-    @Test func everyKeyRoundTripsBetweenUSAndRussian() {
-        let there = LayoutConverter(from: .usQwerty, to: .russianPC)
-        let back = LayoutConverter(from: .russianPC, to: .usQwerty)
-        for text in KeyboardLayout.usQwerty.output.values {
-            #expect(back.convert(there.convert(text)) == text)
-        }
-        for text in KeyboardLayout.russianPC.output.values {
-            #expect(there.convert(back.convert(text)) == text)
+    /// Every pair of built-in layouts, both ways, so a new layout is checked against the others
+    /// without a test of its own.
+    @Test func everyKeyRoundTripsBetweenEveryTwoLayouts() {
+        let layouts = BuiltInLayouts().layouts
+        for from in layouts {
+            for to in layouts where to.id != from.id {
+                let there = LayoutConverter(from: from, to: to)
+                let back = LayoutConverter(from: to, to: from)
+                for text in from.output.values {
+                    #expect(back.convert(there.convert(text)) == text, "\(from.id) → \(to.id): \(text)")
+                }
+            }
         }
     }
 
     /// Measured: macOS's Russian – PC types Latin "Ë" (U+00CB) for Shift+`, not Cyrillic "Ё".
     @Test func whatMacOSReallyTypesForShiftGraveIsUnderstood() {
-        let shiftGrave = KeyStroke(keyCode: KeyStroke.ansiKeyCodes[0], shift: true)
+        let shiftGrave = KeyStroke(keyCode: KeyStroke.ansiKeyCodes[0], isShifted: true)
         #expect(KeyboardLayout.russianPC.output[shiftGrave] == "\u{0401}")
         #expect(KeyboardLayout.russianPC.keyStrokesByText["\u{00CB}"] == shiftGrave)
     }

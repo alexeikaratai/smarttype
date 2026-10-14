@@ -27,6 +27,25 @@ import Testing
         #expect(copied == nil)
     }
 
+    /// The hotkey's keys may still be held for a moment, and whatever lands on the pasteboard
+    /// then is not the selection: only a change after SmartType's own ⌘C counts.
+    @Test func whatWasCopiedWhileTheKeysWereHeldIsNotTheSelection() async {
+        let app = FakeFrontApp()
+        var isHeld = true
+        let clipboard = app.clipboard(currentModifiers: {
+            guard isHeld else { return [] }
+            isHeld = false
+            app.pasteboard.clearContents()
+            app.pasteboard.setString("copied while the keys were held", forType: .string)
+            return .maskControl
+        })
+
+        let copied = await clipboard.run { await clipboard.copySelection() } ?? nil
+
+        #expect(app.copies == 1)
+        #expect(copied == nil)
+    }
+
     /// A picture is not text, yet ⌘C still replaced the clipboard, so it is still given back.
     @Test func aSelectedImageIsNotTextButTheClipboardComesBack() async {
         let app = FakeFrontApp()

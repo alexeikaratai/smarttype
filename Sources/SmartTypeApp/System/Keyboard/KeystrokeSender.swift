@@ -4,9 +4,8 @@ import CoreGraphics
 /// Presses ⌘C and ⌘V in the frontmost app.
 ///
 /// The hotkey fires while its modifiers (⌃⌥⇧ by default) are still held, and a ⌘C sent at that
-/// moment arrives as ⌃⌥⇧⌘C
-/// and does nothing. So a press first waits for the physical modifiers to come up: explicit
-/// flags alone are not enough, as Espanso and Sorla measured too.
+/// moment arrives as ⌃⌥⇧⌘C and does nothing. So a press first waits for the physical modifiers
+/// to come up: explicit flags alone are not enough, as Espanso and Sorla measured too.
 struct KeystrokeSender {
     enum Shortcut {
         case copy
@@ -37,19 +36,13 @@ struct KeystrokeSender {
 
     /// `false` when the modifiers were still held after a second, and nothing was pressed.
     func press(_ shortcut: Shortcut) async -> Bool {
-        guard await modifiersReleased() else { return false }
-        for isDown in [true, false] {
-            guard let event = CGEvent(keyboardEventSource: nil, virtualKey: shortcut.keyCode, keyDown: isDown) else {
-                return false
-            }
-            event.flags = .maskCommand
-            post(event)
-        }
-        return true
+        guard await waitForModifiersReleased() else { return false }
+        return send(shortcut)
     }
 
-    /// Checks every 10 ms, for at most a second. Caps Lock is a state, not a key held down.
-    private func modifiersReleased() async -> Bool {
+    /// Checks every 10 ms, for at most a second; `false` when they are still held then. Caps Lock
+    /// is a state, not a key held down.
+    func waitForModifiersReleased() async -> Bool {
         let held: CGEventFlags = [.maskControl, .maskAlternate, .maskShift, .maskCommand]
         for _ in 0..<100 {
             if currentModifiers().isDisjoint(with: held) {
@@ -58,5 +51,17 @@ struct KeystrokeSender {
             await pause(.milliseconds(10))
         }
         return false
+    }
+
+    /// Presses at once, for a caller that has waited for the modifiers itself.
+    func send(_ shortcut: Shortcut) -> Bool {
+        for isDown in [true, false] {
+            guard let event = CGEvent(keyboardEventSource: nil, virtualKey: shortcut.keyCode, keyDown: isDown) else {
+                return false
+            }
+            event.flags = .maskCommand
+            post(event)
+        }
+        return true
     }
 }

@@ -11,37 +11,27 @@ import Testing
 
     private let visible = CGRect(x: 0, y: 70, width: 1440, height: 805)
 
-    private func card(test: String = #function) -> TranslationViewModel {
+    private func makeCard(test: String = #function) -> TranslationViewModel {
         TranslationViewModel(
             original: "Привет", translator: FallbackTranslator(engines: [FakeTranslationEngine()]),
-            choices: .forTest(test), preferred: [Locale.Language(identifier: "en")], copy: { _ in },
+            choices: .forTest(test, systemLanguages: [Locale.Language(identifier: "en")]), copy: { _ in },
             openURL: { _ in })
     }
 
-    /// Records the click watcher: whether it runs, and lets a test click elsewhere.
-    private final class Clicks {
-        var watching = 0
-        var clickElsewhere: () -> Void = {}
-    }
-
     /// Never brings anything forward: a test must not put a window on the screen.
-    private func controller(_ clicks: Clicks = Clicks(), presented: @escaping (NSPanel) -> Void = { _ in })
-        -> PanelController
-    {
+    private func controller(
+        _ clicks: ClickWatcherRecorder = ClickWatcherRecorder(), presented: @escaping (NSPanel) -> Void = { _ in }
+    ) -> PanelController {
         PanelController(
             present: presented, pointer: { CGPoint(x: 500, y: 500) }, visibleFrame: { _ in self.visible },
-            watchClicks: { handler in
-                clicks.watching += 1
-                clicks.clickElsewhere = handler
-                return { clicks.watching -= 1 }
-            })
+            watchClicks: { clicks.watch($0) })
     }
 
     @Test func theCardOpensAtThePointer() throws {
         var presented: [NSPanel] = []
         let panels = controller(presented: { presented.append($0) })
 
-        panels.show(card())
+        panels.show(makeCard())
 
         let panel = try #require(presented.first)
         let expected = PanelPlacement.frame(
@@ -60,8 +50,9 @@ import Testing
             watchClicks: { _ in {} })
         let card = TranslationViewModel(
             original: String(repeating: "Привет, как дела? ", count: 12),
-            translator: FallbackTranslator(engines: [FakeTranslationEngine()]), choices: .forTest(#function),
-            preferred: [Locale.Language(identifier: "en")], copy: { _ in }, openURL: { _ in })
+            translator: FallbackTranslator(engines: [FakeTranslationEngine()]),
+            choices: .forTest(#function, systemLanguages: [Locale.Language(identifier: "en")]),
+            copy: { _ in }, openURL: { _ in })
         panels.show(card)
         let panel = try #require(presented.first)
         let translating = panel.frame
@@ -76,12 +67,34 @@ import Testing
     }
 
     /// One panel for the app's life, as the architecture's memory budget assumes.
+    /// No window shadow: macOS outlined the clear window's rectangle in a thin dark line around
+    /// the rounded glass card (seen live, 2026-10-13). Of three cards side by side, AppKit glass
+    /// with the shadow, SwiftUI glass with it and without it, the person chose the last.
+    @Test func thePanelDrawsNoWindowShadow() {
+        #expect(!FloatingPanel().hasShadow)
+    }
+
+    /// Nothing outside the card's corners: in the real panel something under the glass filled the
+    /// window's rectangle in light grey around the rounded card (seen live, 2026-10-13), where a
+    /// bare glass card in a probe did not, so the clip covers whatever draws it.
+    @Test func thePanelShowsNothingOutsideTheCardsCorners() throws {
+        var presented: [NSPanel] = []
+        let panels = controller(presented: { presented.append($0) })
+
+        panels.show(makeCard())
+
+        let layer = try #require(presented.first?.contentView?.layer)
+        #expect(layer.masksToBounds)
+        #expect(layer.cornerRadius == TranslationView.cornerRadius)
+        #expect(layer.cornerCurve == .continuous)
+    }
+
     @Test func thePanelIsReused() {
         var presented: [NSPanel] = []
         let panels = controller(presented: { presented.append($0) })
 
-        panels.show(card())
-        panels.show(card())
+        panels.show(makeCard())
+        panels.show(makeCard())
 
         #expect(presented.count == 2)
         #expect(presented.first === presented.last)
@@ -89,9 +102,9 @@ import Testing
 
     /// Clicks elsewhere are watched only while the panel is up: nothing runs while it is closed.
     @Test func aClickElsewhereClosesThePanelAndStopsTheWatching() {
-        let clicks = Clicks()
+        let clicks = ClickWatcherRecorder()
         let panels = controller(clicks)
-        panels.show(card())
+        panels.show(makeCard())
         #expect(clicks.watching == 1)
 
         clicks.clickElsewhere()
@@ -103,7 +116,7 @@ import Testing
     @Test func escapeClosesThePanel() throws {
         var presented: [NSPanel] = []
         let panels = controller(presented: { presented.append($0) })
-        panels.show(card())
+        panels.show(makeCard())
 
         try #require(presented.first).cancelOperation(nil)
 
@@ -115,7 +128,7 @@ import Testing
     @Test func losingKeyStatusClosesThePanel() throws {
         var presented: [NSPanel] = []
         let panels = controller(presented: { presented.append($0) })
-        panels.show(card())
+        panels.show(makeCard())
 
         try #require(presented.first).resignKey()
 

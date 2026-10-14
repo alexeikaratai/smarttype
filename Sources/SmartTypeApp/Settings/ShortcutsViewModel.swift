@@ -70,6 +70,8 @@ import Observation
         endRecording()
     }
 
+    // MARK: - Private
+
     /// Whether the press was taken; a taken one never reaches the window.
     private func handle(_ press: KeyPress) -> Bool {
         guard let command = recording else { return false }
@@ -108,7 +110,7 @@ import Observation
     }
 
     /// Keys pressed in SmartType's own windows: a local monitor, which needs no permission.
-    static func watchKeyEvents(_ handler: @escaping (KeyPress) -> Bool) -> () -> Void {
+    private static func watchKeyEvents(_ handler: @escaping (KeyPress) -> Bool) -> () -> Void {
         let monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
             let isTaken = MainActor.assumeIsolated { KeyPress(event).map(handler) ?? false }
             return isTaken ? nil : event

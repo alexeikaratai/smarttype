@@ -35,7 +35,7 @@ final class PanelController {
     func show(_ card: TranslationViewModel) {
         close()
         self.card = card
-        panel.contentView = NSHostingView(rootView: TranslationView(card: card))
+        panel.contentView = Self.clippedToTheCard(NSHostingView(rootView: TranslationView(card: card)))
         anchor = pointer()
         fitToCard()
         present(panel)
@@ -61,18 +61,29 @@ final class PanelController {
         content.layoutSubtreeIfNeeded()
         let frame = PanelPlacement.frame(size: content.fittingSize, pointer: anchor, visibleFrame: visibleFrame(anchor))
         panel.setFrame(frame, display: true)
-        // A clear window's shadow follows what it draws, so it is worked out again at the new size.
-        panel.invalidateShadow()
+    }
+
+    // MARK: - Private
+
+    /// Nothing outside the card's rounded corners: in the panel, something under the glass filled
+    /// the window's rectangle in light grey around them (seen live), where a bare glass card did
+    /// not, so the clip covers whatever draws it.
+    private static func clippedToTheCard(_ content: NSView) -> NSView {
+        content.wantsLayer = true
+        content.layer?.cornerRadius = TranslationView.cornerRadius
+        content.layer?.cornerCurve = .continuous
+        content.layer?.masksToBounds = true
+        return content
     }
 
     /// The visible part of the screen under the point: no menu bar, no Dock.
-    static func visibleFrame(around point: CGPoint) -> CGRect {
+    private static func visibleFrame(around point: CGPoint) -> CGRect {
         let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
         return screen?.visibleFrame ?? .zero
     }
 
     /// Clicks in other apps; a global monitor sees mouse clicks without any permission.
-    static func watchClicksElsewhere(_ handler: @escaping () -> Void) -> () -> Void {
+    private static func watchClicksElsewhere(_ handler: @escaping () -> Void) -> () -> Void {
         let monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { _ in
             MainActor.assumeIsolated { handler() }
         }

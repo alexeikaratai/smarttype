@@ -2,6 +2,6 @@
 ///
 /// Not `Sendable`: a scorer may wrap a main-thread service such as `NSSpellChecker`, so a
 /// scorer, and whatever holds it, runs where it was made.
-package protocol WordScorer {
+package protocol WordScoring {
     func score(_ word: String, as language: Language) -> Plausibility
 }

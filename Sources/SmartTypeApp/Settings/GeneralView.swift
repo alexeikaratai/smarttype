@@ -33,6 +33,8 @@ struct GeneralView: View {
         }
     }
 
+    // MARK: - Private
+
     /// One button, from Settings as from the menu and the alerts: see `grantAccess()`.
     private var accessButtons: some View {
         HStack {

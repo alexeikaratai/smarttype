@@ -4,11 +4,13 @@ import Testing
 @testable import SmartTypeApp
 
 @Suite struct AppCompositionTests {
-    @Test func startingRegistersTheDefaultHotKeyOfEveryCommand() {
+    init() {
         _ = NSApplication.shared
+    }
+
+    @Test func startingRegistersTheDefaultHotKeyOfEveryCommand() {
         let registrar = RecordingRegistrar()
-        let composition = AppComposition(
-            hotKeyRegistrar: registrar, hotKeyStore: .forTest(#function), offerServices: { _ in })
+        let composition = makeComposition(registrar: registrar)
         defer { composition.stop() }
 
         composition.start()
@@ -19,13 +21,12 @@ import Testing
 
     /// The shortcuts set in Settings come back with the next launch.
     @Test func startingRegistersTheShortcutsThePersonSet() {
-        _ = NSApplication.shared
         let store = HotKeyStore.forTest(#function)
         let controlOptionK = KeyCombo(key: Key(code: 40), modifiers: [.control, .option])
         store.set(controlOptionK, for: .fixLayout)
         store.set(nil, for: .translate)
         let registrar = RecordingRegistrar()
-        let composition = AppComposition(hotKeyRegistrar: registrar, hotKeyStore: store, offerServices: { _ in })
+        let composition = makeComposition(registrar: registrar, store: store)
         defer { composition.stop() }
 
         composition.start()
@@ -36,13 +37,10 @@ import Testing
     /// The relaunch after a reset lands here: only a new process puts SmartType back in the
     /// list. As in SmartDock, Settings opens next to System Settings, to show the status.
     @Test func aStartAfterAResetAsksForAccessAndOpensSettings() {
-        _ = NSApplication.shared
         let macOS = PermissionRecorder()
         macOS.permission().asksAfterNextLaunch = true
         var presented = 0
-        let composition = AppComposition(
-            hotKeyRegistrar: RecordingRegistrar(), hotKeyStore: .forTest(#function), permission: macOS.permission(),
-            loginItem: LoginItemRecorder(), presentSettings: { _ in presented += 1 }, offerServices: { _ in })
+        let composition = makeComposition(macOS: macOS, presentSettings: { _ in presented += 1 })
         defer { composition.stop() }
 
         composition.start()
@@ -54,12 +52,9 @@ import Testing
     }
 
     @Test func anOrdinaryStartAsksNothing() {
-        _ = NSApplication.shared
         let macOS = PermissionRecorder()
         var presented = 0
-        let composition = AppComposition(
-            hotKeyRegistrar: RecordingRegistrar(), hotKeyStore: .forTest(#function), permission: macOS.permission(),
-            presentSettings: { _ in presented += 1 }, offerServices: { _ in })
+        let composition = makeComposition(macOS: macOS, presentSettings: { _ in presented += 1 })
         defer { composition.stop() }
 
         composition.start()
@@ -69,11 +64,9 @@ import Testing
     }
 
     @Test func aHotKeyMacOSRefusesIsReported() {
-        _ = NSApplication.shared
         let registrar = RecordingRegistrar()
         registrar.refused = [AppCommand.translate.defaultHotKey]
-        let composition = AppComposition(
-            hotKeyRegistrar: registrar, hotKeyStore: .forTest(#function), offerServices: { _ in })
+        let composition = makeComposition(registrar: registrar)
         defer { composition.stop() }
 
         composition.start()
@@ -84,11 +77,8 @@ import Testing
     /// The right-click Services reach the same two operations as the hotkeys, through one
     /// provider that macOS asks by the names in Info.plist.
     @Test func startingOffersTheServices() throws {
-        _ = NSApplication.shared
         var offered: [NSObject] = []
-        let composition = AppComposition(
-            hotKeyRegistrar: RecordingRegistrar(), hotKeyStore: .forTest(#function),
-            offerServices: { offered.append($0) })
+        let composition = makeComposition(offerServices: { offered.append($0) })
         defer { composition.stop() }
 
         composition.start()
@@ -97,5 +87,24 @@ import Testing
         #expect(offered.count == 1)
         #expect(provider.responds(to: NSSelectorFromString("fixLayout:userData:error:")))
         #expect(provider.responds(to: NSSelectorFromString("translate:userData:error:")))
+    }
+
+    /// Recorders for everything that leaves the process, so no test reaches the person's
+    /// permission, Login Items or screen. Only the status item is real, and `stop` removes it.
+    private func makeComposition(
+        registrar: RecordingRegistrar = RecordingRegistrar(),
+        store: HotKeyStore? = nil,
+        macOS: PermissionRecorder? = nil,
+        presentSettings: @escaping (NSWindow) -> Void = { _ in },
+        offerServices: @escaping (NSObject) -> Void = { _ in },
+        test: String = #function
+    ) -> AppComposition {
+        AppComposition(
+            hotKeyRegistrar: registrar,
+            hotKeyStore: store ?? .forTest(test),
+            permission: (macOS ?? PermissionRecorder(test: test)).permission(),
+            loginItem: LoginItemRecorder(),
+            presentSettings: presentSettings,
+            offerServices: offerServices)
     }
 }

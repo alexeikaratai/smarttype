@@ -16,9 +16,7 @@ import Testing
     ) -> TranslationViewModel {
         TranslationViewModel(
             original: original, translator: FallbackTranslator(engines: [engine]),
-            choices: choices ?? TranslationChoices.forTest(test),
-            preferred: [Locale.Language(identifier: "en-US"), Locale.Language(identifier: "ru-PL")], copy: copied,
-            openURL: opened)
+            choices: choices ?? TranslationChoices.forTest(test), copy: copied, openURL: opened)
     }
 
     /// Russian text goes into the first of the person's languages it is not in: English.
@@ -46,11 +44,43 @@ import Testing
         #expect(card.state == .failed(problem))
     }
 
-    /// The picks made in Settings ▸ Translation decide the next card's languages.
-    @Test func picksFromSettingsDecideTheLanguages() async {
+    /// Text in a language other than the primary goes into the primary: Polish into Russian.
+    @Test func textInAnotherLanguageGoesIntoThePrimary() {
         let choices = TranslationChoices.forTest(#function)
+        choices.languages = ["ru", "en", "pl"].map { Locale.Language(identifier: $0) }
+
+        let card = model("Spotykamy się jutro o dziesiątej.", choices: choices)
+
+        #expect(card.source.languageCode?.identifier == "pl")
+        #expect(card.target.languageCode?.identifier == "ru")
+    }
+
+    /// Text in the primary goes into the next language of the list.
+    @Test func textInThePrimaryGoesIntoTheNext() {
+        let choices = TranslationChoices.forTest(#function)
+        choices.languages = [russian, german]
+
+        let card = model(choices: choices)
+
+        #expect(card.target.languageCode?.identifier == "de")
+    }
+
+    /// Alone, "привет" reads as Bulgarian (0.53, measured); the person's list settles it.
+    @Test func aShortWordIsReadAsOneOfThePersonsLanguages() {
+        let choices = TranslationChoices.forTest(#function)
+        choices.languages = [english, russian]
+
+        let card = model("привет", choices: choices)
+
+        #expect(card.source.languageCode?.identifier == "ru")
+        #expect(card.target.languageCode?.identifier == "en")
+    }
+
+    /// "Read text as" overrides recognition, for text it keeps getting wrong.
+    @Test func readTextAsOverridesRecognition() {
+        let choices = TranslationChoices.forTest(#function)
+        choices.languages = [russian, english]
         choices.source = german
-        choices.target = russian
 
         let card = model(choices: choices)
 

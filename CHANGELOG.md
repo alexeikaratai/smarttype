@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Settings ▸ Languages** replaces the Translation tab. It holds your languages: translations
+  go into the first, your primary one, and text already in it goes into the next. With Russian
+  first, then English, Polish and English go into Russian, and Russian into English. Make any
+  language primary, add the ones Apple's on-device translation knows, or remove one. The list
+  starts as your macOS languages, with the language you picked to translate into first, and it
+  also helps recognize short words: «привет» alone is no longer taken for Bulgarian. "Read text
+  as" stays, for text whose language keeps being recognized wrong.
+
+### Fixed
+
+- The translation panel is just its rounded glass card: the thin dark rectangle and the grey
+  corners around it are gone.
+- Something copied while you still held the shortcut's keys is no longer taken for your
+  selection: Fix Layout and Translate count only what their own ⌘C copies.
+- A shortcut stored without ⌃, or ⌘ together with ⌥, which only a hand edit could leave, goes
+  back to the default instead of taking that key from every app.
+- VoiceOver reads the button that puts a shortcut back to its default by its name.
+
 ## [0.2.1] — 2026-10-13
 
 ### Changed

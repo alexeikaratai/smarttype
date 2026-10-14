@@ -32,7 +32,7 @@ struct ProblemView: View {
         case .unavailable:
             String(
                 localized: "Translation needs macOS 26.",
-                comment: "Translation panel and Settings ▸ Translation: before macOS 26")
+                comment: "Translation panel and Settings ▸ Languages: before macOS 26")
         case .tooLong:
             String(localized: "Too long to translate here: over 2,000 characters.", comment: "Translation panel")
         case .failed:

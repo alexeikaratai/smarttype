@@ -9,6 +9,6 @@ extension KeyboardLayout {
         language: .russian,
         unshifted: "ё1234567890-=йцукенгшщзхъ\\фывапролджэячсмитьбю.",
         shifted: "Ё!\"№;%:?*()_+ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,",
-        alternatives: ["\u{00CB}": KeyStroke(keyCode: KeyStroke.ansiKeyCodes[0], shift: true)]
+        alternatives: ["\u{00CB}": KeyStroke(keyCode: KeyStroke.ansiKeyCodes[0], isShifted: true)]
     )
 }

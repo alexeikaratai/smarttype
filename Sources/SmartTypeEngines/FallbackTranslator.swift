@@ -3,12 +3,14 @@ import Foundation
 /// Asks engines in order until one translates, and keeps why the others did not. The MVP has
 /// one engine; Phase 2 puts a local model in front of it.
 package struct FallbackTranslator: Sendable {
+    /// A translation, the engine that made it, and why the engines before it did not.
     package struct Outcome: Equatable, Sendable {
         package let text: String
         package let engine: String
         package let skipped: [Skip]
     }
 
+    /// An engine that did not translate, and why.
     package struct Skip: Equatable, Sendable {
         package let engine: String
         package let failure: TranslationFailure
@@ -19,9 +21,9 @@ package struct FallbackTranslator: Sendable {
         package let skipped: [Skip]
     }
 
-    private let engines: [any TranslationEngine]
+    private let engines: [any Translating]
 
-    package init(engines: [any TranslationEngine]) {
+    package init(engines: [any Translating]) {
         self.engines = engines
     }
 

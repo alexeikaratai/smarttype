@@ -6,29 +6,9 @@ import Testing
 @Suite struct ShortcutsViewModelTests {
     private let controlOptionK = KeyCombo(key: Key(code: UInt16(kVK_ANSI_K)), modifiers: [.control, .option])
 
-    /// Stands in for the key monitor: whether one is watching, and presses for it.
-    private final class Keyboard {
-        var watching = 0
-        private var handler: ((KeyPress) -> Bool)?
-
-        func watch(_ handler: @escaping (KeyPress) -> Bool) -> () -> Void {
-            watching += 1
-            self.handler = handler
-            return { self.watching -= 1 }
-        }
-
-        @discardableResult
-        func press(_ code: Int, _ modifiers: Modifiers = []) -> Bool {
-            handler?(KeyPress(kind: .keyDown, keyCode: UInt16(code), modifiers: modifiers)) ?? false
-        }
-
-        func hold(_ modifiers: Modifiers) {
-            _ = handler?(KeyPress(kind: .modifiersChanged, keyCode: 0, modifiers: modifiers))
-        }
-    }
-
     private func model(
-        _ registrar: RecordingRegistrar, _ keyboard: Keyboard, macOS: Set<KeyCombo> = [], test: String = #function
+        _ registrar: RecordingRegistrar, _ keyboard: KeyMonitorRecorder, macOS: Set<KeyCombo> = [],
+        test: String = #function
     ) -> ShortcutsViewModel {
         let bindings = HotKeyBindings(registrar: registrar, store: .forTest(test))
         bindings.apply()
@@ -36,9 +16,9 @@ import Testing
     }
 
     /// Otherwise pressing the current shortcut would run the command instead of being recorded.
-    @Test func recordingPausesTheHotKeysAndWatchesTheKeyboard() {
+    @Test func recordingPausesTheHotKeysAndWatchesTheKeyMonitorRecorder() {
         let registrar = RecordingRegistrar()
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         let shortcuts = model(registrar, keyboard)
 
         shortcuts.startRecording(.fixLayout)
@@ -50,7 +30,7 @@ import Testing
 
     @Test func aNewShortcutIsSavedAndWorksAtOnce() {
         let registrar = RecordingRegistrar()
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         let shortcuts = model(registrar, keyboard)
         shortcuts.startRecording(.fixLayout)
 
@@ -65,7 +45,7 @@ import Testing
 
     @Test func escapeCancelsAndBringsTheHotKeysBack() {
         let registrar = RecordingRegistrar()
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         let shortcuts = model(registrar, keyboard)
         shortcuts.startRecording(.fixLayout)
 
@@ -79,7 +59,7 @@ import Testing
 
     @Test func deleteLeavesTheCommandWithoutAShortcut() {
         let registrar = RecordingRegistrar()
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         let shortcuts = model(registrar, keyboard)
         shortcuts.startRecording(.translate)
 
@@ -93,7 +73,7 @@ import Testing
     /// The reason shows, and the person can try other keys straight away.
     @Test func aRefusedCombinationSaysWhyAndKeepsRecording() {
         let registrar = RecordingRegistrar()
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         let shortcuts = model(registrar, keyboard)
         shortcuts.startRecording(.fixLayout)
 
@@ -107,7 +87,7 @@ import Testing
 
     @Test func aShortcutMacOSUsesIsRefused() {
         let inputSources = KeyCombo(key: Key(code: UInt16(kVK_Space)), modifiers: [.control])
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         let shortcuts = model(RecordingRegistrar(), keyboard, macOS: [inputSources])
         shortcuts.startRecording(.translate)
 
@@ -117,7 +97,7 @@ import Testing
     }
 
     @Test func heldModifiersShowWhileRecording() {
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         let shortcuts = model(RecordingRegistrar(), keyboard)
         shortcuts.startRecording(.fixLayout)
 
@@ -129,7 +109,7 @@ import Testing
     /// A second click on the field, a switch of tab or the window closing ends the recording.
     @Test func stoppingBringsTheHotKeysBack() {
         let registrar = RecordingRegistrar()
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         let shortcuts = model(registrar, keyboard)
         shortcuts.toggleRecording(.fixLayout)
 
@@ -142,7 +122,7 @@ import Testing
 
     @Test func resetGoesBackToTheDefault() {
         let registrar = RecordingRegistrar()
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         let shortcuts = model(registrar, keyboard)
         shortcuts.startRecording(.fixLayout)
         keyboard.press(kVK_ANSI_K, [.control, .option])
@@ -155,7 +135,7 @@ import Testing
 
     /// Nothing watches the keyboard unless a recording is under way.
     @Test func nothingIsWatchedBeforeARecording() {
-        let keyboard = Keyboard()
+        let keyboard = KeyMonitorRecorder()
         _ = model(RecordingRegistrar(), keyboard)
 
         #expect(keyboard.watching == 0)

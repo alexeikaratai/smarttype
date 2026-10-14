@@ -4,7 +4,7 @@ import os
 @testable import SmartTypeEngines
 
 /// An engine that answers what it is told and counts how often it was asked.
-final class FakeEngine: TranslationEngine {
+final class FakeEngine: Translating {
     let name: String
     private let answer: Result<String, TranslationFailure>
     private let calls = OSAllocatedUnfairLock(initialState: 0)

@@ -2,7 +2,7 @@ import AppKit
 
 /// The menu-bar icon. Its menu is refilled each time it opens, so state-driven items stay
 /// current without anything running in between.
-final class StatusBarController: NSObject, NSMenuDelegate {
+final class StatusBarController: NSObject {
     /// SF Symbol for the menu-bar icon; a test pins that it exists, since a missing one
     /// would leave an invisible status item.
     static let symbolName = "character.cursor.ibeam"
@@ -36,7 +36,11 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     func remove() {
         statusBar.removeStatusItem(statusItem)
     }
+}
 
+// MARK: - NSMenuDelegate
+
+extension StatusBarController: NSMenuDelegate {
     /// The permission and the shortcuts are read here, as the menu opens, and never polled.
     func menuNeedsUpdate(_ menu: NSMenu) {
         StatusMenu.fill(

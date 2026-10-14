@@ -105,6 +105,8 @@ final class LayoutFixAction {
         }
     }
 
+    // MARK: - Private
+
     /// The timings in the log say where a slow fix spent its time; the copy includes waiting
     /// for the hotkey's modifiers to come up.
     private func replaceSelection(since start: ContinuousClock.Instant) async -> Outcome {

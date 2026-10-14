@@ -1,7 +1,7 @@
 import Foundation
 
 /// One way to translate text. `FallbackTranslator` asks engines in order.
-package protocol TranslationEngine: Sendable {
+package protocol Translating: Sendable {
     /// Shown under the translation, so the person knows who answered.
     var name: String { get }
 

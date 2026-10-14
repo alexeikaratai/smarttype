@@ -1,32 +1,19 @@
 import AppKit
-import Carbon.HIToolbox
 import ServiceManagement
 import Testing
 
 @testable import SmartTypeApp
 
+/// The window's life: built when it opens, freed with its view models when it closes, and read
+/// again when it comes forward. How it looks and closes is `SettingsWindowTests`.
 @Suite struct SettingsWindowControllerTests {
     init() {
         _ = NSApplication.shared
     }
 
-    /// Never brings anything forward: a test must not put a window on the screen.
-    private func settings(
-        _ macOS: PermissionRecorder = PermissionRecorder(),
-        hotKeys: HotKeyBindings? = nil,
-        loginItem: LoginItemRecorder = LoginItemRecorder(),
-        present: @escaping (NSWindow) -> Void = { _ in },
-        test: String = #function
-    ) -> SettingsWindowController {
-        SettingsWindowController(
-            hotKeys: hotKeys ?? HotKeyBindings(registrar: RecordingRegistrar(), store: .forTest(test)),
-            permission: macOS.permission(), loginItem: loginItem, openURL: { _ in }, openLoginItems: {},
-            present: present)
-    }
-
     @Test func showingTwiceBringsTheSameWindowForward() {
         var presented: [NSWindow] = []
-        let controller = settings(present: { presented.append($0) })
+        let controller = SettingsWindowController.forTest(#function, present: { presented.append($0) })
 
         controller.show()
         controller.show()
@@ -37,7 +24,7 @@ import Testing
 
     /// A closed window costs nothing: it is released and built again on the next show.
     @Test func closingReleasesTheWindowAndTheNextShowBuildsAnother() throws {
-        let controller = settings()
+        let controller = SettingsWindowController.forTest(#function)
         controller.show()
         let first = try #require(controller.window)
 
@@ -52,26 +39,28 @@ import Testing
     /// Inside the glass, SwiftUI lets the content go on the run loop's next turn, after the
     /// window (measured: within 50 ms), so the test waits for that.
     @Test func aClosedWindowIsFreed() async throws {
-        let controller = settings()
+        let controller = SettingsWindowController.forTest(#function)
         weak var closedWindow: NSWindow?
         weak var closedModel: AccessibilityViewModel?
         weak var closedLoginModel: OpenAtLoginViewModel?
+        weak var closedTranslationModel: TranslationSettingsModel?
         try autoreleasepool {
             controller.show()
             closedWindow = controller.window
             closedModel = controller.accessibility
             closedLoginModel = controller.openAtLogin
+            closedTranslationModel = controller.translation
             try #require(controller.window).close()
         }
 
         #expect(closedWindow == nil)
-        #expect(await waitUntil { closedModel == nil && closedLoginModel == nil })
+        #expect(await waitUntil { closedModel == nil && closedLoginModel == nil && closedTranslationModel == nil })
     }
 
     /// Open at Login follows too: it may have been changed in System Settings' Login Items.
     @Test func comingForwardReadsOpenAtLoginAgain() {
         let loginItem = LoginItemRecorder()
-        let controller = settings(loginItem: loginItem)
+        let controller = SettingsWindowController.forTest(#function, loginItem: loginItem)
         controller.show()
 
         loginItem.status = .enabled
@@ -83,7 +72,7 @@ import Testing
     /// Coming back from System Settings brings the window forward, and the status follows.
     @Test func comingForwardReadsThePermissionAgain() {
         let macOS = PermissionRecorder()
-        let controller = settings(macOS)
+        let controller = SettingsWindowController.forTest(#function, macOS: macOS)
         controller.show()
 
         macOS.isTrusted = true
@@ -92,38 +81,12 @@ import Testing
         #expect(controller.accessibility?.isGranted == true)
     }
 
-    /// SwiftUI lays the content out below the title bar, so the window must be taller than the
-    /// content by the bar. Sized before layout, it came out 32pt short and clipped the bottom.
-    @Test func theWindowFitsItsContentBelowTheTitleBar() throws {
-        let controller = settings()
-        controller.show()
-        let window = try #require(controller.window)
-        let content = try #require(window.contentView)
-
-        content.layoutSubtreeIfNeeded()
-
-        #expect(window.frame.size == content.fittingSize)
-    }
-
-    /// From macOS 26 the whole window is Liquid Glass: clear itself, with the glass under the
-    /// content, so the desktop shows through and the glass follows light and dark.
-    @Test func theWindowIsGlassFromMacOS26() throws {
-        guard #available(macOS 26, *) else { return }
-        let controller = settings()
-        controller.show()
-        let window = try #require(controller.window)
-
-        #expect(window.contentView is NSGlassEffectView)
-        #expect(!window.isOpaque)
-        #expect(window.backgroundColor == .clear)
-    }
-
     /// A shortcut was being recorded, so the hotkeys were paused: closing gives them back.
     @Test func closingWhileRecordingBringsTheHotKeysBack() throws {
         let registrar = RecordingRegistrar()
         let hotKeys = HotKeyBindings(registrar: registrar, store: .forTest(#function))
         hotKeys.apply()
-        let controller = settings(hotKeys: hotKeys)
+        let controller = SettingsWindowController.forTest(#function, hotKeys: hotKeys)
         controller.show()
         try #require(controller.shortcuts).startRecording(.fixLayout)
         #expect(registrar.registered.isEmpty)
@@ -131,30 +94,5 @@ import Testing
         try #require(controller.window).close()
 
         #expect(registrar.registered.count == AppCommand.allCases.count)
-    }
-
-    @Test func escapeClosesTheWindow() throws {
-        let controller = settings()
-        controller.show()
-
-        try #require(controller.window).cancelOperation(nil)
-
-        #expect(controller.window == nil)
-    }
-
-    /// An agent app has no main menu, so nothing else answers ⌘W. With Russian – PC active
-    /// the key types "ц": the key closes the window, not the letter.
-    @Test func commandWClosesTheWindowInAnyLayout() throws {
-        let controller = settings()
-        controller.show()
-        let window = try #require(controller.window)
-        let commandW = try #require(
-            NSEvent.keyEvent(
-                with: .keyDown, location: .zero, modifierFlags: .command, timestamp: 0,
-                windowNumber: window.windowNumber, context: nil, characters: "ц", charactersIgnoringModifiers: "ц",
-                isARepeat: false, keyCode: UInt16(kVK_ANSI_W)))
-
-        #expect(window.performKeyEquivalent(with: commandW))
-        #expect(controller.window == nil)
     }
 }

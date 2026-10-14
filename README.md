@@ -26,7 +26,7 @@ A menu-bar app. Select text anywhere and press a shortcut:
 | **⌃⌥⇧T** | Translate | The translation opens in a panel at the pointer. ↩ copies it, Esc closes it. Apple's on-device translation, macOS 26+. |
 
 - **Right-click → Services** has both commands too. From there, Fix Layout replaces the text in place with the app's own undo, and needs neither the clipboard nor any permission.
-- **Settings** (⌘, in the menu): your own shortcuts, the translation languages, the Accessibility status, and Open at Login.
+- **Settings** (⌘, in the menu): your languages (translations go into the primary one), your own shortcuts, the Accessibility status, and Open at Login.
 - **English and Russian** interface, following the language of macOS.
 
 ## 📸 Screenshot

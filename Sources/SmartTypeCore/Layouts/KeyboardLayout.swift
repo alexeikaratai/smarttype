@@ -27,16 +27,16 @@ package struct KeyboardLayout: Hashable, Sendable, Identifiable {
         precondition(unshifted.count == codes.count && shifted.count == codes.count, "\(id): one character per key")
         var output: [KeyStroke: String] = [:]
         for (code, character) in zip(codes, unshifted) {
-            output[KeyStroke(keyCode: code, shift: false)] = String(character)
+            output[KeyStroke(keyCode: code, isShifted: false)] = String(character)
         }
         for (code, character) in zip(codes, shifted) {
-            output[KeyStroke(keyCode: code, shift: true)] = String(character)
+            output[KeyStroke(keyCode: code, isShifted: true)] = String(character)
         }
         self.init(id: id, language: language, output: output, alternatives: alternatives)
     }
 
     /// Every text this layout types, with the key that types it, alternatives included.
-    package var keyStrokesByText: [String: KeyStroke] {
+    var keyStrokesByText: [String: KeyStroke] {
         var result = alternatives
         for (stroke, text) in output {
             result[text] = stroke

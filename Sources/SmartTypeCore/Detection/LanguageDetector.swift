@@ -3,9 +3,9 @@
 /// runs wherever its scorers can run. Which language a translation comes from is
 /// `SourceLanguage`'s job, in SmartTypeEngines.
 package struct LanguageDetector {
-    private let scorers: [any WordScorer]
+    private let scorers: [any WordScoring]
 
-    package init(scorers: [any WordScorer]) {
+    package init(scorers: [any WordScoring]) {
         self.scorers = scorers
     }
 

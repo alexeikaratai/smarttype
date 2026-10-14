@@ -17,6 +17,13 @@ import Testing
         #expect(scorer.score(word, as: .russian) == .impossible)
     }
 
+    /// One word per Russian rule: ь, ъ and ы after a vowel; ь after й; ъ before a consonant; ж,
+    /// ш, ч, щ before ы, я, ю; щ before a consonant.
+    @Test(arguments: ["тоь", "заъ", "моы", "мойь", "съм", "жыр", "чяс", "ищт"])
+    func eachRussianRuleRulesAWordOut(_ word: String) {
+        #expect(scorer.score(word, as: .russian) == .impossible)
+    }
+
     @Test(arguments: [
         "hello", "world", "keyboard", "layout", "translation", "select", "if", "of", "the", "and", "quickly", "rhythm",
         "jazz", "subject", "adjust",

@@ -7,6 +7,8 @@ protocol HotKeyRegistering: AnyObject {
     func unregisterAll()
 }
 
+// MARK: - HotKeyCenter
+
 /// Gives each hotkey its own identifier and runs its action when the system reports a press.
 final class HotKeyCenter {
     private let registrar: any HotKeyRegistering

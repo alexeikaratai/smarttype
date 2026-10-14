@@ -17,7 +17,9 @@ final class FloatingPanel: NSPanel {
         isReleasedWhenClosed = false
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
+        // The glass card's own edge is enough: with a window shadow, macOS outlined the clear
+        // window's rectangle in a thin dark line around the rounded card (seen live).
+        hasShadow = false
     }
 
     /// A borderless window never becomes key on its own, and Esc needs key status.

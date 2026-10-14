@@ -8,4 +8,6 @@ protocol LoginItemRegistering {
     func unregister() throws
 }
 
+// MARK: - SMAppService
+
 extension SMAppService: LoginItemRegistering {}

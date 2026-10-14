@@ -14,6 +14,8 @@ extension NSMenuItem {
     }
 }
 
+// MARK: - MenuAction
+
 private final class MenuAction: NSObject {
     private let handler: () -> Void
 

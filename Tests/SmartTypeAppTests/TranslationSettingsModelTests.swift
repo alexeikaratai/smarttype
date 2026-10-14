@@ -5,89 +5,137 @@ import Testing
 
 @Suite struct TranslationSettingsModelTests {
     private let german = Locale.Language(identifier: "de")
-    private let russian = Locale.Language(identifier: "ru")
+    private let polish = Locale.Language(identifier: "pl")
 
-    @Test func itStartsFromWhatWasPickedBefore() {
-        let choices = TranslationChoices.forTest(#function)
-        choices.target = german
-
-        let settings = TranslationSettingsModel(choices: choices, supportedLanguages: { [] })
-
-        #expect(settings.source == nil)
-        #expect(settings.target?.languageCode?.identifier == "de")
+    private func settings(
+        _ choices: TranslationChoices, supported: [Locale.Language] = []
+    ) -> TranslationSettingsModel {
+        TranslationSettingsModel(choices: choices, supportedLanguages: { supported })
     }
 
-    @Test func aPickIsRememberedForTheNextTranslation() {
-        let choices = TranslationChoices.forTest(#function)
-        let settings = TranslationSettingsModel(choices: choices, supportedLanguages: { [] })
-
-        settings.pick(source: russian)
-        settings.pick(target: german)
-
-        #expect(choices.source?.languageCode?.identifier == "ru")
-        #expect(choices.target?.languageCode?.identifier == "de")
+    private func codes(_ languages: [Locale.Language]) -> [String] {
+        languages.map(\.minimalIdentifier)
     }
 
-    /// "Detect automatically" and "My languages" are no pick at all.
-    @Test func automaticIsNoPick() {
-        let choices = TranslationChoices.forTest(#function)
-        choices.source = russian
-        choices.target = german
-        let settings = TranslationSettingsModel(choices: choices, supportedLanguages: { [] })
+    @Test func itShowsThePersonsLanguagesPrimaryFirst() {
+        let model = settings(.forTest(#function))
 
-        settings.pick(source: nil)
-        settings.pick(target: nil)
-
-        #expect(choices.source == nil)
-        #expect(choices.target == nil)
+        #expect(codes(model.languages) == ["en", "ru"])
+        #expect(model.primary?.minimalIdentifier == "en")
     }
 
-    /// The list comes from Apple's engine once, sorted by the names the person reads.
-    @Test func theLanguagesAreAskedForOnceAndSortedByName() async {
+    /// The primary moves to the top, and the one it replaces becomes the next: text in the new
+    /// primary goes into the old one.
+    @Test func makingALanguagePrimaryMovesItFirst() {
+        let choices = TranslationChoices.forTest(#function)
+        let model = settings(choices)
+
+        model.makePrimary(Locale.Language(identifier: "ru"))
+
+        #expect(codes(model.languages) == ["ru", "en"])
+        #expect(codes(choices.languages) == ["ru", "en"])
+    }
+
+    @Test func anAddedLanguageGoesLastAndIsRemembered() {
+        let choices = TranslationChoices.forTest(#function)
+        let model = settings(choices)
+
+        model.add(polish)
+
+        #expect(codes(model.languages) == ["en", "ru", "pl"])
+        #expect(codes(choices.languages) == ["en", "ru", "pl"])
+    }
+
+    /// The engine says "en-GB" where the list says "en": one English either way.
+    @Test func aLanguageAlreadyInTheListIsNotAddedAgain() {
+        let choices = TranslationChoices.forTest(#function)
+        let model = settings(choices)
+
+        model.add(Locale.Language(identifier: "en-GB"))
+
+        #expect(codes(model.languages) == ["en", "ru"])
+        #expect(codes(choices.languages) == ["en", "ru"])
+    }
+
+    @Test func aRemovedLanguageIsForgotten() {
+        let choices = TranslationChoices.forTest(#function)
+        let model = settings(choices)
+
+        model.remove(Locale.Language(identifier: "ru"))
+
+        #expect(codes(choices.languages) == ["en"])
+    }
+
+    /// A translation always needs somewhere to go. The saved list differs from the macOS
+    /// languages, so an emptied list, which reads as those, cannot pass for a kept one.
+    @Test func theLastLanguageIsKept() {
+        let choices = TranslationChoices.forTest(#function)
+        choices.languages = [german]
+        let model = settings(choices)
+
+        model.remove(german)
+
+        #expect(codes(model.languages) == ["de"])
+        #expect(codes(choices.languages) == ["de"])
+        #expect(!model.canRemove)
+    }
+
+    /// Only what Apple's engine translates can be added, and not twice. The engine says
+    /// "en-US" where the list says "en" (measured: `Locale.Language` compares identifiers).
+    @Test func onlyLanguagesNotInTheListCanBeAdded() async {
+        let model = settings(
+            .forTest(#function),
+            supported: ["en-US", "ru-RU", "de-DE", "pl-PL"].map { Locale.Language(identifier: $0) })
+
+        await model.loadLanguages()
+
+        #expect(codes(model.addable) == ["de", "pl"])
+    }
+
+    /// Asked once per window, and listed by the names the person reads.
+    @Test func theEnginesLanguagesAreAskedForOnceAndSortedByName() async {
         var asked = 0
-        let settings = TranslationSettingsModel(
+        let model = TranslationSettingsModel(
             choices: .forTest(#function),
             supportedLanguages: {
                 asked += 1
-                return [
-                    Locale.Language(identifier: "ru"), Locale.Language(identifier: "de"),
-                    Locale.Language(identifier: "en"),
-                ]
+                return ["pl", "de", "uk"].map { Locale.Language(identifier: $0) }
             })
 
-        await settings.loadLanguages()
-        await settings.loadLanguages()
+        await model.loadLanguages()
+        await model.loadLanguages()
 
-        let names = settings.languages.map(\.displayName)
+        let names = model.addable.map(\.displayName)
         #expect(asked == 1)
-        #expect(names.count == 3)
         #expect(names == names.sorted { $0.localizedStandardCompare($1) == .orderedAscending })
     }
 
-    /// Apple's engine lists "en-US" and "de-DE"; a pick is stored as "en" and "de", and
-    /// `Locale.Language` compares the identifiers (measured: "en-US" is not "en"). Both are put
-    /// in one form, so the picker finds the row of what was picked.
-    @Test func theEnginesLanguagesMatchTheStoredPicks() async {
-        let choices = TranslationChoices.forTest(#function)
-        choices.target = Locale.Language(identifier: "de-DE")
-        let settings = TranslationSettingsModel(
-            choices: choices, supportedLanguages: { [Locale.Language(identifier: "de-DE")] })
-
-        await settings.loadLanguages()
-
-        #expect(settings.languages.map(\.minimalIdentifier) == ["de"])
-        #expect(settings.languages.first == settings.target)
-    }
-
-    /// A pick has a row before the engine's list arrives, so the picker never shows a
-    /// selection without one.
-    @Test func aPickIsListedBeforeTheLanguagesLoad() {
+    /// The picker finds its selection by `==`, which tells "de" from an identifier and "de" from
+    /// its parts apart (measured). Once the engine's "de-DE" is listed, the saved pick must still
+    /// equal one of the rows, or the picker shows nothing selected.
+    @Test func aSavedReadTextAsPickMatchesItsRowAfterTheLanguagesLoad() async throws {
         let choices = TranslationChoices.forTest(#function)
         choices.source = german
-        choices.target = german
+        let model = settings(choices, supported: [Locale.Language(identifier: "de-DE")])
 
-        let settings = TranslationSettingsModel(choices: choices, supportedLanguages: { [] })
+        await model.loadLanguages()
 
-        #expect(settings.languages.map(\.minimalIdentifier) == ["de"])
+        let pick = try #require(model.source)
+        #expect(model.readableLanguages.filter { $0 == pick }.count == 1)
+    }
+
+    /// "Read text as": a pick holds for every translation, and has a row before the engine's
+    /// list arrives, so the picker never shows a selection without one.
+    @Test func readTextAsIsRememberedAndListedBeforeTheLanguagesLoad() throws {
+        let choices = TranslationChoices.forTest(#function)
+        let model = settings(choices)
+
+        model.pick(source: german)
+
+        let pick = try #require(model.source)
+        #expect(choices.source?.minimalIdentifier == "de")
+        #expect(model.readableLanguages.filter { $0 == pick }.count == 1)
+        model.pick(source: nil)
+        #expect(choices.source == nil)
     }
 }
