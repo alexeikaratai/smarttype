@@ -1,62 +1,80 @@
 /// Fixes text typed with the wrong keyboard layout active: "ghbdtn" → "привет".
 ///
-/// A selection typed entirely in one layout is converted whole, punctuation included: the
-/// person asked for exactly that. Mixed text is decided word by word, and a word is kept
+/// A selection one layout could have typed entirely is converted whole, punctuation included:
+/// the person asked for exactly that. Mixed text is decided word by word, and a word is kept
 /// unless its conversion reads better; a tie keeps it.
 package struct LayoutCorrector {
     private typealias Token = LayoutTokenizer.Token
+    private typealias Reading = (text: String, layoutID: String, plausibility: Plausibility)
 
-    private let layouts: [String: KeyboardLayout]
-    private let converters: [String: [LayoutConverter]]
+    /// In the person's order, which settles a tie.
+    private let layouts: [KeyboardLayout]
+    /// From each layout, by its ID, into every other.
+    private let convertersBySource: [String: [LayoutConverter]]
     /// For every character some layout types, the IDs of the layouts that type it.
     private let layoutIDsByCharacter: [Character: Set<String>]
     private let detector: LanguageDetector
 
     package init(layouts: [KeyboardLayout], detector: LanguageDetector) {
-        self.layouts = Dictionary(uniqueKeysWithValues: layouts.map { ($0.id, $0) })
+        self.layouts = layouts
         self.detector = detector
-        var converters: [String: [LayoutConverter]] = [:]
+        var convertersBySource: [String: [LayoutConverter]] = [:]
         var layoutIDsByCharacter: [Character: Set<String>] = [:]
         for source in layouts {
-            converters[source.id] = layouts.filter { $0.id != source.id }.map { LayoutConverter(from: source, to: $0) }
+            convertersBySource[source.id] = layouts.filter { $0.id != source.id }.map {
+                LayoutConverter(from: source, to: $0)
+            }
             for text in source.keyStrokesByText.keys where text.count == 1 {
                 layoutIDsByCharacter[Character(text), default: []].insert(source.id)
             }
         }
-        self.converters = converters
+        self.convertersBySource = convertersBySource
         self.layoutIDsByCharacter = layoutIDsByCharacter
     }
+
+    /// Two layouts at least, or there is nothing to convert between.
+    package var canConvert: Bool { layouts.count > 1 }
+
+    /// For the log: which layouts it converts between, in the person's order.
+    package var layoutIDs: [String] { layouts.map(\.id) }
 
     /// `nil` when nothing would change.
     package func correct(_ text: String) -> Correction? {
         let tokens = LayoutTokenizer.tokens(of: text)
-        let sources = Set(tokens.compactMap { $0.word.flatMap(sourceLayout(of:)) })
-        let correction =
-            if sources.count == 1, let source = sources.first {
-                wholeSelection(tokens, typedIn: source)
-            } else {
-                wordByWord(tokens)
-            }
+        let sources = commonSourceIDs(of: tokens)
+        let correction = sources.isEmpty ? wordByWord(tokens) : wholeSelection(tokens, typedIn: sources)
         guard let correction, correction.text != text else { return nil }
         return correction
     }
 
     // MARK: - Private
 
-    /// The only layout that could have typed `word`; characters no layout types don't count.
-    private func sourceLayout(of word: String) -> String? {
-        let layoutIDsPerCharacter = word.compactMap { layoutIDsByCharacter[$0] }
-        guard let first = layoutIDsPerCharacter.first else { return nil }
-        let candidates = layoutIDsPerCharacter.reduce(first) { $0.intersection($1) }
-        return candidates.count == 1 ? candidates.first : nil
+    /// The layouts that could have typed `word`. Characters no layout types don't count, and a
+    /// word every layout could have typed, digits for one, says nothing: both give none. Two
+    /// layouts that share letters, Russian and Ukrainian, can both be a word's source; two that
+    /// type the same punctuation on different keys cannot (U.S. and Russian – PC "/", where
+    /// Ukrainian – PC has none; measured), or a third layout would make it convert.
+    private func sourceIDs(of word: String) -> Set<String> {
+        let perCharacter = word.compactMap { layoutIDsByCharacter[$0] }
+        guard let first = perCharacter.first else { return [] }
+        let candidates = perCharacter.dropFirst().reduce(first) { $0.intersection($1) }
+        guard candidates.count < layouts.count else { return [] }
+        return candidates.count == 1 || word.contains(where: \.isLetter) ? candidates : []
     }
 
-    private func wholeSelection(_ tokens: [Token], typedIn source: String) -> Correction? {
-        // With two layouts there is one target; with more, the one whose language reads best.
-        guard
-            let converter = converters[source, default: []].max(by: {
-                totalPlausibility(tokens, $0) < totalPlausibility(tokens, $1)
-            })
+    /// The layouts that could have typed every word that says something; none when two disagree.
+    private func commonSourceIDs(of tokens: [Token]) -> Set<String> {
+        let telling = tokens.compactMap(\.word).map(sourceIDs(of:)).filter { !$0.isEmpty }
+        guard let first = telling.first else { return [] }
+        return telling.dropFirst().reduce(first) { $0.intersection($1) }
+    }
+
+    /// Into the layout whose language reads best. A conversion that changes nothing, between two
+    /// layouts that type the same letters, is not one.
+    private func wholeSelection(_ tokens: [Token], typedIn sources: Set<String>) -> Correction? {
+        let words = tokens.compactMap(\.word)
+        let candidates = converters(from: sources).filter { changesAnything($0, words) }
+        guard let converter = candidates.max(by: { totalPlausibility(tokens, $0) < totalPlausibility(tokens, $1) })
         else { return nil }
         let text = tokens.map { token in token.word.map(converter.convert) ?? token.text }.joined()
         return Correction(text: text, targetLayoutID: converter.target.id)
@@ -66,9 +84,7 @@ package struct LayoutCorrector {
         var text = ""
         var targetLayoutID: String?
         for token in tokens {
-            guard let word = token.word, let source = sourceLayout(of: word),
-                let better = betterReading(of: word, typedIn: source)
-            else {
+            guard let better = token.word.flatMap(betterReading(of:)) else {
                 text += token.text
                 continue
             }
@@ -78,19 +94,32 @@ package struct LayoutCorrector {
         return targetLayoutID.map { Correction(text: text, targetLayoutID: $0) }
     }
 
-    /// The conversion of `word` that reads better than the word as typed, if there is one.
-    private func betterReading(of word: String, typedIn source: String) -> (text: String, layoutID: String)? {
-        guard let language = layouts[source]?.language else { return nil }
-        let asTyped = detector.plausibility(of: letters(word), as: language)
-        let readings = converters[source, default: []].map { converter in
+    /// The conversion of `word` that reads better than the word as typed, in whichever layout
+    /// that could have typed it reads best.
+    private func betterReading(of word: String) -> (text: String, layoutID: String)? {
+        let sources = sourceIDs(of: word)
+        let asTyped = layouts.filter { sources.contains($0.id) }
+            .map { detector.plausibility(of: letters(word), as: $0.language) }.max()
+        guard let asTyped else { return nil }
+        // A conversion that changes nothing goes into a layout that could have typed the word too,
+        // so it never reads better than the word as typed.
+        let readings = converters(from: sources).map { converter -> Reading in
             let text = converter.convert(word)
-            let plausibility = detector.plausibility(of: letters(text), as: converter.target.language)
-            return (text: text, layoutID: converter.target.id, plausibility: plausibility)
+            return (text, converter.target.id, detector.plausibility(of: letters(text), as: converter.target.language))
         }
         guard let best = readings.max(by: { $0.plausibility < $1.plausibility }), best.plausibility > asTyped else {
             return nil
         }
         return (best.text, best.layoutID)
+    }
+
+    private func changesAnything(_ converter: LayoutConverter, _ words: [String]) -> Bool {
+        words.contains { converter.convert($0) != $0 }
+    }
+
+    /// From each of `sources`, in the person's order, into every other layout.
+    private func converters(from sources: Set<String>) -> [LayoutConverter] {
+        layouts.filter { sources.contains($0.id) }.flatMap { convertersBySource[$0.id, default: []] }
     }
 
     private func totalPlausibility(_ tokens: [Token], _ converter: LayoutConverter) -> Int {

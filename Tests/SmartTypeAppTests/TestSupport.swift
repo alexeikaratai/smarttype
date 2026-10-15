@@ -39,6 +39,12 @@ extension TranslationChoices {
     }
 }
 
+extension LayoutChoices {
+    static func forTest(_ test: String, file: String = #fileID) -> LayoutChoices {
+        LayoutChoices(defaults: .forTest(test, part: "layouts", file: file))
+    }
+}
+
 extension HotKeyStore {
     static func forTest(_ test: String, file: String = #fileID) -> HotKeyStore {
         HotKeyStore(defaults: .forTest(test, part: "hotkeys", file: file))
@@ -63,6 +69,9 @@ extension SettingsWindowController {
             makeTranslation: {
                 TranslationSettingsModel(choices: .forTest(test, file: file), supportedLanguages: { [] })
             },
+            makeLayouts: {
+                LayoutSettingsModel(choices: .forTest(test, file: file), readEnabled: { [] }, openURL: { _ in })
+            },
             openURL: { _ in }, openLoginItems: {}, present: present)
     }
 }
@@ -84,14 +93,16 @@ extension PanelController {
 }
 
 extension LayoutFixAction {
-    /// The built-in layouts and the letter rules, with recorders for the rest.
+    /// The built-in layouts unless told others, the letter rules, and recorders for the rest.
     static func forTest(
         _ clipboard: ClipboardTransaction, _ macOS: PermissionRecorder, _ outcome: ActionOutcome = ActionOutcome(),
-        accessibilitySelection: String? = nil, smartTypeIsFrontmost: Bool = false, agrees: Bool = false
+        layouts: [KeyboardLayout] = BuiltInLayouts().layouts, accessibilitySelection: String? = nil,
+        smartTypeIsFrontmost: Bool = false, agrees: Bool = false
     ) -> LayoutFixAction {
         LayoutFixAction(
-            corrector: LayoutCorrector(
-                layouts: BuiltInLayouts().layouts, detector: LanguageDetector(scorers: [PhonotacticScorer()])),
+            makeCorrector: {
+                LayoutCorrector(layouts: layouts, detector: LanguageDetector(scorers: [PhonotacticScorer()]))
+            },
             clipboard: clipboard, permission: macOS.permission(), readSelection: { accessibilitySelection },
             selectLayout: { layoutID in
                 outcome.onSwitch()

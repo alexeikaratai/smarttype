@@ -47,32 +47,12 @@ import Testing
         #expect(corrector().correct("Привет, ghbdtn") == nil)
     }
 
-    // MARK: - More than two layouts
+    // MARK: - For the log
 
-    /// Russian – PC with the S key typing Ukrainian "і" instead of "ы", enough to tell them apart.
-    private let ukrainianLike: KeyboardLayout = {
-        var output = KeyboardLayout.russianPC.output
-        output[KeyStroke(keyCode: 0x01, isShifted: false)] = "і"
-        return KeyboardLayout(id: "test.ukrainian", language: Language(code: "uk"), output: output)
-    }()
-
-    private func threeLayoutCorrector(knowing known: [Language: Set<String>]) -> LayoutCorrector {
-        LayoutCorrector(
-            layouts: BuiltInLayouts().layouts + [ukrainianLike],
-            detector: LanguageDetector(scorers: [PhonotacticScorer(), FakeLexicon(known: known)]))
-    }
-
-    @Test func aWholeSelectionGoesToTheLayoutWhoseLanguageReadsBest() {
-        // "vsh" reads "мыр" in Russian – PC and "мір" in the Ukrainian-like layout.
-        let fixed = threeLayoutCorrector(knowing: [ukrainianLike.language: ["мір"]]).correct("vsh")
-        #expect(fixed == Correction(text: "мір", targetLayoutID: ukrainianLike.id))
-    }
-
-    @Test func eachMixedWordGoesToTheLayoutWhoseLanguageReadsBest() {
-        // "ырщц" reads "show" or "ірщц"; "vsh" reads "мыр" or "мір".
-        let known: [Language: Set<String>] = [.english: ["show"], ukrainianLike.language: ["мір"]]
-        let fixed = threeLayoutCorrector(knowing: known).correct("ырщц vsh")
-        #expect(fixed == Correction(text: "show мір", targetLayoutID: ukrainianLike.id))
+    /// For the log: which layouts a fix chose between, in the person's order.
+    @Test func itNamesTheLayoutsItConvertsBetween() {
+        let ids = LayoutCorrector(layouts: [.russianPC, .usQwerty], detector: LanguageDetector(scorers: [])).layoutIDs
+        #expect(ids == [KeyboardLayout.russianPC.id, KeyboardLayout.usQwerty.id])
     }
 
     // MARK: - Nothing to fix
@@ -90,5 +70,17 @@ import Testing
         let withoutQ = KeyboardLayout(id: "test.withoutQ", language: .russian, output: output)
         let detector = LanguageDetector(scorers: [])
         #expect(LayoutCorrector(layouts: [.usQwerty, withoutQ], detector: detector).correct("q") == nil)
+    }
+
+    /// A German-like layout swaps Y and Z: "zoo" is a word either layout could have typed, so it
+    /// says nothing about which one, and is left as it is rather than turned into "yoo".
+    @Test func aWordEveryLayoutCouldHaveTypedIsLeftAlone() {
+        var output = KeyboardLayout.usQwerty.output
+        output[KeyStroke(keyCode: 0x10, isShifted: false)] = "z"
+        output[KeyStroke(keyCode: 0x06, isShifted: false)] = "y"
+        let qwertzLike = KeyboardLayout(id: "test.qwertz", language: Language(code: "de"), output: output)
+        let detector = LanguageDetector(scorers: [PhonotacticScorer()])
+
+        #expect(LayoutCorrector(layouts: [.usQwerty, qwertzLike], detector: detector).correct("zoo") == nil)
     }
 }

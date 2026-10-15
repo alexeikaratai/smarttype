@@ -6,6 +6,7 @@ struct SettingsView: View {
     let accessibility: AccessibilityViewModel
     let openAtLogin: OpenAtLoginViewModel
     let translation: TranslationSettingsModel
+    let layouts: LayoutSettingsModel
     let shortcuts: ShortcutsViewModel
     let info: AppInfo
     let openURL: (URL) -> Void
@@ -55,7 +56,7 @@ struct SettingsView: View {
     @ViewBuilder private var selectedTab: some View {
         switch tab {
         case .general: GeneralView(accessibility: accessibility, openAtLogin: openAtLogin)
-        case .languages: LanguagesView(translation: translation)
+        case .languages: LanguagesView(translation: translation, layouts: layouts)
         case .shortcuts: ShortcutsView(model: shortcuts)
         case .about: AboutView(info: info, openURL: openURL).padding([.horizontal, .bottom], 24)
         }

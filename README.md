@@ -22,11 +22,11 @@ A menu-bar app. Select text anywhere and press a shortcut:
 
 | Shortcut | Command | What happens |
 |---|---|---|
-| **⌃⌥⇧L** | Fix Layout | `ghbdtn` becomes `привет`, and the keyboard switches to Russian. Works both ways between U.S. and Russian – PC, Shift symbols included. Mixed text is fixed word by word. |
+| **⌃⌥⇧L** | Fix Layout | `ghbdtn` becomes `привет`, and the keyboard switches to Russian. Works between the keyboard layouts you have in macOS, any way round, Shift symbols included: Ukrainian, Hebrew or Greek as well as Russian. Mixed text is fixed word by word. |
 | **⌃⌥⇧T** | Translate | The translation opens in a panel at the pointer. ↩ copies it, Esc closes it. Apple's on-device translation, macOS 26+. |
 
 - **Right-click → Services** has both commands too. From there, Fix Layout replaces the text in place with the app's own undo, and needs neither the clipboard nor any permission.
-- **Settings** (⌘, in the menu): your languages (translations go into the primary one), your own shortcuts, the Accessibility status, and Open at Login.
+- **Settings** (⌘, in the menu): the layouts Fix Layout works between, your languages (translations go into the primary one), your own shortcuts, the Accessibility status, and Open at Login.
 - **English and Russian** interface, following the language of macOS.
 
 ## 📸 Screenshot

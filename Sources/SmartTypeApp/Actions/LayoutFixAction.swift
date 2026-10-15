@@ -2,8 +2,9 @@ import AppKit
 import OSLog
 import SmartTypeCore
 
-/// Fix Layout (⌃⌥⇧L by default): retypes the selected text as the other keyboard layout would have typed it, then
-/// switches to that layout so the person keeps typing in it.
+/// Fix Layout (⌃⌥⇧L by default): retypes the selected text as another keyboard layout would
+/// have typed it, then switches to that layout so the person keeps typing in it. The layouts
+/// are the ones on in Settings ▸ Languages, read afresh on every fix.
 final class LayoutFixAction {
     private enum Outcome {
         case fixed
@@ -11,7 +12,7 @@ final class LayoutFixAction {
         case nothingToFix
     }
 
-    private let corrector: LayoutCorrector
+    private let makeCorrector: () -> LayoutCorrector
     private let clipboard: ClipboardTransaction
     private let permission: AccessibilityPermission
     private let readSelection: () -> String?
@@ -22,7 +23,7 @@ final class LayoutFixAction {
     private var isRunning = false
 
     init(
-        corrector: LayoutCorrector,
+        makeCorrector: @escaping () -> LayoutCorrector,
         clipboard: ClipboardTransaction,
         permission: AccessibilityPermission,
         readSelection: @escaping () -> String? = { AXSelectionReader.read() },
@@ -33,7 +34,7 @@ final class LayoutFixAction {
         beep: @escaping () -> Void = { NSSound.beep() },
         explain: @escaping (Onboarding.Problem) -> Bool = { Onboarding.explain($0) }
     ) {
-        self.corrector = corrector
+        self.makeCorrector = makeCorrector
         self.clipboard = clipboard
         self.permission = permission
         self.readSelection = readSelection
@@ -43,9 +44,12 @@ final class LayoutFixAction {
         self.explain = explain
     }
 
-    /// The core operation, which both doors share.
+    /// The core operation, which both doors share. The log names the layouts it chose between,
+    /// which the text never is.
     func fix(_ text: String) -> Correction? {
-        corrector.correct(text)
+        let corrector = makeCorrector()
+        Log.general.notice("Fix Layout between \(corrector.layoutIDs.joined(separator: ", "), privacy: .public)")
+        return corrector.correct(text)
     }
 
     /// The Services door: macOS hands the text over and puts the fixed text in place itself,
@@ -71,6 +75,14 @@ final class LayoutFixAction {
         defer { isRunning = false }
         // Translate has the clipboard: borrowing it now would lose the person's own.
         guard !clipboard.isBorrowed else { return beep() }
+        // One layout on leaves nothing to fix between, so no ⌘C either; Settings says why.
+        let corrector = makeCorrector()
+        guard corrector.canConvert else {
+            Log.general.notice(
+                "Fix Layout: fewer than two layouts on (\(corrector.layoutIDs.joined(separator: ", "), privacy: .public))"
+            )
+            return beep()
+        }
 
         guard permission.isGranted else {
             Log.general.notice("Fix Layout: no Accessibility permission")

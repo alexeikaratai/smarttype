@@ -34,6 +34,28 @@
         }
       }
     },
+    "Add Layout…" : {
+      "comment" : "Settings ▸ Languages: opens System Settings ▸ Keyboard",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить раскладку…"
+          }
+        }
+      }
+    },
+    "Add a second keyboard layout to fix text typed in the wrong one. Layouts come from System Settings ▸ Keyboard ▸ Input Sources." : {
+      "comment" : "Settings ▸ Languages: Fix Layout with one layout in macOS",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавьте вторую раскладку, чтобы исправлять текст, набранный не в той. Раскладки берутся из Системных настроек ▸ Клавиатура ▸ Источники ввода."
+          }
+        }
+      }
+    },
     "Allowed" : {
       "comment" : "Settings ▸ General: Accessibility status",
       "localizations" : {
@@ -206,6 +228,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Без него «Исправить раскладку» и «Перевести» не смогут скопировать выделенный текст, а «Исправить раскладку» — вставить исправленный."
+          }
+        }
+      }
+    },
+    "Fix Layout retypes text between the layouts switched on here, two at least. Layouts come from System Settings ▸ Keyboard ▸ Input Sources, and one you add there joins them." : {
+      "comment" : "Settings ▸ Languages: how Fix Layout uses the layouts",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Исправить раскладку» перепечатывает текст между раскладками, включёнными здесь, — нужны хотя бы две. Раскладки берутся из Системных настроек ▸ Клавиатура ▸ Источники ввода, и добавленная там включится здесь сама."
           }
         }
       }
@@ -386,6 +419,17 @@
         }
       }
     },
+    "Opens System Settings ▸ Keyboard, where Edit… next to Input Sources adds one." : {
+      "comment" : "Settings ▸ Languages: tooltip of Add Layout…, with the pane's own names",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открывает Системные настройки ▸ Клавиатура: раскладку добавляет «Изменить…» у «Источников ввода»."
+          }
+        }
+      }
+    },
     "Primary" : {
       "comment" : "Settings ▸ Languages: the language translations go into",
       "localizations" : {
@@ -547,6 +591,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SmartType запускается при входе в систему, и сочетания клавиш работают сразу."
+          }
+        }
+      }
+    },
+    "Switch on a second layout to fix text typed in the wrong one." : {
+      "comment" : "Settings ▸ Languages: Fix Layout with one layout left on",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включите вторую раскладку, чтобы исправлять текст, набранный не в той."
           }
         }
       }

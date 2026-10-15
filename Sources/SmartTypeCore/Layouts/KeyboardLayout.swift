@@ -1,5 +1,5 @@
 /// What one keyboard layout types: the text each physical key produces. Built-in layouts
-/// come from two strings in ANSI key order; layouts read from macOS will fill `output`.
+/// come from two strings in ANSI key order; layouts read from macOS, from what each key types.
 package struct KeyboardLayout: Hashable, Sendable, Identifiable {
     /// The macOS input source ID, e.g. "com.apple.keylayout.RussianWin".
     package let id: String
@@ -35,6 +35,23 @@ package struct KeyboardLayout: Hashable, Sendable, Identifiable {
         self.init(id: id, language: language, output: output, alternatives: alternatives)
     }
 
+    /// A layout as macOS reports it, one text per key of `KeyStroke.ansiKeyCodes`. A key that types
+    /// nothing on its own, a dead key, is left out (measured: 2 in German, 21 in Hebrew), and a
+    /// text two keys type keeps the first key, unshifted before shifted, so converting back is
+    /// never a guess (measured: Armenian, Hebrew and Arabic repeat one).
+    package init(id: String, language: Language, measuredUnshifted: [String], measuredShifted: [String]) {
+        let keys = KeyStroke.ansiKeyCodes
+        let typedByKey =
+            Array(zip(keys.map { KeyStroke(keyCode: $0, isShifted: false) }, measuredUnshifted))
+            + Array(zip(keys.map { KeyStroke(keyCode: $0, isShifted: true) }, measuredShifted))
+        var output: [KeyStroke: String] = [:]
+        var typed: Set<String> = []
+        for (stroke, text) in typedByKey where Self.isTyped(text) && typed.insert(text).inserted {
+            output[stroke] = text
+        }
+        self.init(id: id, language: language, output: output)
+    }
+
     /// Every text this layout types, with the key that types it, alternatives included.
     var keyStrokesByText: [String: KeyStroke] {
         var result = alternatives
@@ -42,5 +59,9 @@ package struct KeyboardLayout: Hashable, Sendable, Identifiable {
             result[text] = stroke
         }
         return result
+    }
+
+    private static func isTyped(_ text: String) -> Bool {
+        !text.isEmpty && !text.unicodeScalars.allSatisfy { $0.properties.generalCategory == .control }
     }
 }

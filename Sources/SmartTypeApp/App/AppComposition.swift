@@ -18,11 +18,14 @@ final class AppComposition {
     /// Built on first use, so a launch that never opens Settings never builds it.
     private lazy var settings = SettingsWindowController(
         hotKeys: hotKeys, permission: permission, loginItem: loginItem, present: presentSettings)
-    /// Built on first use too: the dictionary and the layout tables load with the first fix.
+    /// Built on first use too. The layouts are read from macOS on every fix, less those switched
+    /// off in Settings, so a layout added in macOS a moment ago is already one of them.
     private lazy var layoutFix = LayoutFixAction(
-        corrector: LayoutCorrector(
-            layouts: BuiltInLayouts().layouts,
-            detector: LanguageDetector(scorers: [PhonotacticScorer(), SpellCheckScorer()])),
+        makeCorrector: {
+            LayoutCorrector(
+                layouts: LayoutChoices().fixedBetween(InputSourceLayouts().layouts),
+                detector: LanguageDetector(scorers: [PhonotacticScorer(), SpellCheckScorer()]))
+        },
         clipboard: clipboard, permission: permission)
     /// Built on first use too: the panel waits for the first translation.
     private lazy var translation = TranslateAction(clipboard: clipboard, permission: permission)

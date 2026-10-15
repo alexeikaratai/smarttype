@@ -28,6 +28,7 @@ import Testing
             hotKeys: HotKeyBindings(registrar: RecordingRegistrar(), store: .forTest(#function)),
             permission: macOS.permission(), loginItem: LoginItemRecorder(),
             makeTranslation: { TranslationSettingsModel(choices: .forTest(#function), supportedLanguages: { [] }) },
+            makeLayouts: { LayoutSettingsModel(choices: .forTest(#function), readEnabled: { [] }, openURL: { _ in }) },
             info: AppInfo(version: environment["SHOT_VERSION"] ?? "?", build: ""), openURL: { _ in },
             openLoginItems: {},
             present: { window in

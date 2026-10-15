@@ -2,6 +2,7 @@ import AppKit
 import Testing
 
 @testable import SmartTypeApp
+@testable import SmartTypeCore
 
 /// The hotkey door: copy, fix, paste and switch the keyboard, and every guard before it.
 @Suite struct LayoutFixActionTests {
@@ -62,6 +63,18 @@ import Testing
         app.selection = "ghbdtn"
 
         await LayoutFixAction.forTest(app.clipboard(), .trusted(), outcome, smartTypeIsFrontmost: true).fixSelection()
+
+        #expect(outcome.beeps == 1)
+        #expect(app.copies == 0)
+    }
+
+    /// One layout in macOS, or one left on: nothing to fix between, so no ⌘C either.
+    @Test func withFewerThanTwoLayoutsItBeepsAndCopiesNothing() async {
+        let app = FakeFrontApp()
+        let outcome = ActionOutcome()
+        app.selection = "ghbdtn"
+
+        await LayoutFixAction.forTest(app.clipboard(), .trusted(), outcome, layouts: [.usQwerty]).fixSelection()
 
         #expect(outcome.beeps == 1)
         #expect(app.copies == 0)

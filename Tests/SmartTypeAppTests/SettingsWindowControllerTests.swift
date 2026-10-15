@@ -3,6 +3,7 @@ import ServiceManagement
 import Testing
 
 @testable import SmartTypeApp
+@testable import SmartTypeCore
 
 /// The window's life: built when it opens, freed with its view models when it closes, and read
 /// again when it comes forward. How it looks and closes is `SettingsWindowTests`.
@@ -44,17 +45,23 @@ import Testing
         weak var closedModel: AccessibilityViewModel?
         weak var closedLoginModel: OpenAtLoginViewModel?
         weak var closedTranslationModel: TranslationSettingsModel?
+        weak var closedLayoutsModel: LayoutSettingsModel?
         try autoreleasepool {
             controller.show()
             closedWindow = controller.window
             closedModel = controller.accessibility
             closedLoginModel = controller.openAtLogin
             closedTranslationModel = controller.translation
+            closedLayoutsModel = controller.layouts
             try #require(controller.window).close()
         }
 
         #expect(closedWindow == nil)
-        #expect(await waitUntil { closedModel == nil && closedLoginModel == nil && closedTranslationModel == nil })
+        #expect(
+            await waitUntil {
+                closedModel == nil && closedLoginModel == nil && closedTranslationModel == nil
+                    && closedLayoutsModel == nil
+            })
     }
 
     /// Open at Login follows too: it may have been changed in System Settings' Login Items.
@@ -79,6 +86,25 @@ import Testing
         controller.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification))
 
         #expect(controller.accessibility?.isGranted == true)
+    }
+
+    /// A layout may have been turned on in System Settings ▸ Keyboard meanwhile.
+    @Test func comingForwardReadsTheLayoutsAgain() throws {
+        var enabled = [InputSourceLayout(layout: .usQwerty, name: "U.S.")]
+        let controller = SettingsWindowController(
+            hotKeys: HotKeyBindings(registrar: RecordingRegistrar(), store: .forTest(#function)),
+            permission: PermissionRecorder().permission(), loginItem: LoginItemRecorder(),
+            makeTranslation: { TranslationSettingsModel(choices: .forTest(#function), supportedLanguages: { [] }) },
+            makeLayouts: {
+                LayoutSettingsModel(choices: .forTest(#function), readEnabled: { enabled }, openURL: { _ in })
+            },
+            openURL: { _ in }, openLoginItems: {}, present: { _ in })
+        controller.show()
+
+        enabled.append(InputSourceLayout(layout: .russianPC, name: "Russian – PC"))
+        controller.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification))
+
+        #expect(try #require(controller.layouts).rows.count == 2)
     }
 
     /// A shortcut was being recorded, so the hotkeys were paused: closing gives them back.

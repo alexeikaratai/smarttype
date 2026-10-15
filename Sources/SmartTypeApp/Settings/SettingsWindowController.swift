@@ -11,11 +11,13 @@ final class SettingsWindowController: NSObject {
     private(set) var openAtLogin: OpenAtLoginViewModel?
     private(set) var shortcuts: ShortcutsViewModel?
     private(set) var translation: TranslationSettingsModel?
+    private(set) var layouts: LayoutSettingsModel?
 
     private let hotKeys: HotKeyBindings
     private let permission: AccessibilityPermission
     private let loginItem: any LoginItemRegistering
     private let makeTranslation: () -> TranslationSettingsModel
+    private let makeLayouts: () -> LayoutSettingsModel
     private let info: AppInfo
     private let openURL: (URL) -> Void
     private let openLoginItems: () -> Void
@@ -26,6 +28,7 @@ final class SettingsWindowController: NSObject {
         permission: AccessibilityPermission,
         loginItem: any LoginItemRegistering,
         makeTranslation: @escaping () -> TranslationSettingsModel = { TranslationSettingsModel() },
+        makeLayouts: @escaping () -> LayoutSettingsModel = { LayoutSettingsModel() },
         info: AppInfo = AppInfo(),
         openURL: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
         openLoginItems: @escaping () -> Void = { SMAppService.openSystemSettingsLoginItems() },
@@ -35,6 +38,7 @@ final class SettingsWindowController: NSObject {
         self.permission = permission
         self.loginItem = loginItem
         self.makeTranslation = makeTranslation
+        self.makeLayouts = makeLayouts
         self.info = info
         self.openURL = openURL
         self.openLoginItems = openLoginItems
@@ -66,8 +70,11 @@ final class SettingsWindowController: NSObject {
         self.shortcuts = shortcuts
         let translation = makeTranslation()
         self.translation = translation
+        let layouts = makeLayouts()
+        self.layouts = layouts
         let content = SettingsView(
-            accessibility: accessibility, openAtLogin: openAtLogin, translation: translation, shortcuts: shortcuts,
+            accessibility: accessibility, openAtLogin: openAtLogin, translation: translation, layouts: layouts,
+            shortcuts: shortcuts,
             info: info, openURL: openURL)
         let window = SettingsWindow(
             contentRect: .zero, styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: true)
@@ -109,6 +116,7 @@ extension SettingsWindowController: NSWindowDelegate {
     func windowDidBecomeKey(_ notification: Notification) {
         accessibility?.refresh()
         openAtLogin?.refresh()
+        layouts?.refresh()
     }
 
     /// A recording under way gives the hotkeys back before the window goes.
@@ -119,5 +127,6 @@ extension SettingsWindowController: NSWindowDelegate {
         openAtLogin = nil
         shortcuts = nil
         translation = nil
+        layouts = nil
     }
 }

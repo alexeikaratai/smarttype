@@ -1,12 +1,15 @@
 import SwiftUI
 
-/// Settings ▸ Languages: the person's languages, the primary first, which every translation
-/// follows, and "Read text as" for text recognition keeps getting wrong.
+/// Settings ▸ Languages: the layouts Fix Layout works between, then the person's languages, the
+/// primary first, which every translation follows, and "Read text as" for text recognition
+/// keeps getting wrong.
 struct LanguagesView: View {
     let translation: TranslationSettingsModel
+    let layouts: LayoutSettingsModel
 
     var body: some View {
         Form {
+            FixLayoutSection(layouts: layouts)
             // The note stays readable; only what it explains is greyed out.
             Group {
                 languagesSection

@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   starts as your macOS languages, with the language you picked to translate into first, and it
   also helps recognize short words: «привет» alone is no longer taken for Bulgarian. "Read text
   as" stays, for text whose language keeps being recognized wrong.
+- **Fix Layout works between the keyboard layouts you have in macOS**, not only U.S. and
+  Russian – PC: Ukrainian, Hebrew, Greek and the rest are read from macOS as you press ⌃⌥⇧L.
+  Settings ▸ Languages lists them with a switch each; all are on until you switch one off, and
+  a layout you add in macOS joins them. Add Layout… there opens System Settings ▸ Keyboard,
+  where layouts are added. Layouts with the same letters, such as Russian and Ukrainian, can
+  be on together. With only one layout in macOS, ⌃⌥⇧L now beeps instead of converting into
+  Russian, and Settings says to add a second one. Layouts typed through an input method, such
+  as Kana or Pinyin, are not among them: nothing can switch to them.
 
 ### Fixed
 

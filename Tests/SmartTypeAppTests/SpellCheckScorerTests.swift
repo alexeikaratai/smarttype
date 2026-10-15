@@ -34,6 +34,27 @@ import Testing
         #expect(asked == 0)
     }
 
+    /// Without a dictionary for the language, macOS finds no misspelling in anything ("ghbdtn" in
+    /// "xx" or "zh-Hans", measured), which would make every word known: Kazakh, Georgian and
+    /// Armenian layouts have no dictionary on macOS 27.
+    @Test func aLanguageWithoutADictionaryKnowsNothing() {
+        var asked = 0
+        let scorer = SpellCheckScorer(
+            isSpelledCorrectly: { _, _ in
+                asked += 1
+                return true
+            }, hasDictionary: { $0 != "kk" })
+
+        #expect(scorer.score("ghbdtn", as: Language(code: "kk")) == .unknown)
+        #expect(asked == 0)
+    }
+
+    /// macOS lists its dictionaries by language and region: "en", "en_GB", "pt_BR" (measured).
+    @Test(arguments: [("uk", true), ("pl", true), ("en", true), ("pt-BR", true), ("kk", false), ("zh-Hans", false)])
+    func theMacOSDictionaries(_ language: String, _ hasOne: Bool) {
+        #expect(SpellCheckScorer.hasDictionary(for: language) == hasOne)
+    }
+
     /// The real dictionary, read-only: the words the corrector leans on (measured on macOS 27).
     @Test(arguments: [("привет", "ru", true), ("руддщ", "ru", false), ("hello", "en", true), ("ghbdtn", "en", false)])
     func theMacOSDictionary(_ word: String, _ language: String, _ isCorrect: Bool) {
