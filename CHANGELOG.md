@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-10-17
+
 ### Changed
 
 - **Settings ▸ Languages** replaces the Translation tab. It holds your languages: translations
@@ -24,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be on together. With only one layout in macOS, ⌃⌥⇧L now beeps instead of converting into
   Russian, and Settings says to add a second one. Layouts typed through an input method, such
   as Kana or Pinyin, are not among them: nothing can switch to them.
+- **A welcome window on the first launch**, once, for people updating too: the shortcuts, Grant
+  Access…, the layouts Fix Layout works between and your languages, on one page. Close it and
+  it does not come back; everything on it is in Settings as well.
 
 ### Fixed
 

@@ -76,35 +76,11 @@ final class SettingsWindowController: NSObject {
             accessibility: accessibility, openAtLogin: openAtLogin, translation: translation, layouts: layouts,
             shortcuts: shortcuts,
             info: info, openURL: openURL)
-        let window = SettingsWindow(
-            contentRect: .zero, styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: true)
-        window.title = String(localized: "SmartType Settings", comment: "Settings window title, read out by VoiceOver")
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
-        window.isReleasedWhenClosed = false
-        window.contentView = Self.surface(for: NSHostingView(rootView: content), in: window)
-        // Laid out first: only then does the size include the title bar the content sits below.
-        window.layoutIfNeeded()
-        window.setContentSize(window.contentView?.fittingSize ?? .zero)
-        window.center()
+        let window = SettingsWindow.make(
+            title: String(localized: "SmartType Settings", comment: "Settings window title, read out by VoiceOver"),
+            content: NSHostingView(rootView: content))
         window.delegate = self
         return window
-    }
-
-    /// Liquid Glass from macOS 26, the whole window: clear itself, with the glass under the
-    /// content and rounded as the window is (16pt on macOS 27, measured; the window's corner
-    /// mask clips the glass either way, clear or not). Glass follows light and dark, where
-    /// SmartDock's HUD material stayed dark and read as white text on grey (seen live). Before
-    /// macOS 26, the standard background.
-    private static func surface(for content: NSView, in window: NSWindow) -> NSView {
-        guard #available(macOS 26, *) else { return content }
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        let glass = NSGlassEffectView()
-        glass.cornerRadius = 16
-        glass.contentView = content
-        return glass
     }
 }
 

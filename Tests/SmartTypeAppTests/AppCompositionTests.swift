@@ -34,6 +34,39 @@ import Testing
         #expect(Array(registrar.registered.values) == [controlOptionK])
     }
 
+    /// The first launch, for people updating from 0.2 too: the welcome window, and no prompt
+    /// nobody asked for.
+    @Test func theFirstStartShowsTheWelcome() {
+        let macOS = PermissionRecorder()
+        var presented: [String] = []
+        let composition = makeComposition(
+            macOS: macOS, firstLaunch: .forTest(#function, isDone: false),
+            presentSettings: { presented.append($0.title) })
+        defer { composition.stop() }
+
+        composition.start()
+
+        #expect(presented == ["Welcome to SmartType"])
+        #expect(macOS.prompts == 0)
+    }
+
+    /// Grant Access… in the welcome window relaunched SmartType before the window was closed: it
+    /// comes back, with the status, instead of Settings.
+    @Test func aStartAfterAResetBringsTheWelcomeBackUntilItIsClosed() {
+        let macOS = PermissionRecorder()
+        macOS.permission().asksAfterNextLaunch = true
+        var presented: [String] = []
+        let composition = makeComposition(
+            macOS: macOS, firstLaunch: .forTest(#function, isDone: false),
+            presentSettings: { presented.append($0.title) })
+        defer { composition.stop() }
+
+        composition.start()
+
+        #expect(presented == ["Welcome to SmartType"])
+        #expect(macOS.prompts == 1)
+    }
+
     /// The relaunch after a reset lands here: only a new process puts SmartType back in the
     /// list. As in SmartDock, Settings opens next to System Settings, to show the status.
     @Test func aStartAfterAResetAsksForAccessAndOpensSettings() {
@@ -95,6 +128,7 @@ import Testing
         registrar: RecordingRegistrar = RecordingRegistrar(),
         store: HotKeyStore? = nil,
         macOS: PermissionRecorder? = nil,
+        firstLaunch: FirstLaunch? = nil,
         presentSettings: @escaping (NSWindow) -> Void = { _ in },
         offerServices: @escaping (NSObject) -> Void = { _ in },
         test: String = #function
@@ -104,6 +138,7 @@ import Testing
             hotKeyStore: store ?? .forTest(test),
             permission: (macOS ?? PermissionRecorder(test: test)).permission(),
             loginItem: LoginItemRecorder(),
+            firstLaunch: firstLaunch ?? .forTest(test),
             presentSettings: presentSettings,
             offerServices: offerServices)
     }

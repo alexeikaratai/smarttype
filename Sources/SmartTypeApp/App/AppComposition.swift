@@ -10,6 +10,7 @@ final class AppComposition {
     private let statusBar: StatusBarController
     private let permission: AccessibilityPermission
     private let loginItem: any LoginItemRegistering
+    private let firstLaunch: FirstLaunch
     private let presentSettings: (NSWindow) -> Void
     private let offerServices: (NSObject) -> Void
     var refusedHotKeys: Set<AppCommand> { hotKeys.refused }
@@ -18,6 +19,9 @@ final class AppComposition {
     /// Built on first use, so a launch that never opens Settings never builds it.
     private lazy var settings = SettingsWindowController(
         hotKeys: hotKeys, permission: permission, loginItem: loginItem, present: presentSettings)
+    /// Built only for a launch that shows it.
+    private lazy var welcome = WelcomeWindowController(
+        hotKeys: hotKeys, permission: permission, firstLaunch: firstLaunch, present: presentSettings)
     /// Built on first use too. The layouts are read from macOS on every fix, less those switched
     /// off in Settings, so a layout added in macOS a moment ago is already one of them.
     private lazy var layoutFix = LayoutFixAction(
@@ -36,6 +40,7 @@ final class AppComposition {
         statusBar: NSStatusBar = .system,
         permission: AccessibilityPermission = AccessibilityPermission(relaunch: { AppRelauncher.relaunch() }),
         loginItem: any LoginItemRegistering = SMAppService.mainApp,
+        firstLaunch: FirstLaunch = FirstLaunch(),
         presentSettings: @escaping (NSWindow) -> Void = { SettingsWindowController.bringToFront($0) },
         offerServices: @escaping (NSObject) -> Void = { AppComposition.offerToServices($0) }
     ) {
@@ -43,6 +48,7 @@ final class AppComposition {
         self.statusBar = StatusBarController(statusBar: statusBar, permission: permission)
         self.permission = permission
         self.loginItem = loginItem
+        self.firstLaunch = firstLaunch
         self.presentSettings = presentSettings
         self.offerServices = offerServices
     }
@@ -62,11 +68,17 @@ final class AppComposition {
             openSettings: { [weak self] in self?.settings.show() }
         )
         // The relaunch that ends a reset: only this new process puts SmartType back in the list.
-        // As in SmartDock, Settings opens too, to show the status next to System Settings.
-        if permission.asksAfterNextLaunch {
-            permission.asksAfterNextLaunch = false
-            Log.permissions.notice("Accessibility: asking again after a reset")
+        // As in SmartDock, a window opens too, to show the status next to System Settings: the
+        // welcome window until the person has closed it, Settings after.
+        let isAfterAReset = permission.asksAfterNextLaunch
+        permission.asksAfterNextLaunch = false
+        if !firstLaunch.isDone {
+            welcome.show()
+        } else if isAfterAReset {
             settings.show()
+        }
+        if isAfterAReset {
+            Log.permissions.notice("Accessibility: asking again after a reset")
             permission.requestAccess()
         }
     }

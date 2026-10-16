@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.1-blue?style=flat-square" alt="Version 0.2.1"/>
+  <img src="https://img.shields.io/badge/version-0.3.0-blue?style=flat-square" alt="Version 0.3.0"/>
   <img src="https://img.shields.io/badge/macOS-14.0%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+"/>
   <img src="https://img.shields.io/badge/Apple%20silicon-only-000000?style=flat-square" alt="Apple silicon only"/>
   <img src="https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.2"/>
@@ -41,7 +41,7 @@ A menu-bar app. Select text anywhere and press a shortcut:
 brew install --cask alexeikaratai/tap/smarttype
 ```
 
-On first launch, choose **Grant Access…** in SmartType's menu. It restarts and opens **System Settings → Privacy & Security → Accessibility** (**Device Control and Data Access** on macOS 27); switch SmartType on there. The app is ad-hoc signed, so macOS drops this permission after every update, and the same menu item restores it.
+On first launch, SmartType opens a welcome window with its shortcuts, your keyboard layouts and your languages. Choose **Grant Access…** there, or in SmartType's menu: it restarts and opens **System Settings → Privacy & Security → Accessibility** (**Device Control and Data Access** on macOS 27); switch SmartType on there. The app is ad-hoc signed, so macOS drops this permission after every update, and the same menu item restores it.
 
 Other ways to install:
 - **Release zip.** Download it from [Releases](https://github.com/alexeikaratai/smarttype/releases), move `SmartType.app` to `/Applications`, and clear the quarantine flag, since the app is not notarized: `xattr -dr com.apple.quarantine /Applications/SmartType.app`.

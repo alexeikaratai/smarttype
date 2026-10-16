@@ -210,6 +210,17 @@
         }
       }
     },
+    "Done" : {
+      "comment" : "Welcome window: closes it for good",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
+          }
+        }
+      }
+    },
     "Fix Layout" : {
       "comment" : "Command: retype the selection in the other keyboard layout",
       "localizations" : {
@@ -485,6 +496,17 @@
         }
       }
     },
+    "Select text in any app and press a shortcut. Settings ▸ Shortcuts changes them." : {
+      "comment" : "Welcome window: how the commands are used",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выделите текст в любом приложении и нажмите сочетание. Поменять сочетания можно в Настройках ▸ Хоткеи."
+          }
+        }
+      }
+    },
     "Settings…" : {
       "comment" : "Status menu item that opens the Settings window",
       "localizations" : {
@@ -723,6 +745,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Версия"
+          }
+        }
+      }
+    },
+    "Welcome to SmartType" : {
+      "comment" : "Welcome window: title",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добро пожаловать в SmartType"
           }
         }
       }

@@ -76,7 +76,7 @@ Tests use **Swift Testing** (`@Suite`, `@Test`, `#expect`) and run in parallel. 
 - Every call that leaves the process is injected with the real thing as the default. That covers synthetic keystrokes, the clipboard, input sources, Accessibility, alerts and translation. Tests pass recorders and never touch the developer's machine.
 - Tests use a private `NSPasteboard(name:)`, never the general one.
 - Wait for the event, never for a fixed time: use `waitUntil` from `TestSupport.swift`.
-- Fakes live in each test target's `Mocks.swift` (`Mocks/` in the App target, one per file), and the `forTest` builders in `TestSupport.swift`.
+- Fakes live in each test target's `Mocks.swift` (`Mocks/` in the App target, one per file), and the `forTest` builders in `TestSupport.swift` and `TestBuilders.swift`.
 
 ## Adding UI text
 

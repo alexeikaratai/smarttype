@@ -23,9 +23,7 @@ struct FixLayoutSection: View {
         } header: {
             Text(AppCommand.fixLayout.title)
         } footer: {
-            Text(footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            SettingsNote(footnote)
         }
     }
 
