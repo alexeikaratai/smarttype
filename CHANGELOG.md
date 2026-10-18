@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The welcome window comes back after Grant Access… restarts SmartType, as it was meant to:
+  0.3.0 took the restart for you closing it, and opened Settings instead. It now goes away for
+  good only when you close it yourself.
+
 ## [0.3.0] — 2026-10-17
 
 ### Changed

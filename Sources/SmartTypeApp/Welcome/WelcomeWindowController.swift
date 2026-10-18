@@ -2,9 +2,9 @@ import AppKit
 import OSLog
 import SwiftUI
 
-/// The welcome window, shown until the person closes it: on the first launch, and again after
-/// the relaunch Grant Access… makes, since quitting closes no window (`FirstLaunch`). Built when
-/// shown and freed when closed, as Settings is.
+/// The welcome window, shown until the person closes it (`FirstLaunch`): on the first launch,
+/// and again after the relaunch Grant Access… makes. Built when shown and freed when closed, as
+/// Settings is.
 final class WelcomeWindowController: NSObject {
     private(set) var window: NSWindow?
     private(set) var accessibility: AccessibilityViewModel?
@@ -44,7 +44,7 @@ final class WelcomeWindowController: NSObject {
 
     /// Done closes the window as its close button does.
     func done() {
-        window?.close()
+        window?.performClose(nil)
     }
 
     private func makeWindow() -> NSWindow {
@@ -74,10 +74,16 @@ extension WelcomeWindowController: NSWindowDelegate {
         layouts?.refresh()
     }
 
-    /// Closed in any way, it is done with: the next launch shows nothing.
-    func windowWillClose(_ notification: Notification) {
+    /// The person closed it: the close button, Esc, ⌘W and Done all go through `performClose`.
+    /// Quitting closes the window too but never asks (measured: `windowWillClose` alone), and
+    /// in 0.3.0 the relaunch Grant Access… makes closed it for good that way (seen in the log).
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
         firstLaunch.isDone = true
         Log.general.notice("Welcome: closed for good")
+        return true
+    }
+
+    func windowWillClose(_ notification: Notification) {
         window = nil
         accessibility = nil
         layouts = nil
