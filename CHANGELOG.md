@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-10-22
+
 ### Changed
 
 - **The menu shows what Fix Layout works between.** It starts with the version and the
