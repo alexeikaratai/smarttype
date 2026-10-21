@@ -55,11 +55,22 @@ package struct LayoutCorrector {
     /// type the same punctuation on different keys cannot (U.S. and Russian – PC "/", where
     /// Ukrainian – PC has none; measured), or a third layout would make it convert.
     private func sourceIDs(of word: String) -> Set<String> {
-        let perCharacter = word.compactMap { layoutIDsByCharacter[$0] }
+        let perCharacter = word.compactMap(layoutsTyping)
         guard let first = perCharacter.first else { return [] }
         let candidates = perCharacter.dropFirst().reduce(first) { $0.intersection($1) }
         guard candidates.count < layouts.count else { return [] }
         return candidates.count == 1 || word.contains(where: \.isLetter) ? candidates : []
+    }
+
+    /// A character no key types whole may be a letter and a combining mark typed on keys of
+    /// their own (Thai's mai tho): then the layouts that type both.
+    private func layoutsTyping(_ character: Character) -> Set<String>? {
+        if let ids = layoutIDsByCharacter[character] {
+            return ids
+        }
+        let perScalar = character.unicodeScalars.compactMap { layoutIDsByCharacter[Character($0)] }
+        guard perScalar.count > 1, perScalar.count == character.unicodeScalars.count else { return nil }
+        return perScalar.dropFirst().reduce(perScalar[0]) { $0.intersection($1) }
     }
 
     /// The layouts that could have typed every word that says something; none when two disagree.
@@ -73,9 +84,10 @@ package struct LayoutCorrector {
     /// layouts that type the same letters, is not one.
     private func wholeSelection(_ tokens: [Token], typedIn sources: Set<String>) -> Correction? {
         let words = tokens.compactMap(\.word)
-        let candidates = converters(from: sources).filter { changesAnything($0, words) }
-        guard let converter = candidates.max(by: { totalPlausibility(tokens, $0) < totalPlausibility(tokens, $1) })
-        else { return nil }
+        let scored = converters(from: sources).filter { changesAnything($0, words) }.map {
+            (converter: $0, plausibility: totalPlausibility(tokens, $0))
+        }
+        guard let converter = scored.max(by: { $0.plausibility < $1.plausibility })?.converter else { return nil }
         let text = tokens.map { token in token.word.map(converter.convert) ?? token.text }.joined()
         return Correction(text: text, targetLayoutID: converter.target.id)
     }
@@ -101,10 +113,11 @@ package struct LayoutCorrector {
         let asTyped = layouts.filter { sources.contains($0.id) }
             .map { detector.plausibility(of: letters(word), as: $0.language) }.max()
         guard let asTyped else { return nil }
-        // A conversion that changes nothing goes into a layout that could have typed the word too,
-        // so it never reads better than the word as typed.
-        let readings = converters(from: sources).map { converter -> Reading in
+        // A conversion that changes nothing is no reading of its own, even into a layout that
+        // could not have typed the word: one that lacks its keys lets them through as they are.
+        let readings = converters(from: sources).compactMap { converter -> Reading? in
             let text = converter.convert(word)
+            guard text != word else { return nil }
             return (text, converter.target.id, detector.plausibility(of: letters(text), as: converter.target.language))
         }
         guard let best = readings.max(by: { $0.plausibility < $1.plausibility }), best.plausibility > asTyped else {

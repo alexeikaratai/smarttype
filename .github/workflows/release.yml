@@ -15,35 +15,22 @@ env:
 
 jobs:
 
-  # ── Stage 1: Test ────────────────────────────────────────
+  # ── Stage 1: CI ──────────────────────────────────────────
 
-  test:
-    name: 🧪 Test
-    runs-on: macos-26
-
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@v7
-
-      - name: 🔧 Select Xcode
-        run: sudo xcode-select -s ${{ env.XCODE_PATH }}
-
-      - name: 📦 Restore SPM cache
-        uses: actions/cache@v6
-        with:
-          path: .build
-          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
-          restore-keys: spm-${{ runner.os }}-
-
-      - name: 🧪 Run tests
-        run: swift test
+  # All of ci.yml on the tagged commit: lint, docs, tests with coverage, the bundle and its
+  # launch on macOS 14 and 15. CI on main ran too, but nothing made the release wait for it:
+  # v0.3.1's ran side by side with the release (measured with `gh run list`).
+  ci:
+    name: 🧪 CI
+    uses: ./.github/workflows/ci.yml
 
   # ── Stage 2: Build ───────────────────────────────────────
 
+  # Built clean, with no cache: a release is never built on top of another run's objects.
   build:
     name: 🔨 Build
     runs-on: macos-26
-    needs: test
+    needs: ci
 
     steps:
       - name: 📥 Checkout
@@ -51,13 +38,6 @@ jobs:
 
       - name: 🔧 Select Xcode
         run: sudo xcode-select -s ${{ env.XCODE_PATH }}
-
-      - name: 📦 Restore SPM cache
-        uses: actions/cache@v6
-        with:
-          path: .build
-          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
-          restore-keys: spm-${{ runner.os }}-
 
       - name: 🏷️ Extract version
         id: version

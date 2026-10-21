@@ -5,8 +5,11 @@ final class RecordingRegistrar: HotKeyRegistering {
     var onPress: ((UInt32) -> Void)?
     var refused: Set<KeyCombo> = []
     private(set) var registered: [UInt32: KeyCombo] = [:]
+    /// Every identifier asked for, refused ones included.
+    private(set) var asked: [KeyCombo: UInt32] = [:]
 
     func register(_ combo: KeyCombo, id: UInt32) -> Bool {
+        asked[combo] = id
         guard !refused.contains(combo) else { return false }
         registered[id] = combo
         return true

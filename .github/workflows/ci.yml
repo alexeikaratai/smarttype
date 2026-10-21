@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [main, dev]
   workflow_dispatch:
+  # release.yml runs all of it on the tagged commit before it builds anything.
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -31,12 +33,15 @@ jobs:
       - name: 🔧 Select Xcode
         run: sudo xcode-select -s ${{ env.XCODE_PATH }}
 
+      # Keyed on the sources and the Xcode too: on the package alone, the key never changed, a
+      # hit is never saved again, and every run built on top of the first run's cache (all
+      # from 2026-10-12, measured). Another Xcode never restores objects built by the old one.
       - name: 📦 Restore SPM cache
         uses: actions/cache@v6
         with:
           path: .build
-          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
-          restore-keys: spm-${{ runner.os }}-
+          key: spm-${{ runner.os }}-${{ env.XCODE_PATH }}-${{ hashFiles('Package.swift', 'Sources/**', 'Tests/**') }}
+          restore-keys: spm-${{ runner.os }}-${{ env.XCODE_PATH }}-
 
       - name: 🔢 Check version consistency
         run: make version-check

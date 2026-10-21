@@ -23,6 +23,13 @@ import Testing
         #expect(detect(text) == expected)
     }
 
+    /// NaturalLanguage tells Chinese by its script: alone, "你好" reads Traditional at 0.80
+    /// (measured), so a person who writes Simplified needs "zh-Hans" as the hint, not "zh".
+    @Test func chineseIsHintedByItsScript() {
+        let simplified = SourceLanguage.detect("你好", preferred: [Locale.Language(identifier: "zh-CN")])
+        #expect(simplified?.script?.identifier == "Hans")
+    }
+
     @Test func textWithoutWordsHasNoLanguage() {
         #expect(detect("123 — 🙂") == nil)
     }

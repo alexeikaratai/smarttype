@@ -6,9 +6,9 @@ import Testing
 @Suite struct PasteboardSnapshotTests {
     /// A private pasteboard per test, never the person's clipboard.
     private func pasteboard(_ test: String = #function) -> NSPasteboard {
-        let pasteboard = NSPasteboard(name: .init("com.smarttype.tests.\(test)"))
-        pasteboard.clearContents()
-        return pasteboard
+        let board = NSPasteboard(name: .init("com.smarttype.tests.\(test)"))
+        board.clearContents()
+        return board
     }
 
     @Test func everyItemInEveryTypeComesBack() throws {

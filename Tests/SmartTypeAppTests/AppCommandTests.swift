@@ -1,3 +1,4 @@
+import AppKit
 import Testing
 
 @testable import SmartTypeApp
@@ -24,6 +25,12 @@ import Testing
     @Test func everyCommandIsStoredUnderItsOwnName() {
         let names = AppCommand.allCases.map(\.storageName)
         #expect(Set(names).count == names.count)
+    }
+
+    /// A symbol name that does not exist draws nothing, and the menu row loses its icon.
+    @Test(arguments: AppCommand.allCases)
+    func everyCommandHasAMenuSymbolThatExists(_ command: AppCommand) {
+        #expect(NSImage(systemSymbolName: command.symbolName, accessibilityDescription: nil) != nil)
     }
 
     @Test func everyCommandHasItsOwnTitle() {

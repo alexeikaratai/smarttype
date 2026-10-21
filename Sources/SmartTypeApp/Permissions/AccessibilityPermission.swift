@@ -6,6 +6,10 @@ import OSLog
 /// app, and Fix Layout to paste the fixed text back.
 /// Every call here leaves the process, so each is a parameter whose default is the real thing.
 struct AccessibilityPermission {
+    private static let tccutil = URL(filePath: "/usr/bin/tccutil")
+    private static let privacyPane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+    private static let asksAfterNextLaunchKey = "com.smarttype.asksForAccessibilityAfterNextLaunch"
+
     /// What to run in Terminal when SmartType could not reset the permission itself.
     let manualResetCommand: String
 
@@ -15,11 +19,8 @@ struct AccessibilityPermission {
     private let promptForTrust: () -> Void
     private let openURL: (URL) -> Void
     private let runTool: (URL, [String]) async -> Int32
-    private let relaunch: () -> Void
-
-    private static let tccutil = URL(filePath: "/usr/bin/tccutil")
-    private static let privacyPane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-    private static let asksAfterNextLaunchKey = "com.smarttype.asksForAccessibilityAfterNextLaunch"
+    /// Whether a new instance was scheduled.
+    private let relaunch: () -> Bool
 
     /// The fallback ID covers a run outside the app bundle, which has none. `relaunch` has no
     /// default: a test that granted access with the real one would quit the test run, so only
@@ -31,7 +32,7 @@ struct AccessibilityPermission {
         promptForTrust: @escaping () -> Void = { AccessibilityPermission.showSystemPrompt() },
         openURL: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
         runTool: @escaping (URL, [String]) async -> Int32 = AccessibilityPermission.exitStatus(of:_:),
-        relaunch: @escaping () -> Void
+        relaunch: @escaping () -> Bool
     ) {
         // `tccutil reset Accessibility` without an ID resets every app on the Mac.
         precondition(!bundleID.isEmpty, "resetting Accessibility needs this app's bundle ID")
@@ -56,6 +57,23 @@ struct AccessibilityPermission {
         return String(
             localized: "Accessibility",
             comment: "The Accessibility permission, named as System Settings names it before macOS 27")
+    }
+
+    /// Runs a tool without blocking the main thread.
+    static func exitStatus(of tool: URL, _ arguments: [String]) async -> Int32 {
+        await withCheckedContinuation { continuation in
+            let process = Process()
+            process.executableURL = tool
+            process.arguments = arguments
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            process.terminationHandler = { continuation.resume(returning: $0.terminationStatus) }
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(returning: -1)
+            }
+        }
     }
 
     var isGranted: Bool { checkTrust() }
@@ -83,7 +101,8 @@ struct AccessibilityPermission {
     /// is closed to apps, so it is always cleared; with no entry that costs a relaunch. Only a
     /// process started after the reset is listed again (measured), so SmartType relaunches and
     /// the next launch asks. When the entry cannot be cleared, this process asks, and the result
-    /// is `false`.
+    /// is `false`. When no new instance can be started, this process opens the list too, so the
+    /// button never does nothing, and the next launch, by hand, still asks.
     @discardableResult
     func grantAccess() async -> Bool {
         let didReset = await reset()
@@ -93,30 +112,15 @@ struct AccessibilityPermission {
             return false
         }
         asksAfterNextLaunch = true
-        relaunch()
+        if !relaunch() {
+            requestAccess()
+        }
         return true
     }
 
     /// Forgets this app's Accessibility decision.
     func reset() async -> Bool {
         await runTool(Self.tccutil, ["reset", "Accessibility", bundleID]) == 0
-    }
-
-    /// Runs a tool without blocking the main thread.
-    static func exitStatus(of tool: URL, _ arguments: [String]) async -> Int32 {
-        await withCheckedContinuation { continuation in
-            let process = Process()
-            process.executableURL = tool
-            process.arguments = arguments
-            process.standardOutput = FileHandle.nullDevice
-            process.standardError = FileHandle.nullDevice
-            process.terminationHandler = { continuation.resume(returning: $0.terminationStatus) }
-            do {
-                try process.run()
-            } catch {
-                continuation.resume(returning: -1)
-            }
-        }
     }
 
     // MARK: - Private

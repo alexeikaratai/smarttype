@@ -10,8 +10,9 @@ final class TranslateAction {
     private enum Selection {
         case text(String)
         case nothingSelected
-        case unreadableClipboard
-        case clipboardBusy
+        /// Fix Layout has the clipboard, and borrowing it would lose the person's own; or
+        /// SmartType may not read it.
+        case refused(ClipboardTransaction.Refusal)
     }
 
     private let makeCard: (String) -> TranslationViewModel
@@ -63,7 +64,6 @@ final class TranslateAction {
         // The panel would be the focused element, and would take the ⌘C meant for the app.
         panel.close()
         guard !isSmartTypeFrontmost() else { return beep() }
-
         isReading = true
         let selection = await readTheSelection()
         isReading = false
@@ -73,10 +73,10 @@ final class TranslateAction {
         case .nothingSelected:
             Log.general.notice("Translate: nothing selected")
             beep()
-        case .unreadableClipboard:
+        case .refused(.mayNotRead):
             Log.general.notice("Translate: the clipboard may not be read")
             _ = explain(.pasteboard)
-        case .clipboardBusy:
+        case .refused(.busy):
             beep()
         }
     }
@@ -90,17 +90,29 @@ final class TranslateAction {
 
     /// The core operation, which both doors share.
     func translate(_ text: String) async {
-        let card = makeCard(text)
-        panel.show(card)
+        let shown = makeCard(text)
+        panel.show(shown)
         let start = ContinuousClock.now
-        await card.translate()
+        await shown.translate()
         panel.fitToCard()
         Log.general.notice(
-            "Translate: \(String(describing: card.state.problem), privacy: .public) after \(Int(start.duration(to: .now) / .milliseconds(1))) ms"
+            "Translate: \(String(describing: shown.state.problem), privacy: .public) after \(Int(start.duration(to: .now) / .milliseconds(1))) ms"
         )
     }
 
     // MARK: - Private
+
+    /// The real card: Apple's engine, and the languages set in Settings ▸ Languages.
+    private static func card(for text: String) -> TranslationViewModel {
+        TranslationViewModel(
+            original: text, translator: FallbackTranslator(engines: [AppleTranslationEngine()]),
+            choices: TranslationChoices(),
+            copy: { text in
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+            },
+            openURL: { NSWorkspace.shared.open($0) })
+    }
 
     /// Accessibility first; ⌘C, with the clipboard borrowed, when the app does not say. An app
     /// that says nothing is selected gets no ⌘C: it would beep a second time, and VS Code would
@@ -115,26 +127,14 @@ final class TranslateAction {
         case nil:
             break
         }
-        // Fix Layout has the clipboard: borrowing it now would lose the person's own.
-        guard !clipboard.isBorrowed else { return .clipboardBusy }
-        guard let copied = await clipboard.run({ await self.clipboard.copySelection() }) else {
-            return .unreadableClipboard
+        do throws(ClipboardTransaction.Refusal) {
+            let copied = try await clipboard.run { await self.clipboard.copySelection() }
+            guard let copied, !copied.allSatisfy(\.isWhitespace) else { return .nothingSelected }
+            Log.general.notice("Translate: the selection copied with ⌘C")
+            return .text(copied)
+        } catch {
+            return .refused(error)
         }
-        guard let text = copied, !text.allSatisfy(\.isWhitespace) else { return .nothingSelected }
-        Log.general.notice("Translate: the selection copied with ⌘C")
-        return .text(text)
-    }
-
-    /// The real card: Apple's engine, and the languages set in Settings ▸ Languages.
-    private static func card(for text: String) -> TranslationViewModel {
-        TranslationViewModel(
-            original: text, translator: FallbackTranslator(engines: [AppleTranslationEngine()]),
-            choices: TranslationChoices(),
-            copy: { text in
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(text, forType: .string)
-            },
-            openURL: { NSWorkspace.shared.open($0) })
     }
 }
 

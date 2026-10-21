@@ -12,7 +12,7 @@ import Testing
             detector: LanguageDetector(scorers: [PhonotacticScorer(), FakeLexicon(known: known)]))
     }
 
-    // MARK: - A selection typed entirely in one layout is converted whole
+    // A selection typed entirely in one layout is converted whole.
 
     @Test(arguments: [
         ("ghbdtn", "привет"),
@@ -20,6 +20,8 @@ import Testing
         ("Ghbdtn? rfr ltkf&", "Привет, как дела?"),
         ("b z yt pyf.", "и я не знаю"),
         ("ghbdtn,\n  vbh", "приветб\n  мир"),
+        ("ghbdtn 2026", "привет 2026"),
+        ("&", "?"),
     ])
     func usTypingIsConvertedWholeAndSwitchesToRussian(_ typed: String, _ meant: String) {
         #expect(corrector().correct(typed) == Correction(text: meant, targetLayoutID: russianWin))
@@ -29,7 +31,26 @@ import Testing
         #expect(corrector().correct("руддщ цщкдв") == Correction(text: "hello world", targetLayoutID: us))
     }
 
-    // MARK: - Mixed text is decided word by word
+    /// A key that types a combining mark joins the letter before it into one character, which no
+    /// single key types: the word is still known to come from its layout, that character alone
+    /// included.
+    @Test(arguments: [("ะ\u{0E49}รห", "this"), ("ะ\u{0E49}", "th")])
+    func aWordWithACombiningMarkIsConverted(_ typed: String, _ meant: String) {
+        let thai = LayoutCorrector(layouts: [.usQwerty, .thaiLike], detector: LanguageDetector(scorers: []))
+        #expect(thai.correct(typed) == Correction(text: meant, targetLayoutID: us))
+    }
+
+    /// A key that types two characters (Arabic lam-alef) is retyped whole.
+    @Test func aKeyThatTypesTwoCharactersIsConverted() {
+        let ligature = KeyboardLayout(
+            id: "test.ligature", language: Language(code: "ar"),
+            output: [KeyStroke(keyCode: 0x0B, isShifted: false): "لا", KeyStroke(keyCode: 0x00, isShifted: false): "ل"])
+        let withLigature = LayoutCorrector(layouts: [.usQwerty, ligature], detector: LanguageDetector(scorers: []))
+
+        #expect(withLigature.correct("لال") == Correction(text: "ba", targetLayoutID: us))
+    }
+
+    // Mixed text is decided word by word.
 
     @Test func onlyTheWordThatReadsBetterConvertedIsFixed() {
         let fixed = corrector(knowing: [.russian: ["привет"]]).correct("Привет, ghbdtn")
@@ -47,7 +68,18 @@ import Testing
         #expect(corrector().correct("Привет, ghbdtn") == nil)
     }
 
-    // MARK: - For the log
+    /// The other layout lacks the Q key, so "q" converts into itself there: that is no fix, and
+    /// the keyboard follows the last word that did change.
+    @Test func aConversionThatChangesNothingDoesNotChooseTheLayout() {
+        var output = KeyboardLayout.russianPC.output
+        output[KeyStroke(keyCode: 0x0C, isShifted: false)] = nil
+        let withoutQ = KeyboardLayout(id: "test.withoutQ", language: .russian, output: output)
+        let detector = LanguageDetector(scorers: [FakeLexicon(known: [.english: ["hello"], .russian: ["q"]])])
+
+        let fixed = LayoutCorrector(layouts: [.usQwerty, withoutQ], detector: detector).correct("руддщ q")
+
+        #expect(fixed == Correction(text: "hello q", targetLayoutID: us))
+    }
 
     /// For the log: which layouts a fix chose between, in the person's order.
     @Test func itNamesTheLayoutsItConvertsBetween() {
@@ -55,7 +87,7 @@ import Testing
         #expect(ids == [KeyboardLayout.russianPC.id, KeyboardLayout.usQwerty.id])
     }
 
-    // MARK: - Nothing to fix
+    // Nothing to fix.
 
     /// "..." is typed by both layouts, on different keys, so neither owns it.
     @Test(arguments: ["", "   ", "123 — 🙂", "2 + 2 = 4", "..."])

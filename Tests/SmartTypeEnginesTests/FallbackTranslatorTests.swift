@@ -19,7 +19,7 @@ import Testing
     /// panel can say why the first was skipped.
     @Test func anEngineThatCannotAnswerIsSkippedWithItsReason() async throws {
         let chain = FallbackTranslator(engines: [
-            FakeEngine(name: "Ollama", answer: .failure(.unavailable)),
+            FakeEngine(name: "Ollama", answer: .failure(TranslationFailure.unavailable)),
             FakeEngine(name: "Apple", answer: .success("Hello")),
         ])
 
@@ -31,8 +31,8 @@ import Testing
 
     @Test func whenNoEngineAnswersEveryReasonIsKept() async {
         let chain = FallbackTranslator(engines: [
-            FakeEngine(name: "Ollama", answer: .failure(.unavailable)),
-            FakeEngine(name: "Apple", answer: .failure(.languagesNotInstalled)),
+            FakeEngine(name: "Ollama", answer: .failure(TranslationFailure.unavailable)),
+            FakeEngine(name: "Apple", answer: .failure(TranslationFailure.languagesNotInstalled)),
         ])
 
         await #expect(
@@ -55,6 +55,18 @@ import Testing
         }
 
         await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(apple.callCount == 0)
+    }
+
+    /// Cancelled while an engine works, which is how it happens: Apple's throws only once it
+    /// has finished. The chain passes it on instead of asking the next engine.
+    @Test func aCancellationFromAnEngineStopsTheChain() async {
+        let apple = FakeEngine(name: "Apple", answer: .success("Hello"))
+        let chain = FallbackTranslator(engines: [
+            FakeEngine(name: "Ollama", answer: .failure(CancellationError())), apple,
+        ])
+
+        await #expect(throws: CancellationError.self) { try await chain.translate("Привет", from: ru, to: en) }
         #expect(apple.callCount == 0)
     }
 }

@@ -14,6 +14,14 @@ nonisolated enum AppCommand: CaseIterable, Sendable {
         }
     }
 
+    /// The SF Symbol in front of the command in the menu.
+    var symbolName: String {
+        switch self {
+        case .fixLayout: "arrow.left.arrow.right"
+        case .translate: "translate"
+        }
+    }
+
     /// Whether this Mac can run the command: translation needs Apple's engine, from macOS 26.
     var isAvailable: Bool {
         switch self {

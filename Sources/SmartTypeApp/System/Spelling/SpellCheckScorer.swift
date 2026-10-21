@@ -16,13 +16,6 @@ struct SpellCheckScorer: WordScoring {
         self.hasDictionary = hasDictionary
     }
 
-    /// A language without a dictionary is never asked: macOS then finds no misspelling in
-    /// anything ("ghbdtn" in "xx" or "zh-Hans", measured), and every word would read as known.
-    func score(_ word: String, as language: Language) -> Plausibility {
-        guard !word.isEmpty, hasDictionary(language.code) else { return .unknown }
-        return check(word, language.code) ? .known : .unknown
-    }
-
     /// `NSSpellChecker` belongs to the main thread, which is why the detector runs there.
     static func isSpelledCorrectly(_ word: String, in language: String) -> Bool {
         let misspelling = NSSpellChecker.shared.checkSpelling(
@@ -34,5 +27,12 @@ struct SpellCheckScorer: WordScoring {
     /// pl, he and ar, and no kk, ka or hy).
     static func hasDictionary(for language: String) -> Bool {
         NSSpellChecker.shared.availableLanguages.contains(language.replacingOccurrences(of: "-", with: "_"))
+    }
+
+    /// A language without a dictionary is never asked: macOS then finds no misspelling in
+    /// anything ("ghbdtn" in "xx" or "zh-Hans", measured), and every word would read as known.
+    func score(_ word: String, as language: Language) -> Plausibility {
+        guard !word.isEmpty, hasDictionary(language.code) else { return .unknown }
+        return check(word, language.code) ? .known : .unknown
     }
 }

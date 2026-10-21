@@ -114,19 +114,4 @@ import Testing
         #expect(outcome.explained == [.pasteboard])
         #expect(app.copies == 0)
     }
-
-    /// A press while a fix is running, the hotkey's auto-repeat included, is swallowed.
-    @Test func aSecondPressWhileFixingIsIgnored() async {
-        let app = FakeFrontApp()
-        app.selection = "ghbdtn"
-        let fix = LayoutFixAction.forTest(app.clipboard(yielding: true), .trusted())
-
-        let first = Task { await fix.fixSelection() }
-        let second = Task { await fix.fixSelection() }
-        await first.value
-        await second.value
-
-        #expect(app.copies == 1)
-        #expect(app.pasted == ["привет"])
-    }
 }

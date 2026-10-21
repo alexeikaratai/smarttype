@@ -45,4 +45,10 @@ import Testing
 
         #expect(LayoutConverter(from: ligature, to: plain).convert("لال") == "ba")
     }
+
+    /// A key that types a combining mark, as Thai's mai tho does, joins the letter before it into
+    /// one character, which no single key types: each is still retyped on its own key.
+    @Test func aCombiningMarkIsRetypedOnItsOwnKey() {
+        #expect(LayoutConverter(from: .thaiLike, to: .usQwerty).convert("ะ\u{0E49}รห") == "this")
+    }
 }

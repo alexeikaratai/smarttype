@@ -15,11 +15,19 @@ package enum SourceLanguage {
         if let (language, confidence) = recognizer.languageHypotheses(withMaximum: 1).first, confidence >= 0.9 {
             return Locale.Language(identifier: language.rawValue)
         }
-        let hinted = Set(preferred.compactMap { $0.languageCode?.identifier })
+        let hinted = Set(preferred.compactMap(hint(for:)))
         recognizer.reset()
         recognizer.languageHints = Dictionary(
             uniqueKeysWithValues: hinted.map { (NLLanguage(rawValue: $0), 1 / Double(hinted.count)) })
         recognizer.processString(text)
         return recognizer.dominantLanguage.map { Locale.Language(identifier: $0.rawValue) }
+    }
+
+    /// NaturalLanguage tells Chinese by its script, "zh-Hans" or "zh-Hant", and every other
+    /// language by its code (measured): a "zh" hint would match nothing.
+    private static func hint(for language: Locale.Language) -> String? {
+        guard let code = language.languageCode?.identifier else { return nil }
+        guard code == "zh", let script = language.script?.identifier else { return code }
+        return "\(code)-\(script)"
     }
 }

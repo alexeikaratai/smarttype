@@ -36,6 +36,23 @@ import Testing
         #expect(codes(choices.languages) == ["ru", "en"])
     }
 
+    /// The welcome window and Settings each keep a model, and both may be open: an edit in one
+    /// never undoes the other's, and coming forward shows it.
+    @Test func anEditInTheOtherWindowIsKept() {
+        let choices = TranslationChoices.forTest(#function)
+        let welcome = settings(choices)
+        let inSettings = settings(choices)
+
+        welcome.add(polish)
+        welcome.pick(source: german)
+        inSettings.makePrimary(Locale.Language(identifier: "ru"))
+        inSettings.refresh()
+
+        #expect(codes(choices.languages) == ["ru", "en", "pl"])
+        #expect(codes(inSettings.languages) == ["ru", "en", "pl"])
+        #expect(inSettings.source?.minimalIdentifier == "de")
+    }
+
     @Test func anAddedLanguageGoesLastAndIsRemembered() {
         let choices = TranslationChoices.forTest(#function)
         let model = settings(choices)

@@ -8,6 +8,8 @@ import Foundation
 final class PermissionRecorder {
     var isTrusted = false
     var exitStatus: Int32 = 0
+    /// Whether a new instance could be scheduled.
+    var canRelaunch = true
     private(set) var prompts = 0
     private(set) var relaunches = 0
     private(set) var openedURLs: [URL] = []
@@ -30,7 +32,10 @@ final class PermissionRecorder {
                 self.commands.append([tool.path] + arguments)
                 return self.exitStatus
             },
-            relaunch: { self.relaunches += 1 }
+            relaunch: {
+                self.relaunches += 1
+                return self.canRelaunch
+            }
         )
     }
 }

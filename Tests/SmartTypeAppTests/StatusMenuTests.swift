@@ -12,26 +12,9 @@ import Testing
 
     private static let defaults = Dictionary(uniqueKeysWithValues: AppCommand.allCases.map { ($0, $0.defaultHotKey) })
 
-    private func filledMenu(
-        shortcuts: [AppCommand: KeyCombo] = Self.defaults,
-        refused: Set<AppCommand> = [],
-        needsAccess: Bool = false,
-        perform: @escaping (AppCommand) -> Void = { _ in },
-        isAvailable: @escaping (AppCommand) -> Bool = { _ in true },
-        grantAccess: @escaping () -> Void = {},
-        openSettings: @escaping () -> Void = {},
-        quit: @escaping () -> Void = {}
-    ) -> NSMenu {
-        let menu = NSMenu()
-        StatusMenu.fill(
-            menu, shortcuts: shortcuts, refusedHotKeys: refused, needsAccess: needsAccess, isAvailable: isAvailable,
-            perform: perform, grantAccess: grantAccess, openSettings: openSettings, quit: quit)
-        return menu
-    }
-
     @Test(arguments: AppCommand.allCases)
     func everyCommandHasAnItemThatShowsItsHotKey(_ command: AppCommand) throws {
-        let item = try #require(filledMenu().items.first { $0.title == command.title })
+        let item = try #require(StatusMenu.forTest().items.first { $0.title == command.title })
         #expect(item.keyEquivalent == command.defaultHotKey.key.menuKeyEquivalent)
         #expect(item.keyEquivalentModifierMask == command.defaultHotKey.modifiers.eventFlags)
     }
@@ -39,7 +22,7 @@ import Testing
     /// The shortcut the person set in Settings, not the default.
     @Test func theMenuShowsTheShortcutThePersonSet() throws {
         let f5 = KeyCombo(key: Key(code: 96), modifiers: [.control, .command])
-        let menu = filledMenu(shortcuts: [.fixLayout: f5, .translate: AppCommand.translate.defaultHotKey])
+        let menu = StatusMenu.forTest(shortcuts: [.fixLayout: f5, .translate: AppCommand.translate.defaultHotKey])
         let item = try #require(menu.items.first { $0.title == AppCommand.fixLayout.title })
 
         #expect(item.keyEquivalent == f5.key.menuKeyEquivalent)
@@ -48,7 +31,7 @@ import Testing
 
     /// A command left without a shortcut is still in the menu, with no keys beside it.
     @Test func aCommandWithoutAShortcutShowsNoKeys() throws {
-        let menu = filledMenu(shortcuts: [.fixLayout: AppCommand.fixLayout.defaultHotKey])
+        let menu = StatusMenu.forTest(shortcuts: [.fixLayout: AppCommand.fixLayout.defaultHotKey])
         let item = try #require(menu.items.first { $0.title == AppCommand.translate.title })
         let submenu = try #require(menu.items.first { $0.title == "Keyboard Shortcuts" }?.submenu)
 
@@ -59,7 +42,7 @@ import Testing
     @Test(arguments: AppCommand.allCases)
     func choosingACommandPerformsThatCommand(_ command: AppCommand) throws {
         var performed: [AppCommand] = []
-        let menu = filledMenu { performed.append($0) }
+        let menu = StatusMenu.forTest(perform: { performed.append($0) })
         let index = try #require(menu.items.firstIndex { $0.title == command.title })
 
         menu.performActionForItem(at: index)
@@ -68,7 +51,7 @@ import Testing
     }
 
     @Test func theHotKeySettingsListEveryBindingAndWhetherMacOSAcceptedIt() throws {
-        let menu = filledMenu(refused: [.translate])
+        let menu = StatusMenu.forTest(refused: [.translate])
         let submenu = try #require(menu.items.first { $0.title == "Keyboard Shortcuts" }?.submenu)
         let lines = submenu.items.map(\.title)
 
@@ -78,34 +61,35 @@ import Testing
 
     /// Before macOS 26 there is no engine: Translate stays in the menu, greyed out, saying why.
     @Test func aCommandThisMacCannotRunIsGreyedOutWithTheReason() throws {
-        let menu = filledMenu(isAvailable: { $0 != .translate })
+        let menu = StatusMenu.forTest(isAvailable: { $0 != .translate })
         let translate = try #require(menu.items.first { $0.title == AppCommand.translate.title })
 
         #expect(translate.action == nil)
         #expect(translate.toolTip == "Needs macOS 26")
     }
 
-    /// While SmartType lacks the permission both commands need, the menu says so first.
+    /// While SmartType lacks the permission both commands need, the menu says so before them.
     @Test func withoutThePermissionTheMenuOffersToGrantItFirst() throws {
         var granted = 0
-        let menu = filledMenu(needsAccess: true, grantAccess: { granted += 1 })
-        let first = try #require(menu.items.first)
+        let menu = StatusMenu.forTest(needsAccess: true, grantAccess: { granted += 1 })
+        let index = try #require(menu.items.firstIndex { $0.title == "Grant Access…" })
 
-        menu.performActionForItem(at: 0)
+        menu.performActionForItem(at: index)
 
-        #expect(first.title == "⚠︎ Grant Access…")
-        #expect(menu.items[1].isSeparatorItem)
+        #expect(menu.items.firstIndex { $0.isEnabled } == index)
+        #expect(menu.items[index - 1].isSeparatorItem)
+        #expect(menu.items[index + 1].isSeparatorItem)
         #expect(granted == 1)
     }
 
     @Test func withThePermissionTheMenuDoesNotMentionIt() {
-        #expect(!filledMenu(needsAccess: false).items.contains { $0.title.hasSuffix("Grant Access…") })
+        #expect(!StatusMenu.forTest(needsAccess: false).items.contains { $0.title.hasSuffix("Grant Access…") })
     }
 
     /// Next to the shortcuts it configures, and on ⌘, as in every Mac app.
     @Test func settingsFollowsTheShortcutsAndAnswersCommandComma() throws {
         var opened = 0
-        let menu = filledMenu(openSettings: { opened += 1 })
+        let menu = StatusMenu.forTest(openSettings: { opened += 1 })
         let index = try #require(menu.items.firstIndex { $0.title == "Settings…" })
         let settings = menu.items[index]
 
@@ -119,7 +103,7 @@ import Testing
 
     @Test func quitIsLastAndAnswersCommandQ() throws {
         var didQuit = false
-        let menu = filledMenu(quit: { didQuit = true })
+        let menu = StatusMenu.forTest(quit: { didQuit = true })
         let quit = try #require(menu.items.last)
 
         menu.performActionForItem(at: menu.items.count - 1)
@@ -131,12 +115,15 @@ import Testing
     }
 
     @Test func refillingDoesNotDuplicateItems() {
-        let menu = filledMenu()
+        let menu = StatusMenu.forTest()
         let count = menu.items.count
 
         StatusMenu.fill(
-            menu, shortcuts: Self.defaults, refusedHotKeys: [], needsAccess: false, perform: { _ in }, grantAccess: {},
-            openSettings: {}, quit: {})
+            menu,
+            with: StatusMenu.Contents(
+                version: "1.2.3", layoutNames: [], shortcuts: Self.defaults, refusedHotKeys: [], needsAccess: false),
+            actions: StatusMenu.Actions(
+                perform: { _ in }, grantAccess: {}, openSettings: {}, openAbout: {}, quit: {}))
 
         #expect(menu.items.count == count)
     }

@@ -12,6 +12,7 @@ final class SettingsWindowController: NSObject {
     private(set) var shortcuts: ShortcutsViewModel?
     private(set) var translation: TranslationSettingsModel?
     private(set) var layouts: LayoutSettingsModel?
+    private(set) var navigation: SettingsNavigation?
 
     private let hotKeys: HotKeyBindings
     private let permission: AccessibilityPermission
@@ -46,17 +47,21 @@ final class SettingsWindowController: NSObject {
         super.init()
     }
 
-    func show() {
-        let window = window ?? makeWindow()
-        self.window = window
-        present(window)
-        Log.general.notice("Settings: shown")
-    }
-
     /// An agent app is not frontmost when its menu is used, so the window has to ask.
     static func bringToFront(_ window: NSWindow) {
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+    }
+
+    /// On `tab` when given; otherwise on the tab it shows, General when it opens.
+    func show(tab: SettingsTab? = nil) {
+        let window = window ?? makeWindow()
+        self.window = window
+        if let tab {
+            navigation?.tab = tab
+        }
+        present(window)
+        Log.general.notice("Settings: shown")
     }
 
     // MARK: - Private
@@ -72,10 +77,11 @@ final class SettingsWindowController: NSObject {
         self.translation = translation
         let layouts = makeLayouts()
         self.layouts = layouts
+        let navigation = SettingsNavigation()
+        self.navigation = navigation
         let content = SettingsView(
             accessibility: accessibility, openAtLogin: openAtLogin, translation: translation, layouts: layouts,
-            shortcuts: shortcuts,
-            info: info, openURL: openURL)
+            shortcuts: shortcuts, navigation: navigation, info: info, openURL: openURL)
         let window = SettingsWindow.make(
             title: String(localized: "SmartType Settings", comment: "Settings window title, read out by VoiceOver"),
             content: NSHostingView(rootView: content))
@@ -88,11 +94,18 @@ final class SettingsWindowController: NSObject {
 
 extension SettingsWindowController: NSWindowDelegate {
     /// Back from System Settings: the person may have just switched SmartType on, in the
-    /// Accessibility list or in Login Items.
+    /// Accessibility list or in Login Items, or added a layout. Or from the welcome window,
+    /// with the languages changed there.
     func windowDidBecomeKey(_ notification: Notification) {
         accessibility?.refresh()
         openAtLogin?.refresh()
         layouts?.refresh()
+        translation?.refresh()
+    }
+
+    /// Gone to another app in the middle of a recording: the hotkeys work there again.
+    func windowDidResignKey(_ notification: Notification) {
+        shortcuts?.stopRecording()
     }
 
     /// A recording under way gives the hotkeys back before the window goes.
@@ -104,5 +117,6 @@ extension SettingsWindowController: NSWindowDelegate {
         shortcuts = nil
         translation = nil
         layouts = nil
+        navigation = nil
     }
 }

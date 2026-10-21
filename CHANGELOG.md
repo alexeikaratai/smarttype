@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The menu shows what Fix Layout works between.** It starts with the version and the
+  layouts, «U.S. ↔ Russian – PC», so you can see at a glance what ⌃⌥⇧L will do, or that it
+  needs a second layout. Every command in it has its icon, and About SmartType opens
+  Settings on About.
+- A release waits for every check CI runs, the launch on macOS 14 and 15 included, and is
+  built from scratch. `make fix` only removes the quarantine flag, leaving the bundle's other
+  attributes and its signature as they are.
+
+### Fixed
+
+- **Dvorak and Turkish F:** ⌃⌥⇧L and ⌃⌥⇧T copy and paste with the keys that type ⌘C and ⌘V
+  in your layout, and ⌃⌥⇧L switches the keyboard just before it pastes, so the paste goes on
+  its key in the layout it lands in. In Dvorak they pressed ⌘J, and in Turkish F the copy
+  pasted your clipboard over the selection.
+- ⌃⌥⇧L with the translation panel still open fixes the text behind it: the panel closes
+  first, where it used to take the copy.
+- Thai and other layouts that type a mark on a key of its own are fixed whole: «ะ้รห»
+  becomes «this», where a letter and its mark used to stay as they were.
+- When the keys are still held a second after the copy, so nothing could be pasted, ⌃⌥⇧L
+  beeps and leaves the keyboard alone, instead of switching it as if the text were fixed. A
+  word whose conversion is itself no longer chooses the layout either.
+- A pair of languages the translation finds not downloaded offers Translation Languages,
+  instead of saying the translation did not work. A short Chinese selection is read in the
+  script you write.
+- The welcome window and Settings, open side by side, no longer undo each other's language
+  changes, and each shows what changed in the other, shortcuts included, when you return to
+  it. A shortcut being recorded ends when you switch to another app, so your shortcuts work
+  there.
+- The welcome window fits a small screen: the page scrolls and Done stays in view.
+- Grant Access… opens the Accessibility list when SmartType cannot restart itself, instead of
+  doing nothing, and SmartType asks again the next time you open it.
+
 ## [0.3.1] — 2026-10-18
 
 ### Fixed

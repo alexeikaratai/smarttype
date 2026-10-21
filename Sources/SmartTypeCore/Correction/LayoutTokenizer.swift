@@ -1,7 +1,7 @@
 /// Splits a selection into words, runs of anything but whitespace with their punctuation
 /// attached, and the whitespace between them, kept exactly as it was.
 enum LayoutTokenizer {
-    struct Token: Equatable, Sendable {
+    struct Token: Sendable {
         let text: String
         let isWord: Bool
 

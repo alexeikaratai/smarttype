@@ -22,6 +22,30 @@ import Translation
         }
     }
 
+    /// What `LanguageAvailability` says of a pair: a supported one not downloaded yet gets the
+    /// panel's button to Translation Languages.
+    @Test func whatAvailabilitySaysOfAPairIsTold() {
+        guard #available(macOS 15, *) else { return }
+        #expect(AppleTranslationEngine.failure(for: .installed) == nil)
+        #expect(AppleTranslationEngine.failure(for: .supported) == .languagesNotInstalled)
+        #expect(AppleTranslationEngine.failure(for: .unsupported) == .unsupportedLanguages)
+    }
+
+    /// What the session throws, read from the SDK: a pair not downloaded or not supported is said
+    /// so, and its cancellation is never a failure.
+    @Test func whatTheSessionThrowsIsTold() throws {
+        guard #available(macOS 26, *) else { return }
+        let told = { (error: any Error) in AppleTranslationEngine.failure(for: error) as? TranslationFailure }
+
+        #expect(told(TranslationError.notInstalled) == .languagesNotInstalled)
+        #expect(told(TranslationError.unsupportedLanguagePairing) == .unsupportedLanguages)
+        #expect(told(TranslationError.internalError) == .failed(TranslationError.internalError.localizedDescription))
+        #expect(AppleTranslationEngine.failure(for: CancellationError()) is CancellationError)
+        // Nothing here cancelled it, so the card must not wait for a translation that never comes.
+        #expect(
+            told(TranslationError.alreadyCancelled) == .failed(TranslationError.alreadyCancelled.localizedDescription))
+    }
+
     /// Below macOS 26 there is no engine to ask, so no pair gets as far as being unsupported.
     private static var failureForAnUnsupportedPair: TranslationFailure {
         guard #available(macOS 26, *) else { return .unavailable }

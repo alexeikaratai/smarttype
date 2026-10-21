@@ -68,4 +68,23 @@ import Testing
         #expect(!installed.isEmpty)
         #expect(installed.values.allSatisfy { !$0.name.isEmpty })
     }
+
+    /// Apps take a ⌘ shortcut by what its key types with ⌘ held (measured with `UCKeyTranslate`):
+    /// Dvorak's C key types ⌘J and Turkish F's ⌘V, while Dvorak – QWERTY ⌘ and Russian – PC
+    /// keep ⌘C and ⌘V on the C and V keys.
+    @Test(arguments: [
+        ("com.apple.keylayout.Dvorak", kVK_ANSI_I, kVK_ANSI_Period),
+        ("com.apple.keylayout.Turkish", kVK_ANSI_V, kVK_ANSI_C),
+        ("com.apple.keylayout.DVORAK-QWERTYCMD", kVK_ANSI_C, kVK_ANSI_V),
+        ("com.apple.keylayout.RussianWin", kVK_ANSI_C, kVK_ANSI_V),
+    ])
+    func copyAndPasteAreOnTheKeysThatTypeThemWithCommand(_ id: String, _ copy: Int, _ paste: Int) {
+        #expect(InputSourceLayouts.commandKey(typing: "c", layoutID: id) == UInt16(copy))
+        #expect(InputSourceLayouts.commandKey(typing: "v", layoutID: id) == UInt16(paste))
+    }
+
+    /// The layout in use when nothing else is named: on U.S. or Russian – PC, the C key.
+    @Test func theLayoutInUseIsReadByDefault() {
+        #expect(InputSourceLayouts.commandKey(typing: "c") != nil)
+    }
 }

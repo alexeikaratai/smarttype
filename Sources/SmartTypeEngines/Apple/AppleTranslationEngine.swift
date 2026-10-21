@@ -20,26 +20,47 @@ package struct AppleTranslationEngine: Translating {
         return await LanguageAvailability().supportedLanguages
     }
 
+    /// Why a pair cannot be translated yet, from what `LanguageAvailability` says of it.
+    @available(macOS 15, *)
+    package static func failure(for status: LanguageAvailability.Status) -> TranslationFailure? {
+        switch status {
+        case .installed: nil
+        case .supported: .languagesNotInstalled
+        case .unsupported: .unsupportedLanguages
+        @unknown default: .unsupportedLanguages
+        }
+    }
+
+    /// What the session threw, as the chain needs it: a cancellation goes on as one, never as a
+    /// failure, and a pair not downloaded keeps the panel's button to Translation Languages.
+    /// Anything else, `alreadyCancelled` from a session nobody here cancelled included, is a
+    /// failure the card shows: a cancellation the card would wait on forever.
+    @available(macOS 26, *)
+    package static func failure(for error: any Error) -> any Error {
+        switch error {
+        case is CancellationError:
+            CancellationError()
+        case TranslationError.notInstalled:
+            TranslationFailure.languagesNotInstalled
+        case TranslationError.unsupportedLanguagePairing, TranslationError.unsupportedSourceLanguage,
+            TranslationError.unsupportedTargetLanguage:
+            TranslationFailure.unsupportedLanguages
+        default:
+            Task.isCancelled ? CancellationError() : TranslationFailure.failed(error.localizedDescription)
+        }
+    }
+
     package func translate(_ text: String, from source: Locale.Language, to target: Locale.Language) async throws
         -> String
     {
         guard #available(macOS 26, *) else { throw TranslationFailure.unavailable }
-        switch await LanguageAvailability().status(from: source, to: target) {
-        case .installed:
-            break
-        case .supported:
-            throw TranslationFailure.languagesNotInstalled
-        case .unsupported:
-            throw TranslationFailure.unsupportedLanguages
-        @unknown default:
-            throw TranslationFailure.unsupportedLanguages
+        if let notReady = Self.failure(for: await LanguageAvailability().status(from: source, to: target)) {
+            throw notReady
         }
         do {
             return try await TranslationSession(installedSource: source, target: target).translate(text).targetText
-        } catch is CancellationError {
-            throw CancellationError()
         } catch {
-            throw TranslationFailure.failed(error.localizedDescription)
+            throw Self.failure(for: error)
         }
     }
 }

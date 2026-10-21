@@ -6,10 +6,10 @@ import os
 /// An engine that answers what it is told and counts how often it was asked.
 final class FakeEngine: Translating {
     let name: String
-    private let answer: Result<String, TranslationFailure>
+    private let answer: Result<String, any Error>
     private let calls = OSAllocatedUnfairLock(initialState: 0)
 
-    init(name: String, answer: Result<String, TranslationFailure>) {
+    init(name: String, answer: Result<String, any Error>) {
         self.name = name
         self.answer = answer
     }

@@ -28,27 +28,27 @@ import Testing
         #expect(Set(registrar.registered.values) == [fix, translate])
     }
 
-    @Test func aRefusedCombinationReportsFalseAndNeverFires() {
+    @Test func aRefusedCombinationReportsFalseAndNeverFires() throws {
         let registrar = RecordingRegistrar()
         registrar.refused = [fix]
         let center = HotKeyCenter(registrar: registrar)
         var fired = false
 
         let isRegistered = center.register(fix) { fired = true }
-        registrar.onPress?(1)
+        registrar.onPress?(try #require(registrar.asked[fix]))
 
         #expect(!isRegistered)
         #expect(!fired)
     }
 
-    @Test func unregisteringForgetsEveryAction() {
+    @Test func unregisteringForgetsEveryAction() throws {
         let registrar = RecordingRegistrar()
         let center = HotKeyCenter(registrar: registrar)
         var fired = false
         center.register(fix) { fired = true }
 
         center.unregisterAll()
-        registrar.onPress?(1)
+        registrar.onPress?(try #require(registrar.asked[fix]))
 
         #expect(registrar.registered.isEmpty)
         #expect(!fired)

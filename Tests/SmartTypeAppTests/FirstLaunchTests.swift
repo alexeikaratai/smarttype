@@ -6,7 +6,7 @@ import Testing
 @Suite struct FirstLaunchTests {
     /// Nobody has closed the welcome window yet, people updating from 0.2 included.
     @Test func theWelcomeIsDueUntilItIsClosed() {
-        #expect(!FirstLaunch.forTest(#function, isDone: false).isDone)
+        #expect(!FirstLaunch(defaults: .forTest(#function, part: "welcome")).isDone)
     }
 
     @Test func closingItIsRemembered() {

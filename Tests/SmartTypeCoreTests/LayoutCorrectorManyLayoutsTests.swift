@@ -33,7 +33,15 @@ import Testing
         #expect(fixed == Correction(text: "show мір", targetLayoutID: ukrainianLike.id))
     }
 
-    // MARK: - Layouts that type the same letters
+    /// "мир" could come from Russian – PC or the Ukrainian-like layout, and Russian knows it:
+    /// a word reads as typed in the best of its layouts, so it stays even though "vbh" is known.
+    @Test func aMixedWordReadsAsTypedInItsBestLayout() {
+        let known: [Language: Set<String>] = [.russian: ["привет", "мир"], .english: ["vbh"]]
+        let fixed = threeLayoutCorrector(knowing: known).correct("ghbdtn мир")
+        #expect(fixed == Correction(text: "привет мир", targetLayoutID: russianWin))
+    }
+
+    // Layouts that type the same letters.
 
     /// Russian – PC and the Ukrainian-like layout type "руддщ" on the same keys, so either could
     /// have typed it, and both read "hello".

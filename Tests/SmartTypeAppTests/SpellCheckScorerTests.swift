@@ -6,10 +6,11 @@ import Testing
 @Suite struct SpellCheckScorerTests {
     @Test func aWordTheDictionaryKnowsIsKnownInThatLanguage() {
         var asked: [String] = []
-        let scorer = SpellCheckScorer(isSpelledCorrectly: { word, language in
-            asked.append("\(language) \(word)")
-            return true
-        })
+        let scorer = SpellCheckScorer(
+            isSpelledCorrectly: { word, language in
+                asked.append("\(language) \(word)")
+                return true
+            }, hasDictionary: { _ in true })
 
         #expect(scorer.score("привет", as: .russian) == .known)
         #expect(asked == ["ru привет"])
@@ -17,7 +18,7 @@ import Testing
 
     /// A misspelling may still be a name the dictionary has never seen, so it rules nothing out.
     @Test func aMisspellingIsOnlyUnknown() {
-        let scorer = SpellCheckScorer(isSpelledCorrectly: { _, _ in false })
+        let scorer = SpellCheckScorer(isSpelledCorrectly: { _, _ in false }, hasDictionary: { _ in true })
         #expect(scorer.score("ghbdtn", as: .english) == .unknown)
     }
 
@@ -25,10 +26,11 @@ import Testing
     /// with no letters ("?!") would read as a known word in every language.
     @Test func anEmptyWordIsNeverKnown() {
         var asked = 0
-        let scorer = SpellCheckScorer(isSpelledCorrectly: { _, _ in
-            asked += 1
-            return true
-        })
+        let scorer = SpellCheckScorer(
+            isSpelledCorrectly: { _, _ in
+                asked += 1
+                return true
+            }, hasDictionary: { _ in true })
 
         #expect(scorer.score("", as: .english) == .unknown)
         #expect(asked == 0)

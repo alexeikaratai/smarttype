@@ -25,11 +25,13 @@ import Testing
 
     @Test(arguments: [(true, "  "), (false, "Привет")])
     func textFromServicesThatCannotBeTranslatedBeeps(_ isAvailable: Bool, _ text: String) async {
+        let test = "\(#function)-\(isAvailable)"
         let panel = PanelController.forTest()
         let outcome = ActionOutcome()
 
         await TranslateAction.forTest(
-            FakeFrontApp().clipboard(), .trusted(), outcome, panel: panel, isAvailable: isAvailable
+            FakeFrontApp(test: test).clipboard(), .trusted(test: test), outcome, panel: panel, isAvailable: isAvailable,
+            test: test
         ).translateText(text)
 
         #expect(outcome.beeps == 1)
@@ -69,18 +71,45 @@ import Testing
     /// would copy the whole line (measured: VS Code answers an empty selection truthfully).
     @Test(arguments: ["", "  \n"])
     func nothingSelectedThroughAccessibilityBeepsOnceAndCopiesNothing(_ answer: String) async {
-        let app = FakeFrontApp()
+        let test = "\(#function)-\(answer.count)"
+        let app = FakeFrontApp(test: test)
         app.selection = "the whole line"
         let panel = PanelController.forTest()
         let outcome = ActionOutcome()
 
         await TranslateAction.forTest(
-            app.clipboard(), .trusted(), outcome, panel: panel, accessibilitySelection: answer
+            app.clipboard(), .trusted(test: test), outcome, panel: panel, accessibilitySelection: answer, test: test
         )
         .translateSelection()
 
         #expect(outcome.beeps == 1)
         #expect(app.copies == 0)
         #expect(!panel.isShown)
+    }
+
+    /// A press while the selection is being read, the hotkey's auto-repeat included, is
+    /// swallowed: no beep for a clipboard the first press still has. With nothing selected the
+    /// read keeps polling, which holds it there.
+    @Test func aSecondPressWhileReadingIsIgnored() async {
+        let app = FakeFrontApp()
+        let gate = Gate()
+        var isHeld = false
+        let clipboard = app.clipboard(holding: { duration in
+            guard duration == .milliseconds(10), !isHeld else { return }
+            isHeld = true
+            await gate.hold()
+        })
+        let outcome = ActionOutcome()
+        let translation = TranslateAction.forTest(clipboard, .trusted(), outcome)
+
+        let reading = Task { await translation.translateSelection() }
+        #expect(await waitUntil { gate.isHolding })
+        await translation.translateSelection()
+        let beepsWhileReading = outcome.beeps
+        gate.open()
+        await reading.value
+
+        #expect(beepsWhileReading == 0)
+        #expect(app.copies == 1)
     }
 }

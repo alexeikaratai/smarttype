@@ -10,11 +10,13 @@ final class LayoutFixAction {
         case fixed
         case nothingSelected
         case nothingToFix
+        case keysHeld
     }
 
     private let makeCorrector: () -> LayoutCorrector
     private let clipboard: ClipboardTransaction
     private let permission: AccessibilityPermission
+    private let panel: PanelController
     private let readSelection: () -> String?
     private let selectLayout: (String) -> Bool
     private let isSmartTypeFrontmost: () -> Bool
@@ -26,6 +28,7 @@ final class LayoutFixAction {
         makeCorrector: @escaping () -> LayoutCorrector,
         clipboard: ClipboardTransaction,
         permission: AccessibilityPermission,
+        panel: PanelController,
         readSelection: @escaping () -> String? = { AXSelectionReader.read() },
         selectLayout: @escaping (String) -> Bool = { InputSourceSwitcher.select($0) },
         isSmartTypeFrontmost: @escaping () -> Bool = {
@@ -37,6 +40,7 @@ final class LayoutFixAction {
         self.makeCorrector = makeCorrector
         self.clipboard = clipboard
         self.permission = permission
+        self.panel = panel
         self.readSelection = readSelection
         self.selectLayout = selectLayout
         self.isSmartTypeFrontmost = isSmartTypeFrontmost
@@ -73,8 +77,6 @@ final class LayoutFixAction {
         guard !isRunning else { return }
         isRunning = true
         defer { isRunning = false }
-        // Translate has the clipboard: borrowing it now would lose the person's own.
-        guard !clipboard.isBorrowed else { return beep() }
         // One layout on leaves nothing to fix between, so no ⌘C either; Settings says why.
         let corrector = makeCorrector()
         guard corrector.canConvert else {
@@ -91,7 +93,9 @@ final class LayoutFixAction {
             }
             return
         }
-        // ⌘C would go to SmartType's own window, not to the text the person meant.
+        // The panel takes the keys while it is up, without SmartType in front: the ⌘C would
+        // go to it. And in SmartType's own window, to that window.
+        panel.close()
         guard !isSmartTypeFrontmost() else { return beep() }
         // An app that says nothing is selected gets no ⌘C: VS Code would copy the whole line and
         // the fix retype it, and an app with nothing to copy beeps a second time. A selection it
@@ -100,24 +104,30 @@ final class LayoutFixAction {
             Log.general.notice("Fix Layout: nothing selected, as Accessibility says")
             return beep()
         }
-
-        let start = ContinuousClock.now
-        switch await clipboard.run({ await self.replaceSelection(since: start) }) {
-        case nil:
-            Log.general.notice("Fix Layout: the clipboard may not be read")
-            _ = explain(.pasteboard)
-        case .nothingSelected?:
-            Log.general.notice("Fix Layout: nothing selected")
-            beep()
-        case .nothingToFix?:
-            Log.general.notice("Fix Layout: nothing to fix")
-            beep()
-        case .fixed?:
-            break  // Logged, and the layout switched, where the text landed.
-        }
+        await replaceSelectionWithTheClipboardBorrowed()
     }
 
     // MARK: - Private
+
+    /// Translate may have the clipboard: borrowing it then would lose the person's own. Every
+    /// way but a fix ends in a beep, a pasteboard SmartType may not read in an explanation.
+    private func replaceSelectionWithTheClipboardBorrowed() async {
+        let start = ContinuousClock.now
+        do throws(ClipboardTransaction.Refusal) {
+            let outcome = try await clipboard.run { await self.replaceSelection(since: start) }
+            // A fix is logged, and the layout switched, where the text landed.
+            guard outcome != .fixed else { return }
+            Log.general.notice("Fix Layout: \(String(describing: outcome), privacy: .public)")
+            beep()
+        } catch {
+            Log.general.notice("Fix Layout: the clipboard was not lent, \(String(describing: error), privacy: .public)")
+            if error == .mayNotRead {
+                _ = explain(.pasteboard)
+            } else {
+                beep()
+            }
+        }
+    }
 
     /// The timings in the log say where a slow fix spent its time; the copy includes waiting
     /// for the hotkey's modifiers to come up.
@@ -125,9 +135,13 @@ final class LayoutFixAction {
         guard let text = await clipboard.copySelection() else { return .nothingSelected }
         let copied = start.duration(to: .now)
         guard let correction = fix(text) else { return .nothingToFix }
-        await clipboard.paste(correction.text)
-        // As the text lands, not after the clipboard comes back.
-        let switched = selectLayout(correction.targetLayoutID)
+        // Right before ⌘V, not after the clipboard comes back: ⌘V then goes on its key in the
+        // layout the app reads it in, which Dvorak and Turkish F put on other keys than U.S.
+        var switched = false
+        let isPasted = await clipboard.paste(correction.text) {
+            switched = self.selectLayout(correction.targetLayoutID)
+        }
+        guard isPasted else { return .keysHeld }
         let pasted = start.duration(to: .now)
         Log.general.notice(
             "Fix Layout: copied after \(Int(copied / .milliseconds(1))) ms, pasted after \(Int(pasted / .milliseconds(1))) ms; \(correction.targetLayoutID, privacy: .public) selected: \(switched)"

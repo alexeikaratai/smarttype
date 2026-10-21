@@ -9,7 +9,7 @@ import Testing
         app.selection = "ghbdtn"
         let clipboard = app.clipboard()
 
-        let copied = await clipboard.run { await clipboard.copySelection() } ?? nil
+        let copied = try? await clipboard.run { await clipboard.copySelection() }
 
         #expect(copied == "ghbdtn")
     }
@@ -21,7 +21,7 @@ import Testing
         app.pasteboard.setString("yesterday's clipboard", forType: .string)
         let clipboard = app.clipboard()
 
-        let copied = await clipboard.run { await clipboard.copySelection() } ?? nil
+        let copied = try? await clipboard.run { await clipboard.copySelection() }
 
         #expect(app.copies == 1)
         #expect(copied == nil)
@@ -40,7 +40,7 @@ import Testing
             return .maskControl
         })
 
-        let copied = await clipboard.run { await clipboard.copySelection() } ?? nil
+        let copied = try? await clipboard.run { await clipboard.copySelection() }
 
         #expect(app.copies == 1)
         #expect(copied == nil)
@@ -53,7 +53,7 @@ import Testing
         app.selectsAnImage = true
         let clipboard = app.clipboard()
 
-        let copied = await clipboard.run { await clipboard.copySelection() } ?? nil
+        let copied = try? await clipboard.run { await clipboard.copySelection() }
 
         #expect(copied == nil)
         #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
@@ -65,7 +65,7 @@ import Testing
         app.selection = "ghbdtn"
         let clipboard = app.clipboard()
 
-        await clipboard.run {
+        try? await clipboard.run {
             _ = await clipboard.copySelection()
             await clipboard.paste("привет")
         }
@@ -85,7 +85,7 @@ import Testing
             }
         })
 
-        await clipboard.run { await clipboard.paste("привет") }
+        _ = try? await clipboard.run { await clipboard.paste("привет") }
 
         #expect(onPasteboardDuringTheWait == ["привет"])
         #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
@@ -98,7 +98,7 @@ import Testing
         app.selection = "ghbdtn"
         let clipboard = app.clipboard()
 
-        await clipboard.run {
+        try? await clipboard.run {
             _ = await clipboard.copySelection()
             await clipboard.paste("привет")
             app.pasteboard.clearContents()
@@ -112,7 +112,7 @@ import Testing
         let app = FakeFrontApp()
         let clipboard = app.clipboard()
 
-        await clipboard.run { await clipboard.paste("привет") }
+        _ = try? await clipboard.run { await clipboard.paste("привет") }
 
         let types = app.typesAtPaste.first ?? []
         #expect(types.contains(.init("org.nspasteboard.TransientType")))
@@ -125,21 +125,22 @@ import Testing
         let before = app.pasteboard.changeCount
         let clipboard = app.clipboard()
 
-        await clipboard.run { _ = await clipboard.copySelection() }
+        try? await clipboard.run { _ = await clipboard.copySelection() }
 
         #expect(app.pasteboard.changeCount == before)
     }
 
-    /// Paste from Other Apps set to Deny: ⌘C would overwrite a clipboard SmartType could not
-    /// put back, so nothing is pressed at all.
-    @Test func aPasteboardSmartTypeMayNotReadIsNotBorrowed() async {
+    /// An app that empties the pasteboard on ⌘C and writes nothing changed it all the same, so
+    /// the person's clipboard is still given back.
+    @Test func aCopyThatOnlyEmptiedThePasteboardIsGivenBack() async {
         let app = FakeFrontApp()
-        app.selection = "ghbdtn"
-        let clipboard = app.clipboard(isDenied: true)
+        app.pasteboard.setString("the person's clipboard", forType: .string)
+        app.copiesNothingButClears = true
+        let clipboard = app.clipboard()
 
-        let borrowed: Void? = await clipboard.run { _ = await clipboard.copySelection() }
+        let copied = try? await clipboard.run { await clipboard.copySelection() }
 
-        #expect(borrowed == nil)
-        #expect(app.copies == 0)
+        #expect(copied == nil)
+        #expect(app.pasteboard.string(forType: .string) == "the person's clipboard")
     }
 }

@@ -18,21 +18,24 @@ import Testing
     @Test func theAppQuitsOnlyOnceTheRelaunchIsScheduled() {
         var steps: [String] = []
 
-        AppRelauncher.relaunch(
+        let isScheduled = AppRelauncher.relaunch(
             bundlePath: "/Applications/SmartType.app", pid: 1, run: { _ in steps.append("schedule") },
             terminate: { steps.append("quit") })
 
+        #expect(isScheduled)
         #expect(steps == ["schedule", "quit"])
     }
 
+    /// The app keeps running and says so, for Grant Access to ask from this process instead.
     @Test func aRelaunchThatCannotBeScheduledKeepsTheAppRunning() {
         struct SpawnFailed: Error {}
         var quit = false
 
-        AppRelauncher.relaunch(
+        let isScheduled = AppRelauncher.relaunch(
             bundlePath: "/Applications/SmartType.app", pid: 1, run: { _ in throw SpawnFailed() },
             terminate: { quit = true })
 
+        #expect(!isScheduled)
         #expect(!quit)
     }
 }

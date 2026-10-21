@@ -11,6 +11,10 @@ struct HotKeyStore {
         self.defaults = defaults
     }
 
+    static func key(for command: AppCommand) -> String {
+        "com.smarttype.shortcut." + command.storageName
+    }
+
     /// `nil` when the person cleared it. A value this version cannot read means the default.
     func shortcut(for command: AppCommand) -> KeyCombo? {
         guard let stored = defaults.object(forKey: Self.key(for: command)) as? [String: Int] else {
@@ -32,9 +36,5 @@ struct HotKeyStore {
 
     func isDefault(_ command: AppCommand) -> Bool {
         defaults.object(forKey: Self.key(for: command)) == nil
-    }
-
-    static func key(for command: AppCommand) -> String {
-        "com.smarttype.shortcut." + command.storageName
     }
 }

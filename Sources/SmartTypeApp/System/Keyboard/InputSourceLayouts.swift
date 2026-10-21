@@ -16,10 +16,8 @@ nonisolated struct InputSourceLayout: Sendable {
 /// What each key types comes from `UCKeyTranslate` with dead keys off, so a dead key types
 /// nothing and is left out. U.S. and Russian – PC keep their built-in tables: U.S. reads the
 /// same, and Russian – PC's Shift+` types Latin "Ë", which its table knows (both measured).
-struct InputSourceLayouts: KeyboardLayoutProviding {
+enum InputSourceLayouts {
     private static let builtIn = Dictionary(uniqueKeysWithValues: BuiltInLayouts().layouts.map { ($0.id, $0) })
-
-    var layouts: [KeyboardLayout] { Self.read().map(\.layout) }
 
     /// The enabled ones, or every installed one. Only layouts a person can select: Kana, Hangul,
     /// Pinyin and the like are typed with through an input method, and a fix could never switch
@@ -36,7 +34,29 @@ struct InputSourceLayouts: KeyboardLayoutProviding {
         return list.compactMap(installed)
     }
 
-    // MARK: - Private
+    /// The key that types `letter` with ⌘ held, in the layout in use or the one named: apps take a
+    /// ⌘ shortcut by what its key types, and Dvorak's C key types ⌘J, Turkish F's ⌘V (measured).
+    /// `nil` when no key does.
+    static func commandKey(typing letter: String, layoutID: String? = nil) -> UInt16? {
+        let source =
+            if let layoutID { installedSource(id: layoutID) } else {
+                TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue()
+            }
+        guard let source, let keys: Data = property(source, kTISPropertyUnicodeKeyLayoutData) else { return nil }
+        let command = UInt32(cmdKey >> 8) & 0xFF
+        return keys.withUnsafeBytes { bytes in
+            guard let layout = bytes.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return nil }
+            let keyboardType = UInt32(LMGetKbdType())
+            return KeyStroke.ansiKeyCodes.first {
+                Self.text(layout, key: $0, modifiers: command, keyboardType: keyboardType) == letter
+            }
+        }
+    }
+
+    private static func installedSource(id: String) -> TISInputSource? {
+        let filter = [kTISPropertyInputSourceID as String: id] as CFDictionary
+        return (TISCreateInputSourceList(filter, true)?.takeRetainedValue() as? [TISInputSource])?.first
+    }
 
     private static func installed(_ source: TISInputSource) -> InputSourceLayout? {
         guard let id: String = property(source, kTISPropertyInputSourceID),

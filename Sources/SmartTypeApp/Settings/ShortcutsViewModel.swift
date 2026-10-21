@@ -70,7 +70,26 @@ import Observation
         endRecording()
     }
 
+    /// The shortcuts as they are now, for a window that shows them while Settings changes them.
+    func refresh() {
+        shortcuts = bindings.shortcuts
+        refused = bindings.refused
+    }
+
     // MARK: - Private
+
+    /// Keys pressed in SmartType's own windows: a local monitor, which needs no permission.
+    private static func watchKeyEvents(_ handler: @escaping (KeyPress) -> Bool) -> () -> Void {
+        let monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
+            let isTaken = MainActor.assumeIsolated { KeyPress(event).map(handler) ?? false }
+            return isTaken ? nil : event
+        }
+        return {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+            }
+        }
+    }
 
     /// Whether the press was taken; a taken one never reaches the window.
     private func handle(_ press: KeyPress) -> Bool {
@@ -105,20 +124,6 @@ import Observation
         recording = nil
         heldModifiers = []
         problem = nil
-        shortcuts = bindings.shortcuts
-        refused = bindings.refused
-    }
-
-    /// Keys pressed in SmartType's own windows: a local monitor, which needs no permission.
-    private static func watchKeyEvents(_ handler: @escaping (KeyPress) -> Bool) -> () -> Void {
-        let monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
-            let isTaken = MainActor.assumeIsolated { KeyPress(event).map(handler) ?? false }
-            return isTaken ? nil : event
-        }
-        return {
-            if let monitor {
-                NSEvent.removeMonitor(monitor)
-            }
-        }
+        refresh()
     }
 }

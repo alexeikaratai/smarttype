@@ -18,9 +18,10 @@ struct LayoutChoices {
         nonmutating set { defaults.set(newValue.sorted(), forKey: Self.switchedOffKey) }
     }
 
-    /// The enabled layouts Fix Layout works between, in macOS's order.
-    func fixedBetween(_ enabled: [KeyboardLayout]) -> [KeyboardLayout] {
+    /// The layouts enabled in macOS that Fix Layout works between, in macOS's order: the fix's
+    /// tables and the names the menu shows both come from here, so the two cannot drift.
+    func switchedOn(_ enabled: [InputSourceLayout] = InputSourceLayouts.read()) -> [InputSourceLayout] {
         let switchedOff = switchedOff
-        return enabled.filter { !switchedOff.contains($0.id) }
+        return enabled.filter { !switchedOff.contains($0.layout.id) }
     }
 }

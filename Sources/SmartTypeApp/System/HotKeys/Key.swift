@@ -7,10 +7,10 @@ import SmartTypeCore
 /// and Space, Return, Tab, the two deletes, the arrows, Home, End, Page Up, Page Down and
 /// F1–F20. Esc is left out: it cancels a recording.
 nonisolated struct Key: Hashable, Sendable {
-    let code: UInt16
-
     static let l = Key(code: UInt16(kVK_ANSI_L))
     static let t = Key(code: UInt16(kVK_ANSI_T))
+
+    let code: UInt16
 
     var isSupported: Bool { Self.names[code] != nil }
 

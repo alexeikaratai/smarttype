@@ -42,7 +42,7 @@ import Testing
         #expect(KeyboardLayout.russianPC.id == "com.apple.keylayout.RussianWin")
     }
 
-    // MARK: - Read from macOS
+    // Read from macOS.
 
     /// U.S. as `UCKeyTranslate` reports it, one text per key, with `change` applied.
     private func measured(_ change: (inout [String], inout [String]) -> Void) -> KeyboardLayout {

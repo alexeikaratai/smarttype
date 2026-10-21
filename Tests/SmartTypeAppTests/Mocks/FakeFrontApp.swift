@@ -12,6 +12,8 @@ final class FakeFrontApp {
     var selection: String?
     /// ⌘C copies an image instead of text, as when a picture is selected.
     var selectsAnImage = false
+    /// ⌘C empties the pasteboard and writes nothing, as an app with nothing to copy may.
+    var copiesNothingButClears = false
     private(set) var copies = 0
     private(set) var pasted: [String] = []
     /// The pasteboard's types at each ⌘V.
@@ -38,7 +40,8 @@ final class FakeFrontApp {
             await holding(duration)
             if yielding { await Task.yield() }
         }
-        let keystrokes = KeystrokeSender(currentModifiers: currentModifiers, post: { self.receive($0) }, pause: pause)
+        let keystrokes = KeystrokeSender(
+            currentModifiers: currentModifiers, keyCode: \.ansiKeyCode, post: { self.receive($0) }, pause: pause)
         return ClipboardTransaction(
             pasteboard: pasteboard, keystrokes: keystrokes, isDenied: { _ in isDenied }, pause: pause)
     }
@@ -49,7 +52,9 @@ final class FakeFrontApp {
         case kVK_ANSI_C:
             copies += 1
             onCopy()
-            if selectsAnImage {
+            if copiesNothingButClears {
+                pasteboard.clearContents()
+            } else if selectsAnImage {
                 pasteboard.clearContents()
                 pasteboard.setData(Data([0x89, 0x50, 0x4E, 0x47]), forType: .png)
             } else if let selection {

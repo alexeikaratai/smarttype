@@ -37,7 +37,7 @@ import Testing
         (.unsupportedLanguages, .unsupported), (.unavailable, .unavailable), (.failed("boom"), .failed),
     ])
     func whyItDidNotTranslateIsShown(_ failure: TranslationFailure, _ problem: TranslationViewModel.Problem) async {
-        let card = model(engine: FakeTranslationEngine(failure: failure))
+        let card = model(engine: FakeTranslationEngine(failure: failure), test: "\(#function)-\(problem)")
 
         await card.translate()
 
@@ -89,7 +89,8 @@ import Testing
     }
 
     /// Long selections would keep the engine busy for many seconds (measured: 1,800
-    /// characters took 13.8 s), so they are refused before it is asked.
+    /// characters took 13.8 s), so they are refused before it is asked. The card names the
+    /// limit, so the two cannot drift apart.
     @Test func textOverTheLimitIsNotSentToTheEngine() async {
         let engine = FakeTranslationEngine()
         let card = model(String(repeating: "а", count: TranslationViewModel.maximumLength + 1), engine: engine)
@@ -98,6 +99,16 @@ import Testing
 
         #expect(card.state == .failed(.tooLong))
         #expect(await engine.callCount == 0)
+        let limit = TranslationViewModel.maximumLength.formatted(.number.locale(Locale(identifier: "en")))
+        #expect(ProblemView(problem: .tooLong, openTranslationLanguages: {}).message.contains(limit))
+    }
+
+    @Test func textAtTheLimitIsTranslated() async {
+        let card = model(String(repeating: "а", count: TranslationViewModel.maximumLength))
+
+        await card.translate()
+
+        #expect(card.state != .failed(.tooLong))
     }
 
     /// The button then reads "Copied" until the panel closes, so the person sees it worked.

@@ -5,7 +5,7 @@ import OSLog
 /// side. The same approach as SmartDock's.
 enum AppRelauncher {
     /// What a relaunch asks the system to run, built apart so a test can read it.
-    struct Plan: Equatable {
+    struct Plan {
         let executable: String
         let arguments: [String]
         let environment: [String: String]
@@ -25,21 +25,24 @@ enum AppRelauncher {
         return Plan(executable: "/bin/sh", arguments: ["-c", script], environment: ["BUNDLE_PATH": bundlePath])
     }
 
-    static func relaunch() {
+    /// Whether the new instance was scheduled; the app keeps running when it was not.
+    static func relaunch() -> Bool {
         relaunch(
             bundlePath: Bundle.main.bundlePath, pid: ProcessInfo.processInfo.processIdentifier,
             run: { try spawn($0) }, terminate: { NSApp.terminate(nil) })
     }
 
     /// `run` and `terminate` are parameters: a test can neither spawn a shell nor quit the runner.
-    static func relaunch(bundlePath: String, pid: Int32, run: (Plan) throws -> Void, terminate: () -> Void) {
+    static func relaunch(bundlePath: String, pid: Int32, run: (Plan) throws -> Void, terminate: () -> Void) -> Bool {
         do {
             try run(plan(bundlePath: bundlePath, pid: pid))
-            Log.general.notice("Relaunch scheduled")
-            terminate()
         } catch {
             Log.general.error("Relaunch could not be scheduled: \(error.localizedDescription, privacy: .public)")
+            return false
         }
+        Log.general.notice("Relaunch scheduled")
+        terminate()
+        return true
     }
 
     private static func spawn(_ plan: Plan) throws {

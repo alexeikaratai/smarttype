@@ -8,16 +8,15 @@ struct SettingsView: View {
     let translation: TranslationSettingsModel
     let layouts: LayoutSettingsModel
     let shortcuts: ShortcutsViewModel
+    @Bindable var navigation: SettingsNavigation
     let info: AppInfo
     let openURL: (URL) -> Void
-
-    @State private var tab = SettingsTab.general
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
                 .padding(.horizontal, 24)
-            Picker(selection: $tab) {
+            Picker(selection: $navigation.tab) {
                 ForEach(SettingsTab.allCases, id: \.self) { tab in
                     Text(tab.title).tag(tab)
                 }
@@ -54,13 +53,21 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var selectedTab: some View {
-        switch tab {
+        switch navigation.tab {
         case .general: GeneralView(accessibility: accessibility, openAtLogin: openAtLogin)
         case .languages: LanguagesView(translation: translation, layouts: layouts)
         case .shortcuts: ShortcutsView(model: shortcuts)
         case .about: AboutView(info: info, openURL: openURL).padding([.horizontal, .bottom], 24)
         }
     }
+}
+
+// MARK: - SettingsNavigation
+
+/// The tab Settings shows, kept by the window controller, so About in the menu can open its tab
+/// in a window already open on another.
+@Observable final class SettingsNavigation {
+    var tab = SettingsTab.general
 }
 
 // MARK: - SettingsTab

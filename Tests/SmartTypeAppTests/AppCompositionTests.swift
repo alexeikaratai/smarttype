@@ -72,13 +72,13 @@ import Testing
     @Test func aStartAfterAResetAsksForAccessAndOpensSettings() {
         let macOS = PermissionRecorder()
         macOS.permission().asksAfterNextLaunch = true
-        var presented = 0
-        let composition = makeComposition(macOS: macOS, presentSettings: { _ in presented += 1 })
+        var presented: [String] = []
+        let composition = makeComposition(macOS: macOS, presentSettings: { presented.append($0.title) })
         defer { composition.stop() }
 
         composition.start()
 
-        #expect(presented == 1)
+        #expect(presented == ["SmartType Settings"])
         #expect(macOS.prompts == 1)
         #expect(macOS.openedURLs.count == 1)
         #expect(!macOS.permission().asksAfterNextLaunch)
@@ -123,7 +123,8 @@ import Testing
     }
 
     /// Recorders for everything that leaves the process, so no test reaches the person's
-    /// permission, Login Items or screen. Only the status item is real, and `stop` removes it.
+    /// permission, Login Items, layouts, languages or screen. Only the status item is real, and
+    /// `stop` removes it.
     private func makeComposition(
         registrar: RecordingRegistrar = RecordingRegistrar(),
         store: HotKeyStore? = nil,
@@ -139,6 +140,8 @@ import Testing
             permission: (macOS ?? PermissionRecorder(test: test)).permission(),
             loginItem: LoginItemRecorder(),
             firstLaunch: firstLaunch ?? .forTest(test),
+            makeTranslation: { .forTest(test) },
+            makeLayouts: { .forTest(test) },
             presentSettings: presentSettings,
             offerServices: offerServices)
     }

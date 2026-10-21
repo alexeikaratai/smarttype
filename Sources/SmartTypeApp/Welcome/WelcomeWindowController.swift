@@ -10,6 +10,7 @@ final class WelcomeWindowController: NSObject {
     private(set) var accessibility: AccessibilityViewModel?
     private(set) var layouts: LayoutSettingsModel?
     private(set) var translation: TranslationSettingsModel?
+    private(set) var shortcuts: ShortcutsViewModel?
 
     private let hotKeys: HotKeyBindings
     private let permission: AccessibilityPermission
@@ -54,8 +55,11 @@ final class WelcomeWindowController: NSObject {
         self.layouts = layouts
         let translation = makeTranslation()
         self.translation = translation
+        let shortcuts = ShortcutsViewModel(bindings: hotKeys)
+        self.shortcuts = shortcuts
         let content = WelcomeView(
-            accessibility: accessibility, layouts: layouts, translation: translation, shortcuts: hotKeys.shortcuts,
+            accessibility: accessibility, layouts: layouts, translation: translation, shortcuts: shortcuts,
+            height: WelcomeView.height(fitting: NSScreen.main?.visibleFrame.height),
             onDone: { [weak self] in self?.done() })
         let window = SettingsWindow.make(
             title: String(localized: "Welcome to SmartType", comment: "Welcome window: title"),
@@ -68,10 +72,13 @@ final class WelcomeWindowController: NSObject {
 // MARK: - NSWindowDelegate
 
 extension WelcomeWindowController: NSWindowDelegate {
-    /// Back from System Settings: access may have been allowed, or a layout added.
+    /// Back from System Settings: access may have been allowed, or a layout added. Or from
+    /// Settings, with a shortcut or the languages changed there.
     func windowDidBecomeKey(_ notification: Notification) {
         accessibility?.refresh()
         layouts?.refresh()
+        translation?.refresh()
+        shortcuts?.refresh()
     }
 
     /// The person closed it: the close button, Esc, ⌘W and Done all go through `performClose`.
@@ -88,5 +95,6 @@ extension WelcomeWindowController: NSWindowDelegate {
         accessibility = nil
         layouts = nil
         translation = nil
+        shortcuts = nil
     }
 }

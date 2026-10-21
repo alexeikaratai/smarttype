@@ -23,6 +23,19 @@ import Testing
         #expect(presented.first === presented.last)
     }
 
+    /// About in the menu opens Settings on About, even with the window already open on another
+    /// tab; plain Settings… leaves it on the tab it shows.
+    @Test func showingOnATabSwitchesToIt() throws {
+        let controller = SettingsWindowController.forTest(#function)
+        controller.show()
+        #expect(controller.navigation?.tab == .general)
+
+        controller.show(tab: .about)
+        controller.show()
+
+        #expect(controller.navigation?.tab == .about)
+    }
+
     /// A closed window costs nothing: it is released and built again on the next show.
     @Test func closingReleasesTheWindowAndTheNextShowBuildsAnother() throws {
         let controller = SettingsWindowController.forTest(#function)
@@ -46,6 +59,8 @@ import Testing
         weak var closedLoginModel: OpenAtLoginViewModel?
         weak var closedTranslationModel: TranslationSettingsModel?
         weak var closedLayoutsModel: LayoutSettingsModel?
+        weak var closedShortcuts: ShortcutsViewModel?
+        weak var closedNavigation: SettingsNavigation?
         try autoreleasepool {
             controller.show()
             closedWindow = controller.window
@@ -53,6 +68,8 @@ import Testing
             closedLoginModel = controller.openAtLogin
             closedTranslationModel = controller.translation
             closedLayoutsModel = controller.layouts
+            closedShortcuts = controller.shortcuts
+            closedNavigation = controller.navigation
             try #require(controller.window).close()
         }
 
@@ -60,7 +77,7 @@ import Testing
         #expect(
             await waitUntil {
                 closedModel == nil && closedLoginModel == nil && closedTranslationModel == nil
-                    && closedLayoutsModel == nil
+                    && closedLayoutsModel == nil && closedShortcuts == nil && closedNavigation == nil
             })
     }
 
@@ -88,23 +105,35 @@ import Testing
         #expect(controller.accessibility?.isGranted == true)
     }
 
-    /// A layout may have been turned on in System Settings ▸ Keyboard meanwhile.
-    @Test func comingForwardReadsTheLayoutsAgain() throws {
+    /// A layout may have been turned on in System Settings ▸ Keyboard meanwhile, and the
+    /// languages changed in the welcome window.
+    @Test func comingForwardReadsTheLayoutsAndLanguagesAgain() throws {
         var enabled = [InputSourceLayout(layout: .usQwerty, name: "U.S.")]
-        let controller = SettingsWindowController(
-            hotKeys: HotKeyBindings(registrar: RecordingRegistrar(), store: .forTest(#function)),
-            permission: PermissionRecorder().permission(), loginItem: LoginItemRecorder(),
-            makeTranslation: { TranslationSettingsModel(choices: .forTest(#function), supportedLanguages: { [] }) },
-            makeLayouts: {
-                LayoutSettingsModel(choices: .forTest(#function), readEnabled: { enabled }, openURL: { _ in })
-            },
-            openURL: { _ in }, openLoginItems: {}, present: { _ in })
+        let controller = SettingsWindowController.forTest(#function, enabled: { enabled })
         controller.show()
 
         enabled.append(InputSourceLayout(layout: .russianPC, name: "Russian – PC"))
+        TranslationChoices.forTest(#function).languages = [Locale.Language(identifier: "pl")]
         controller.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification))
 
         #expect(try #require(controller.layouts).rows.count == 2)
+        #expect(controller.translation?.languages.map(\.minimalIdentifier) == ["pl"])
+    }
+
+    /// The person went to another app in the middle of a recording: the hotkeys come back
+    /// there, instead of staying paused until the window does.
+    @Test func leavingTheWindowWhileRecordingBringsTheHotKeysBack() throws {
+        let registrar = RecordingRegistrar()
+        let hotKeys = HotKeyBindings(registrar: registrar, store: .forTest(#function))
+        hotKeys.apply()
+        let controller = SettingsWindowController.forTest(#function, hotKeys: hotKeys)
+        controller.show()
+        try #require(controller.shortcuts).startRecording(.fixLayout)
+
+        controller.windowDidResignKey(Notification(name: NSWindow.didResignKeyNotification))
+
+        #expect(registrar.registered.count == AppCommand.allCases.count)
+        #expect(controller.shortcuts?.recording == nil)
     }
 
     /// A shortcut was being recorded, so the hotkeys were paused: closing gives them back.

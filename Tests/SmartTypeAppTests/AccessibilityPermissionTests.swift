@@ -83,6 +83,21 @@ import Testing
         #expect(macOS.prompts == 0)
     }
 
+    /// The entry is cleared but no new process can be started: this one asks, so Grant Access
+    /// still opens the list instead of doing nothing.
+    @Test func whenTheRelaunchCannotBeScheduledThisProcessAsks() async {
+        let macOS = PermissionRecorder()
+        macOS.canRelaunch = false
+
+        await macOS.permission().grantAccess()
+
+        #expect(macOS.relaunches == 1)
+        #expect(macOS.prompts == 1)
+        #expect(macOS.openedURLs.count == 1)
+        // This process's request is only checked (measured), so the next launch, by hand, asks.
+        #expect(macOS.permission().asksAfterNextLaunch)
+    }
+
     /// `tccutil` refused: asking from this process still lists a SmartType that has no entry.
     @Test func whenTheEntryCannotBeClearedThisProcessAsks() async {
         let macOS = PermissionRecorder()

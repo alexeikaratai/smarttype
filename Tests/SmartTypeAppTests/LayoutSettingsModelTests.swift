@@ -33,6 +33,19 @@ import Testing
         #expect(try #require(layouts.rows.last).isOn == false)
     }
 
+    /// A layout switched off can always come back, with only two others on too.
+    @Test func aLayoutSwitchedOffComesBackOn() throws {
+        let choices = LayoutChoices.forTest(#function)
+        let layouts = model(choices, enabled: [us, russian, hebrew])
+        layouts.set(hebrew.layout.id, isOn: false)
+        #expect(layouts.canSwitch(try #require(layouts.rows.last)))
+
+        layouts.set(hebrew.layout.id, isOn: true)
+
+        #expect(choices.switchedOff.isEmpty)
+        #expect(layouts.rows.map(\.isOn) == [true, true, true])
+    }
+
     /// Two layouts at least, or there is nothing to fix between: the last two cannot go.
     @Test func theLastTwoLayoutsStayOn() throws {
         let choices = LayoutChoices.forTest(#function)

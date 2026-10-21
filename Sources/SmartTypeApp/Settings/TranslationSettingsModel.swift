@@ -50,24 +50,32 @@ import SmartTypeEngines
     }
 
     /// Moves the language to the top; the one it replaces becomes the next, where text in the
-    /// new primary goes.
+    /// new primary goes. Every edit starts from the stored list: the welcome window and
+    /// Settings each keep a model, and the other may have changed it.
     func makePrimary(_ language: Locale.Language) {
-        save([language] + languages.filter { !$0.isSameLanguage(as: language) })
+        save([language] + choices.languages.filter { !$0.isSameLanguage(as: language) })
     }
 
     /// A language already in the list stays where it is: the list keeps one entry per language.
     func add(_ language: Locale.Language) {
-        save(languages + [language])
+        save(choices.languages + [language])
     }
 
     func remove(_ language: Locale.Language) {
-        guard canRemove else { return }
-        save(languages.filter { !$0.isSameLanguage(as: language) })
+        let stored = choices.languages
+        guard stored.count > 1 else { return }
+        save(stored.filter { !$0.isSameLanguage(as: language) })
     }
 
     func pick(source language: Locale.Language?) {
         choices.source = language
         source = language
+    }
+
+    /// Back to the window, after the other one may have changed the list or the pick.
+    func refresh() {
+        languages = choices.languages
+        source = choices.source
     }
 
     /// Asks Apple's engine once per window. It lists a language once per region ("en-US",
@@ -81,6 +89,10 @@ import SmartTypeEngines
 
     // MARK: - Private
 
+    private static func byName(_ languages: [Locale.Language]) -> [Locale.Language] {
+        languages.sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+    }
+
     private func save(_ list: [Locale.Language]) {
         choices.languages = list
         languages = choices.languages
@@ -88,9 +100,5 @@ import SmartTypeEngines
 
     private func holds(_ language: Locale.Language, in list: [Locale.Language]) -> Bool {
         list.contains { $0.isSameLanguage(as: language) }
-    }
-
-    private static func byName(_ languages: [Locale.Language]) -> [Locale.Language] {
-        languages.sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
     }
 }

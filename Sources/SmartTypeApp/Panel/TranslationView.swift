@@ -5,8 +5,8 @@ import SwiftUI
 /// and selectable, and who translated it. It is as tall as its text, up to a limit past which
 /// the translation scrolls, and the panel takes its size.
 struct TranslationView: View {
-    static let width: CGFloat = 380
     static let cornerRadius: CGFloat = 20
+    private static let width: CGFloat = 380
     private static let resultHeightLimit: CGFloat = 320
 
     let card: TranslationViewModel
@@ -102,7 +102,7 @@ struct TranslationView: View {
 // MARK: - TranslationViewModel.State
 
 extension TranslationViewModel.State {
-    var isTranslated: Bool {
+    fileprivate var isTranslated: Bool {
         if case .translated = self { true } else { false }
     }
 }

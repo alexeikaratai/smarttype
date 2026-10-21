@@ -174,9 +174,10 @@ install: app
 	@echo "✅ Installed to /Applications/$(APP_NAME).app"
 
 fix:
-	@echo "🔧 Fixing Gatekeeper quarantine..."
-	xattr -cr /Applications/$(APP_NAME).app
-	codesign --force --deep --sign - /Applications/$(APP_NAME).app
+	@echo "🔧 Removing Gatekeeper quarantine..."
+	@# Only the quarantine flag: -c would clear attributes Finder and Homebrew keep there too,
+	@# and the bundle is signed already.
+	xattr -dr com.apple.quarantine /Applications/$(APP_NAME).app
 	@echo "✅ Fixed. Run: open /Applications/$(APP_NAME).app"
 
 # === Clean ===
@@ -352,7 +353,8 @@ actions-check:
 	@command -v gh >/dev/null || { echo "❌ gh CLI not installed (brew install gh)"; exit 1; }
 	@printf "%-35s %-12s %-12s %s\n" "ACTION" "CURRENT" "LATEST" "STATUS"
 	@printf "%-35s %-12s %-12s %s\n" "------" "-------" "------" "------"
-	@for line in $$(grep -h "uses: " .github/workflows/*.yml | sed 's/.*uses: //' | sort -u); do \
+	@# A local workflow (`uses: ./…`, release.yml calling ci.yml) has no version to check.
+	@for line in $$(grep -h "uses: " .github/workflows/*.yml | sed 's/.*uses: //' | grep -v '^\./' | sort -u); do \
 		action=$$(echo $$line | cut -d@ -f1); \
 		current=$$(echo $$line | cut -d@ -f2); \
 		latest=$$(gh api repos/$$action/releases/latest --jq .tag_name 2>/dev/null || echo "n/a"); \

@@ -4,6 +4,9 @@ import SwiftUI
 /// Primary, a remove button (disabled for the last one) and Add Language…. In Settings ▸
 /// Languages and in the welcome window.
 struct TranslationLanguagesSection: View {
+    private static let removeTitle = String(
+        localized: "Remove", comment: "Settings ▸ Languages: removes a language from the list")
+
     let translation: TranslationSettingsModel
 
     var body: some View {
@@ -46,14 +49,11 @@ struct TranslationLanguagesSection: View {
             Button {
                 translation.remove(language)
             } label: {
-                Label(
-                    String(localized: "Remove", comment: "Settings ▸ Languages: removes a language from the list"),
-                    systemImage: "minus.circle"
-                )
-                .labelStyle(.iconOnly)
+                Label(Self.removeTitle, systemImage: "minus.circle")
+                    .labelStyle(.iconOnly)
             }
             .buttonStyle(.borderless)
-            .help(String(localized: "Remove", comment: "Settings ▸ Languages: removes a language from the list"))
+            .help(Self.removeTitle)
             .disabled(!translation.canRemove)
         }
     }

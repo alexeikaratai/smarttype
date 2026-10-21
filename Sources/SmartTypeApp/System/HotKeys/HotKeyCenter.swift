@@ -1,14 +1,3 @@
-/// The system side of a global hotkey: watch a combination, report when it is pressed.
-/// A seam, so tests never register real hotkeys with the window server.
-protocol HotKeyRegistering: AnyObject {
-    /// Called with the identifier of a combination that was pressed.
-    var onPress: ((UInt32) -> Void)? { get set }
-    func register(_ combo: KeyCombo, id: UInt32) -> Bool
-    func unregisterAll()
-}
-
-// MARK: - HotKeyCenter
-
 /// Gives each hotkey its own identifier and runs its action when the system reports a press.
 final class HotKeyCenter {
     private let registrar: any HotKeyRegistering
@@ -36,4 +25,15 @@ final class HotKeyCenter {
         registrar.unregisterAll()
         actions.removeAll()
     }
+}
+
+// MARK: - HotKeyRegistering
+
+/// The system side of a global hotkey: watch a combination, report when it is pressed.
+/// A seam, so tests never register real hotkeys with the window server.
+protocol HotKeyRegistering: AnyObject {
+    /// Called with the identifier of a combination that was pressed.
+    var onPress: ((UInt32) -> Void)? { get set }
+    func register(_ combo: KeyCombo, id: UInt32) -> Bool
+    func unregisterAll()
 }

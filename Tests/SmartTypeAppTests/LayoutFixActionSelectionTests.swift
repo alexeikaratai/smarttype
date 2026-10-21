@@ -43,12 +43,14 @@ import Testing
 
     /// With nothing selected VS Code's ⌘C copies the whole line, and the fix would retype it. An
     /// app that says through Accessibility that nothing is selected gets no ⌘C at all.
-    @Test func nothingSelectedThroughAccessibilityBeepsAndCopiesNothing() async {
-        let app = FakeFrontApp()
+    @Test(arguments: ["", "  \n"])
+    func nothingSelectedThroughAccessibilityBeepsAndCopiesNothing(_ answer: String) async {
+        let app = FakeFrontApp(test: "\(#function)-\(answer.count)")
         app.selection = "ghbdtn"
         let outcome = ActionOutcome()
 
-        await LayoutFixAction.forTest(app.clipboard(), .trusted(), outcome, accessibilitySelection: "").fixSelection()
+        await LayoutFixAction.forTest(app.clipboard(), .trusted(), outcome, accessibilitySelection: answer)
+            .fixSelection()
 
         #expect(outcome.beeps == 1)
         #expect(app.copies == 0)

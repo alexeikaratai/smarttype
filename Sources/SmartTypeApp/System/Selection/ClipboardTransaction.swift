@@ -6,17 +6,24 @@ import AppKit
 /// something meanwhile keeps it. A copy that leaves the pasteboard unchanged means nothing was
 /// selected, so whatever was there before is never taken for the selection.
 ///
-/// Both commands share one transaction and check `isBorrowed` first. A command started while
-/// the other waits to give the pasteboard back would snapshot the text SmartType had just
+/// Both commands share one transaction, and it is lent to one at a time. A command started
+/// while the other waits to give the pasteboard back would snapshot the text SmartType had just
 /// pasted, give that back, and leave the person's own clipboard lost (reproduced in a test).
 final class ClipboardTransaction {
-    /// An action has the pasteboard now, from the snapshot until it is given back.
-    private(set) var isBorrowed = false
+    /// Why the pasteboard was not lent.
+    enum Refusal: Error {
+        /// The other command has it.
+        case busy
+        /// SmartType may not read what it would have to put back.
+        case mayNotRead
+    }
 
     private let pasteboard: NSPasteboard
     private let keystrokes: KeystrokeSender
     private let isDenied: (NSPasteboard) -> Bool
     private let pause: (Duration) async -> Void
+    /// An action has the pasteboard now, from the snapshot until it is given back.
+    private var isBorrowed = false
     /// The change count of SmartType's last change; `nil` until it makes one.
     private var ownChangeCount: Int?
     /// ⌘V went out, and the app reads the pasteboard on its own time.
@@ -34,16 +41,17 @@ final class ClipboardTransaction {
         self.pause = pause
     }
 
-    /// Runs `body` with the pasteboard borrowed. `nil` when it cannot be borrowed, because
-    /// SmartType may not read what it would have to put back.
+    /// Runs `body` with the pasteboard borrowed, unless the other command has it or SmartType
+    /// may not read it.
     @discardableResult
-    func run<Result>(_ body: () async -> Result) async -> Result? {
-        guard !isDenied(pasteboard), let snapshot = PasteboardSnapshot(of: pasteboard) else { return nil }
+    func run<Value>(_ body: () async -> Value) async throws(Refusal) -> Value {
+        guard !isBorrowed else { throw .busy }
+        guard !isDenied(pasteboard), let snapshot = PasteboardSnapshot(of: pasteboard) else { throw .mayNotRead }
         isBorrowed = true
         defer { isBorrowed = false }
         ownChangeCount = nil
         didPaste = false
-        let result = await body()
+        let value = await body()
         // A moment for the app to read what was pasted, before it is taken back.
         if didPaste {
             await pause(.milliseconds(250))
@@ -51,7 +59,7 @@ final class ClipboardTransaction {
         if let ownChangeCount, ownChangeCount == pasteboard.changeCount {
             snapshot.restore(to: pasteboard)
         }
-        return result
+        return value
     }
 
     /// ⌘C in the frontmost app. `nil` when nothing was selected, or the selection is not text.
@@ -76,9 +84,13 @@ final class ClipboardTransaction {
         return nil
     }
 
-    /// Hands `text` to the frontmost app with ⌘V, marked so clipboard managers skip it. `run`
-    /// waits for the app to read it before giving the pasteboard back.
-    func paste(_ text: String) async {
+    /// Hands `text` to the frontmost app with ⌘V, marked so clipboard managers skip it.
+    /// `beforePress` runs once the keys are up, right before ⌘V, which then goes on its key in
+    /// whatever layout `beforePress` leaves in use. `run` waits for the app to read the paste
+    /// before giving the pasteboard back. `false` when ⌘V never went out, the keys still held
+    /// after a second.
+    @discardableResult
+    func paste(_ text: String, beforePress: () -> Void = {}) async -> Bool {
         let item = NSPasteboardItem()
         item.setString(text, forType: .string)
         item.setData(Data(), forType: .transient)
@@ -86,11 +98,14 @@ final class ClipboardTransaction {
         pasteboard.clearContents()
         pasteboard.writeObjects([item])
         ownChangeCount = pasteboard.changeCount
-        didPaste = await keystrokes.press(.paste)
+        guard await keystrokes.waitForModifiersReleased() else { return false }
+        beforePress()
+        didPaste = keystrokes.send(.paste)
+        return didPaste
     }
 
     /// Paste from Other Apps set to Deny for SmartType (macOS 15.4 and later).
-    static func deniesReading(_ pasteboard: NSPasteboard) -> Bool {
+    private static func deniesReading(_ pasteboard: NSPasteboard) -> Bool {
         guard #available(macOS 15.4, *) else { return false }
         return pasteboard.accessBehavior == .alwaysDeny
     }

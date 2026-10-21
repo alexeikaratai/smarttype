@@ -24,7 +24,7 @@ import SmartTypeEngines
     /// Longer text would keep the engine busy for many seconds, and it cannot be interrupted
     /// (measured: about 1,800 characters took 13.8 s).
     static let maximumLength = 2_000
-    static let translationLanguages =
+    private static let translationLanguages =
         "x-apple.systempreferences:com.apple.Localization-Settings.extension?translationLanguages"
 
     let original: String

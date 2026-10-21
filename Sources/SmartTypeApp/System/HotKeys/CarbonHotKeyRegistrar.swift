@@ -48,8 +48,6 @@ final class CarbonHotKeyRegistrar: HotKeyRegistering {
         hotKeys.removeAll()
     }
 
-    // MARK: - Private
-
     fileprivate func deliver(_ id: UInt32) {
         onPress?(id)
     }

@@ -41,6 +41,18 @@ import Testing
         #expect(defaults.string(forKey: "com.smarttype.translation.target") == nil)
     }
 
+    /// The keys are frozen: renamed, an update would lose every person's list and pick.
+    @Test func theListAndThePickAreReadFromTheirKeys() {
+        let defaults = UserDefaults.forTest(#function, part: "translation")
+        defaults.set(["pl", "ru"], forKey: "com.smarttype.translation.languages")
+        defaults.set("de", forKey: "com.smarttype.translation.source")
+
+        let choices = TranslationChoices(defaults: defaults, systemLanguages: systemLanguages)
+
+        #expect(codes(choices.languages) == ["pl", "ru"])
+        #expect(choices.source?.minimalIdentifier == "de")
+    }
+
     /// An empty saved list would leave a translation nowhere to go, so it reads as none saved.
     @Test func anEmptySavedListReadsAsTheMacOSLanguages() {
         let defaults = UserDefaults.forTest(#function, part: "translation")

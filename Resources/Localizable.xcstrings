@@ -12,6 +12,17 @@
         }
       }
     },
+    "About SmartType" : {
+      "comment" : "Status menu item that opens Settings ▸ About",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "О программе SmartType"
+          }
+        }
+      }
+    },
     "Accessibility" : {
       "comment" : "The Accessibility permission, named as System Settings names it before macOS 27",
       "localizations" : {
@@ -239,6 +250,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Без него «Исправить раскладку» и «Перевести» не смогут скопировать выделенный текст, а «Исправить раскладку» — вставить исправленный."
+          }
+        }
+      }
+    },
+    "Fix Layout needs a second layout" : {
+      "comment" : "Status menu: under the version, with fewer than two layouts on",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужна вторая раскладка"
           }
         }
       }

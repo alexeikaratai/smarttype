@@ -37,6 +37,14 @@ struct LayoutConverter: Sendable {
             }
         }
         let next = text.index(after: start)
-        return (String(text[start..<next]), next)
+        return (retypedScalarByScalar(String(text[start..<next])), next)
+    }
+
+    /// A character no key types whole can still be several keys' output: a combining mark typed
+    /// on its own key joins the letter before it into one character (Thai's mai tho). Retyped
+    /// scalar by scalar when a key types each of them, and passed through otherwise.
+    private func retypedScalarByScalar(_ character: String) -> String {
+        let typed = character.unicodeScalars.map { table[String($0)] }
+        return typed.contains(nil) ? character : typed.compactMap(\.self).joined()
     }
 }

@@ -5,11 +5,22 @@ import SwiftUI
 /// Fix Layout works between and the languages translations go into. Everything here is in
 /// Settings too, from the same sections.
 struct WelcomeView: View {
+    private static let fullHeight: CGFloat = 640
+    /// Below the content: the title bar (32pt, measured) and a margin above the screen's edge.
+    private static let chrome: CGFloat = 48
+
     let accessibility: AccessibilityViewModel
     let layouts: LayoutSettingsModel
     let translation: TranslationSettingsModel
-    let shortcuts: [AppCommand: KeyCombo]
+    let shortcuts: ShortcutsViewModel
+    let height: CGFloat
     let onDone: () -> Void
+
+    /// As tall as the page, or as the screen allows, where the form scrolls and Done stays on
+    /// the screen.
+    static func height(fitting visibleHeight: CGFloat?) -> CGFloat {
+        min(fullHeight, (visibleHeight ?? fullHeight + chrome) - chrome)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -34,7 +45,7 @@ struct WelcomeView: View {
             .padding(.horizontal, 24)
         }
         .padding(.bottom, 16)
-        .frame(width: 460, height: 640)
+        .frame(width: 460, height: height)
         .task { await translation.loadLanguages() }
     }
 
@@ -78,7 +89,7 @@ struct WelcomeView: View {
         if let requirement = command.requirement, !command.isAvailable {
             return requirement
         }
-        return shortcuts[command]?.displayString
+        return shortcuts.shortcuts[command]?.displayString
             ?? String(localized: "None", comment: "Settings ▸ Shortcuts: a command without a shortcut")
     }
 }

@@ -20,7 +20,8 @@ struct ProblemView: View {
         }
     }
 
-    private var message: String {
+    /// Names the limit `TranslationViewModel.maximumLength` sets, which a test holds it to.
+    var message: String {
         switch problem {
         case .notDownloaded:
             String(

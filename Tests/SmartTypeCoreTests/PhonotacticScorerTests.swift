@@ -18,8 +18,8 @@ import Testing
     }
 
     /// One word per Russian rule: ь, ъ and ы after a vowel; ь after й; ъ before a consonant; ж,
-    /// ш, ч, щ before ы, я, ю; щ before a consonant.
-    @Test(arguments: ["тоь", "заъ", "моы", "мойь", "съм", "жыр", "чяс", "ищт"])
+    /// ш, ч, щ before ы, я, ю; щ before a consonant or ъ.
+    @Test(arguments: ["тоь", "заъ", "моы", "мойь", "съм", "жыр", "чяс", "ищт", "ищъ"])
     func eachRussianRuleRulesAWordOut(_ word: String) {
         #expect(scorer.score(word, as: .russian) == .impossible)
     }
@@ -38,6 +38,14 @@ import Testing
     ])
     func everydayRussianIsNeverRuledOut(_ word: String) {
         #expect(scorer.score(word, as: .russian) != .impossible)
+    }
+
+    /// "z" and "я" are whole words in mixed text, and a one-letter word has no pair to look at.
+    @Test(arguments: [
+        ("a", Language.english, Plausibility.unknown), ("я", .russian, .unknown), ("ы", .russian, .impossible),
+    ])
+    func aOneLetterWordIsReadByItsStart(_ word: String, _ language: Language, _ expected: Plausibility) {
+        #expect(scorer.score(word, as: language) == expected)
     }
 
     @Test func anEmptyWordIsUnknown() {

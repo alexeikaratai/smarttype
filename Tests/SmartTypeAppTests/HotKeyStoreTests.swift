@@ -9,7 +9,7 @@ import Testing
 
     @Test(arguments: AppCommand.allCases)
     func nothingStoredMeansTheDefault(_ command: AppCommand) {
-        #expect(HotKeyStore.forTest(#function).shortcut(for: command) == command.defaultHotKey)
+        #expect(HotKeyStore.forTest("\(#function)-\(command)").shortcut(for: command) == command.defaultHotKey)
     }
 
     /// Kept for the next launch, in the frozen form: `{keyCode, modifiers}`.

@@ -27,16 +27,25 @@ import Testing
         let controller = WelcomeWindowController.forTest(#function, firstLaunch: firstLaunch)
         weak var closedWindow: NSWindow?
         weak var closedLayouts: LayoutSettingsModel?
+        weak var closedAccessibility: AccessibilityViewModel?
+        weak var closedTranslation: TranslationSettingsModel?
+        weak var closedShortcuts: ShortcutsViewModel?
         try autoreleasepool {
             controller.show()
             closedWindow = controller.window
             closedLayouts = controller.layouts
+            closedAccessibility = controller.accessibility
+            closedTranslation = controller.translation
+            closedShortcuts = controller.shortcuts
             try #require(controller.window).performClose(nil)
         }
 
         #expect(firstLaunch.isDone)
         #expect(closedWindow == nil)
-        #expect(await waitUntil { closedLayouts == nil })
+        #expect(
+            await waitUntil {
+                closedLayouts == nil && closedAccessibility == nil && closedTranslation == nil && closedShortcuts == nil
+            })
     }
 
     /// Quitting closes every window without asking (measured: `windowWillClose` comes, not
@@ -88,5 +97,27 @@ import Testing
 
         #expect(controller.accessibility?.isGranted == true)
         #expect(try #require(controller.layouts).rows.count == 2)
+    }
+
+    /// Settings may be open beside it: a shortcut or the languages changed there show here
+    /// once the welcome window comes forward.
+    @Test func comingForwardReadsShortcutsAndLanguagesAgain() throws {
+        let hotKeys = HotKeyBindings(registrar: RecordingRegistrar(), store: .forTest(#function))
+        let controller = WelcomeWindowController.forTest(#function, hotKeys: hotKeys)
+        controller.show()
+
+        hotKeys.set(nil, for: .translate)
+        TranslationChoices.forTest(#function).languages = [Locale.Language(identifier: "pl")]
+        controller.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification))
+
+        #expect(try #require(controller.shortcuts).shortcuts[.translate] == nil)
+        #expect(controller.translation?.languages.map(\.minimalIdentifier) == ["pl"])
+    }
+
+    /// Taller than the screen, the window would hide Done below its edge: the page scrolls
+    /// instead. A 1024×640 screen, the largest text a 13" Mac offers, has 616pt under the menu bar.
+    @Test(arguments: [(nil, 640.0), (1_000, 640), (616, 568)] as [(CGFloat?, CGFloat)])
+    func thePageFitsTheScreen(_ visibleHeight: CGFloat?, _ height: CGFloat) {
+        #expect(WelcomeView.height(fitting: visibleHeight) == height)
     }
 }

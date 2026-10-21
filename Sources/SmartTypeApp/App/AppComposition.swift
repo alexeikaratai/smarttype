@@ -4,7 +4,7 @@ import OSLog
 import ServiceManagement
 import SmartTypeCore
 
-/// Builds the object graph once. The only place that knows the concrete types.
+/// The composition root: builds the object graph once and wires the doors to the actions.
 final class AppComposition {
     private let hotKeys: HotKeyBindings
     private let statusBar: StatusBarController
@@ -13,26 +13,34 @@ final class AppComposition {
     private let firstLaunch: FirstLaunch
     private let presentSettings: (NSWindow) -> Void
     private let offerServices: (NSObject) -> Void
+    /// The languages and the layouts in Settings and the welcome window, built with them.
+    private let makeTranslation: () -> TranslationSettingsModel
+    private let makeLayouts: () -> LayoutSettingsModel
     var refusedHotKeys: Set<AppCommand> { hotKeys.refused }
     /// One for both commands, so neither borrows the clipboard while the other has it.
     private let clipboard = ClipboardTransaction()
+    /// One for both commands too: Fix Layout closes it, or its ⌘C would go to the panel. Its
+    /// window is built only for the first translation.
+    private let panel = PanelController()
     /// Built on first use, so a launch that never opens Settings never builds it.
     private lazy var settings = SettingsWindowController(
-        hotKeys: hotKeys, permission: permission, loginItem: loginItem, present: presentSettings)
+        hotKeys: hotKeys, permission: permission, loginItem: loginItem, makeTranslation: makeTranslation,
+        makeLayouts: makeLayouts, present: presentSettings)
     /// Built only for a launch that shows it.
     private lazy var welcome = WelcomeWindowController(
-        hotKeys: hotKeys, permission: permission, firstLaunch: firstLaunch, present: presentSettings)
+        hotKeys: hotKeys, permission: permission, firstLaunch: firstLaunch, makeTranslation: makeTranslation,
+        makeLayouts: makeLayouts, present: presentSettings)
     /// Built on first use too. The layouts are read from macOS on every fix, less those switched
     /// off in Settings, so a layout added in macOS a moment ago is already one of them.
     private lazy var layoutFix = LayoutFixAction(
         makeCorrector: {
             LayoutCorrector(
-                layouts: LayoutChoices().fixedBetween(InputSourceLayouts().layouts),
+                layouts: LayoutChoices().switchedOn().map(\.layout),
                 detector: LanguageDetector(scorers: [PhonotacticScorer(), SpellCheckScorer()]))
         },
-        clipboard: clipboard, permission: permission)
-    /// Built on first use too: the panel waits for the first translation.
-    private lazy var translation = TranslateAction(clipboard: clipboard, permission: permission)
+        clipboard: clipboard, permission: permission, panel: panel)
+    /// Built on first use too.
+    private lazy var translation = TranslateAction(clipboard: clipboard, permission: permission, panel: panel)
 
     init(
         hotKeyRegistrar: any HotKeyRegistering = CarbonHotKeyRegistrar(),
@@ -41,6 +49,8 @@ final class AppComposition {
         permission: AccessibilityPermission = AccessibilityPermission(relaunch: { AppRelauncher.relaunch() }),
         loginItem: any LoginItemRegistering = SMAppService.mainApp,
         firstLaunch: FirstLaunch = FirstLaunch(),
+        makeTranslation: @escaping () -> TranslationSettingsModel = { TranslationSettingsModel() },
+        makeLayouts: @escaping () -> LayoutSettingsModel = { LayoutSettingsModel() },
         presentSettings: @escaping (NSWindow) -> Void = { SettingsWindowController.bringToFront($0) },
         offerServices: @escaping (NSObject) -> Void = { AppComposition.offerToServices($0) }
     ) {
@@ -49,6 +59,8 @@ final class AppComposition {
         self.permission = permission
         self.loginItem = loginItem
         self.firstLaunch = firstLaunch
+        self.makeTranslation = makeTranslation
+        self.makeLayouts = makeLayouts
         self.presentSettings = presentSettings
         self.offerServices = offerServices
     }
@@ -65,7 +77,8 @@ final class AppComposition {
         statusBar.show(
             hotKeys: hotKeys,
             perform: { [weak self] command in self?.perform(command) },
-            openSettings: { [weak self] in self?.settings.show() }
+            openSettings: { [weak self] in self?.settings.show() },
+            openAbout: { [weak self] in self?.settings.show(tab: .about) }
         )
         // The relaunch that ends a reset: only this new process puts SmartType back in the list.
         // As in SmartDock, a window opens too, to show the status next to System Settings: the
