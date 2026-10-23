@@ -19,6 +19,18 @@ extension KeyboardLayout {
         ])
 }
 
+extension KeyboardLayout {
+    /// Arabic – PC's R, I, G, H, T and B keys (measured): B types lam-alef, «لا», which G and H
+    /// type one after the other.
+    static let arabicPCLike = KeyboardLayout(
+        id: "test.arabic", language: Language(code: "ar"),
+        output: [
+            KeyStroke(keyCode: 0x0F, isShifted: false): "ق", KeyStroke(keyCode: 0x22, isShifted: false): "ه",
+            KeyStroke(keyCode: 0x05, isShifted: false): "ل", KeyStroke(keyCode: 0x04, isShifted: false): "ا",
+            KeyStroke(keyCode: 0x11, isShifted: false): "ف", KeyStroke(keyCode: 0x0B, isShifted: false): "لا",
+        ])
+}
+
 /// Says the same of every word, for an opinion no real scorer gives yet.
 struct FixedOpinion: WordScoring {
     let plausibility: Plausibility

@@ -21,8 +21,8 @@ package struct LayoutCorrector {
         var convertersBySource: [String: [LayoutConverter]] = [:]
         var layoutIDsByCharacter: [Character: Set<String>] = [:]
         for source in layouts {
-            convertersBySource[source.id] = layouts.filter { $0.id != source.id }.map {
-                LayoutConverter(from: source, to: $0)
+            convertersBySource[source.id] = layouts.filter { $0.id != source.id }.flatMap {
+                LayoutConverter.readings(from: source, to: $0)
             }
             for text in source.keyStrokesByText.keys where text.count == 1 {
                 layoutIDsByCharacter[Character(text), default: []].insert(source.id)

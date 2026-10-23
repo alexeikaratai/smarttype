@@ -7,14 +7,28 @@ struct LayoutConverter: Sendable {
     /// longest text first.
     private let longestText: Int
 
-    init(from source: KeyboardLayout, to target: KeyboardLayout) {
+    /// `leavingOut`: texts read key by key instead of by the one key that types them whole.
+    init(from source: KeyboardLayout, to target: KeyboardLayout, leavingOut: Set<String> = []) {
         var table: [String: String] = [:]
-        for (text, stroke) in source.keyStrokesByText {
+        for (text, stroke) in source.keyStrokesByText where !leavingOut.contains(text) {
             table[text] = target.output[stroke]
         }
         self.target = target
         self.table = table
         longestText = table.keys.map(\.count).max() ?? 1
+    }
+
+    /// Some keys type what other keys type one after another: Arabic – PC's B types «لا», which
+    /// G and H type too (11 layouts on macOS 27 have such keys; measured). Such text is read
+    /// both ways, the one key first, so the corrector keeps whichever reads better and the one
+    /// key on a tie.
+    static func readings(from source: KeyboardLayout, to target: KeyboardLayout) -> [LayoutConverter] {
+        let texts = source.keyStrokesByText.keys
+        let singles = Set(texts.filter { $0.count == 1 })
+        let spelledOut = texts.filter { $0.count > 1 && $0.allSatisfy { singles.contains(String($0)) } }
+        let byOneKey = LayoutConverter(from: source, to: target)
+        guard !spelledOut.isEmpty else { return [byOneKey] }
+        return [byOneKey, LayoutConverter(from: source, to: target, leavingOut: Set(spelledOut))]
     }
 
     /// Text that no key of the source layout types passes through unchanged.

@@ -50,6 +50,16 @@ import Testing
         #expect(withLigature.correct("لال") == Correction(text: "ba", targetLayoutID: us))
     }
 
+    /// "right" typed with Arabic – PC on: its G and H read better than lam-alef's B. Without
+    /// evidence either way, the one key stays the reading, as before.
+    @Test(arguments: [(["right"], "right"), ([], "ribt")] as [(Set<String>, String)])
+    func textOneKeyAndSeveralKeysTypeGoesToTheBetterReading(_ known: Set<String>, _ meant: String) {
+        let arabic = LayoutCorrector(
+            layouts: [.usQwerty, .arabicPCLike],
+            detector: LanguageDetector(scorers: [FakeLexicon(known: [.english: known])]))
+        #expect(arabic.correct("قهلاف") == Correction(text: meant, targetLayoutID: us))
+    }
+
     // Mixed text is decided word by word.
 
     @Test func onlyTheWordThatReadsBetterConvertedIsFixed() {

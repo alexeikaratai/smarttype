@@ -46,6 +46,19 @@ import Testing
         #expect(LayoutConverter(from: ligature, to: plain).convert("لال") == "ba")
     }
 
+    /// What one key types and two keys type too is read both ways, the one key first: «قهلاف»
+    /// is "ribt" with Arabic – PC's B and "right" with its G and H.
+    @Test func textOneKeyAndSeveralKeysTypeIsReadBothWays() {
+        let readings = LayoutConverter.readings(from: .arabicPCLike, to: .usQwerty)
+        #expect(readings.map { $0.convert("قهلاف") } == ["ribt", "right"])
+    }
+
+    /// U.S. and Russian – PC have no such key: one reading, as before.
+    @Test func layoutsWithoutSuchKeysHaveOneReading() {
+        #expect(LayoutConverter.readings(from: .usQwerty, to: .russianPC).count == 1)
+        #expect(LayoutConverter.readings(from: .russianPC, to: .usQwerty).count == 1)
+    }
+
     /// A key that types a combining mark, as Thai's mai tho does, joins the letter before it into
     /// one character, which no single key types: each is still retyped on its own key.
     @Test func aCombiningMarkIsRetypedOnItsOwnKey() {

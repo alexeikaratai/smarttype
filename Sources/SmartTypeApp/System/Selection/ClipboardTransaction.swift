@@ -28,6 +28,8 @@ final class ClipboardTransaction {
     private var ownChangeCount: Int?
     /// ⌘V went out, and the app reads the pasteboard on its own time.
     private var didPaste = false
+    /// The change count before a ⌘C nothing answered within half a second.
+    private var unansweredCopy: Int?
 
     init(
         pasteboard: NSPasteboard = .general,
@@ -42,22 +44,25 @@ final class ClipboardTransaction {
     }
 
     /// Runs `body` with the pasteboard borrowed, unless the other command has it or SmartType
-    /// may not read it.
+    /// may not read it. After a ⌘C nothing answered, it returns at once, so the action beeps,
+    /// and stays lent while a late copy may still land.
     @discardableResult
     func run<Value>(_ body: () async -> Value) async throws(Refusal) -> Value {
         guard !isBorrowed else { throw .busy }
         guard !isDenied(pasteboard), let snapshot = PasteboardSnapshot(of: pasteboard) else { throw .mayNotRead }
         isBorrowed = true
-        defer { isBorrowed = false }
         ownChangeCount = nil
         didPaste = false
+        unansweredCopy = nil
         let value = await body()
         // A moment for the app to read what was pasted, before it is taken back.
         if didPaste {
             await pause(.milliseconds(250))
         }
-        if let ownChangeCount, ownChangeCount == pasteboard.changeCount {
-            snapshot.restore(to: pasteboard)
+        if let before = unansweredCopy {
+            Task { await self.giveBack(snapshot, afterALateCopySince: before) }
+        } else {
+            giveBack(snapshot)
         }
         return value
     }
@@ -80,6 +85,8 @@ final class ClipboardTransaction {
         }
         if pasteboard.changeCount != before {
             ownChangeCount = pasteboard.changeCount
+        } else {
+            unansweredCopy = before
         }
         return nil
     }
@@ -104,10 +111,33 @@ final class ClipboardTransaction {
         return didPaste
     }
 
+    // MARK: - Private
+
     /// Paste from Other Apps set to Deny for SmartType (macOS 15.4 and later).
     private static func deniesReading(_ pasteboard: NSPasteboard) -> Bool {
         guard #available(macOS 15.4, *) else { return false }
         return pasteboard.accessBehavior == .alwaysDeny
+    }
+
+    /// Puts the snapshot back while the pasteboard is still SmartType's, and lends it again.
+    private func giveBack(_ snapshot: PasteboardSnapshot) {
+        if let ownChangeCount, ownChangeCount == pasteboard.changeCount {
+            snapshot.restore(to: pasteboard)
+        }
+        isBorrowed = false
+    }
+
+    /// An app that answers ⌘C late, a virtual machine or a remote desktop, would write the
+    /// selection over the clipboard just given back: watched 2 s more, in 50 ms steps, it is
+    /// given back again (2 s is a margin, not measured; decided 2026-10-22).
+    private func giveBack(_ snapshot: PasteboardSnapshot, afterALateCopySince before: Int) async {
+        for _ in 0..<40 where pasteboard.changeCount == before || pasteboard.types?.isEmpty != false {
+            await pause(.milliseconds(50))
+        }
+        if pasteboard.changeCount != before {
+            ownChangeCount = pasteboard.changeCount
+        }
+        giveBack(snapshot)
     }
 }
 

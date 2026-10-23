@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- An app that answers the copy late, a virtual machine or a remote desktop, no longer leaves
+  your selection on the clipboard in place of what you had copied. SmartType still beeps at
+  once that nothing was selected, then watches the clipboard for two more seconds and gives
+  yours back if the late copy lands; ⌃⌥⇧L and ⌃⌥⇧T beep in those two seconds.
+- Layouts where one key types what other keys type one after another are fixed by whichever
+  reads better: «right» typed with Arabic – PC on is no longer turned into «ribt», since its
+  B key types lam-alef, «لا», as G and H do. Arabic – PC and AZERTY, Jawi, Uyghur, Kurdish
+  Sorani, Sinhala, Yiddish, Cherokee, Gurmukhi and Myanmar have such keys.
+
 ## [0.3.2] — 2026-10-22
 
 ### Changed
