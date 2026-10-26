@@ -202,6 +202,7 @@ The README's Settings screenshot shows the version too, so `bump` redraws it wit
 **Never delete `## [Unreleased]`.** `bump` opens the new section directly under it, so whatever accumulated there becomes the release notes. `changelog-check` refuses a release whose notes are empty, and both `make release` and `release.yml` call it. *(SmartDock shipped two releases with empty notes before the check sat on both paths.)*
 
 **Releasing is the user's step:** `make bump V=x.y.z` → fill in the notes → commit → merge `dev` into `main` → tag `vX.Y.Z` on `main` → push the tag. `release.yml` then runs:
+0. 🔢 Version: the tag must name the version the commit's `Makefile` already carries. v0.3.3 was tagged on a commit still at 0.3.2; the build job's own `bump` shipped it right, while the repository kept 0.3.2, its notes under `[Unreleased]` and the build number the release had already used (measured), so a tag without a committed bump now fails here, in seconds.
 1. 🧪 CI: all of `ci.yml` on the tagged commit, so nothing is built before it passes.
 2. 🔨 Build: `make bump`, `changelog-check`, `release-notes`, `make app`, zip.
 3. 🎉 GitHub Release, with the CHANGELOG section as its body.
@@ -223,7 +224,7 @@ The workflow's own `make bump` adds one to the build number again, so a release 
   - Then `version-check` → `docs-check` → `l10n-check` → `lint` → `coverage` → `swift build -c release` → `make app` + `codesign --verify --strict`.
   - Then the bundle is launched on macOS 14 and 15 runners and must stay up for 5 s: nothing else ever starts it below the dev machine's macOS 27.
   - Lint runs before the tests and the build, so a formatting PR fails in seconds.
-- **`release.yml`** (a `v*` tag): the four jobs under Version & Release. The first calls `ci.yml`: CI on `main` runs too, but nothing made the release wait for it, and v0.3.1's release started 2 s after it and ran alongside (measured with `gh run list`). The build job uses no cache, so a release is built clean. Only the release job's token may write; the tap is pushed with its deploy key.
+- **`release.yml`** (a `v*` tag): the jobs under Version & Release. The first, on an Ubuntu runner, checks that the tag names the commit's `VERSION`; the next calls `ci.yml`: CI on `main` runs too, but nothing made the release wait for it, and v0.3.1's release started 2 s after it and ran alongside (measured with `gh run list`). The build job uses no cache, so a release is built clean. Only the release job's token may write; the tap is pushed with its deploy key.
 - **`dependabot.yml`**: monthly grouped Actions bumps. There is no `swift` entry, because there are no SPM dependencies.
 
 Xcode is set through `env.XCODE_PATH` at workflow level, never inline. The runner and `XCODE_PATH` must agree, so check the runner image readme before bumping either. Actions are pinned by major version, and a 0.x one (`webfactory/ssh-agent`) by its full version; `make actions-check` compares them to the latest.

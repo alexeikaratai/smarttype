@@ -15,6 +15,29 @@ env:
 
 jobs:
 
+  # ── Stage 0: Version ─────────────────────────────────────
+
+  # The tagged commit must already carry its version. v0.3.3 was tagged on a commit still at
+  # 0.3.2: the bump in the build job, made here and never committed, shipped it right, while
+  # the repository kept 0.3.2 and its notes under Unreleased (measured). Checked first, in
+  # seconds, before CI runs for minutes.
+  version:
+    name: 🔢 Version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+
+      - name: 🔢 Check that the tag names the commit's version
+        run: |
+          TAGGED="${GITHUB_REF_NAME#v}"
+          COMMITTED=$(sed -n 's/^VERSION *:= *//p' Makefile)
+          if [ "${COMMITTED}" != "${TAGGED}" ]; then
+            echo "::error::Tagged v${TAGGED} on a commit at ${COMMITTED}: run make bump V=${TAGGED}, commit, and tag that commit"
+            exit 1
+          fi
+
   # ── Stage 1: CI ──────────────────────────────────────────
 
   # All of ci.yml on the tagged commit: lint, docs, tests with coverage, the bundle and its
@@ -22,6 +45,7 @@ jobs:
   # v0.3.1's ran side by side with the release (measured with `gh run list`).
   ci:
     name: 🧪 CI
+    needs: version
     uses: ./.github/workflows/ci.yml
 
   # ── Stage 2: Build ───────────────────────────────────────
