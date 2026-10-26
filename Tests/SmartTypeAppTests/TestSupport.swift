@@ -1,4 +1,5 @@
 import AppKit
+import Testing
 
 @testable import SmartTypeApp
 @testable import SmartTypeCore
@@ -13,6 +14,18 @@ func waitUntil(timeout: Duration = .seconds(2), _ condition: () -> Bool) async -
         try? await Task.sleep(for: .milliseconds(5))
     }
     return true
+}
+
+/// Expects each object freed, naming the one still alive. SwiftUI lets a closed window's view
+/// models go on a later turn of the run loop, which a busy runner put past 2 s (CI, and here
+/// with every core busy), so each gets 10 s; one that something keeps still fails.
+func expectFreed(
+    _ objects: [(name: String, isFreed: () -> Bool)], sourceLocation: SourceLocation = #_sourceLocation
+) async {
+    for object in objects {
+        let isFreed = await waitUntil(timeout: .seconds(10), object.isFreed)
+        #expect(isFreed, "\(object.name) is still alive", sourceLocation: sourceLocation)
+    }
 }
 
 extension UserDefaults {

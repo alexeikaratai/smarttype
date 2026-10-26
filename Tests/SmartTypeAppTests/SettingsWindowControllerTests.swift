@@ -74,11 +74,12 @@ import Testing
         }
 
         #expect(closedWindow == nil)
-        #expect(
-            await waitUntil {
-                closedModel == nil && closedLoginModel == nil && closedTranslationModel == nil
-                    && closedLayoutsModel == nil && closedShortcuts == nil && closedNavigation == nil
-            })
+        await expectFreed([
+            ("AccessibilityViewModel", { closedModel == nil }), ("OpenAtLoginViewModel", { closedLoginModel == nil }),
+            ("TranslationSettingsModel", { closedTranslationModel == nil }),
+            ("LayoutSettingsModel", { closedLayoutsModel == nil }), ("ShortcutsViewModel", { closedShortcuts == nil }),
+            ("SettingsNavigation", { closedNavigation == nil }),
+        ])
     }
 
     /// Open at Login follows too: it may have been changed in System Settings' Login Items.

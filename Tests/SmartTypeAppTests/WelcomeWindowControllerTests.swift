@@ -42,10 +42,12 @@ import Testing
 
         #expect(firstLaunch.isDone)
         #expect(closedWindow == nil)
-        #expect(
-            await waitUntil {
-                closedLayouts == nil && closedAccessibility == nil && closedTranslation == nil && closedShortcuts == nil
-            })
+        await expectFreed([
+            ("LayoutSettingsModel", { closedLayouts == nil }),
+            ("AccessibilityViewModel", { closedAccessibility == nil }),
+            ("TranslationSettingsModel", { closedTranslation == nil }),
+            ("ShortcutsViewModel", { closedShortcuts == nil }),
+        ])
     }
 
     /// Quitting closes every window without asking (measured: `windowWillClose` comes, not
