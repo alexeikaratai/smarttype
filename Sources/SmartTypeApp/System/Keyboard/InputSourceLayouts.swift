@@ -21,8 +21,8 @@ enum InputSourceLayouts {
 
     /// The enabled ones, or every installed one. Only layouts a person can select: Kana, Hangul,
     /// Pinyin and the like are typed with through an input method, and a fix could never switch
-    /// to them (28 of 264 on macOS 27, measured). The one ID macOS lists twice is among them, so
-    /// each layout comes once, which a test pins.
+    /// to them (28 of 264 on macOS 27, measured). The IDs macOS lists twice, the Wubihua layouts,
+    /// are among them, so each layout comes once, which a test pins.
     static func read(includingDisabled: Bool = false) -> [InputSourceLayout] {
         let filter =
             [

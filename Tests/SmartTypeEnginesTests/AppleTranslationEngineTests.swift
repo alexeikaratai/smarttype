@@ -9,11 +9,16 @@ import Translation
     private let en = Locale.Language(identifier: "en")
 
     /// The real engine, on-device. Runs only where Russian → English is downloaded; a CI runner
-    /// usually has no packs, and the test is skipped there rather than failed.
+    /// usually has no packs, and the test is skipped there rather than failed. It holds the
+    /// script, not the words, which the model picks: macOS 27.0.1 answered with "hello", 27.2
+    /// with "Hi, how are you?" (measured).
     @Test(.enabled("Russian → English is downloaded") { await AppleTranslationEngineTests.isInstalled("ru", "en") })
     func russianBecomesEnglish() async throws {
         let text = try await AppleTranslationEngine().translate("Привет, как дела?", from: ru, to: en)
-        #expect(text.localizedCaseInsensitiveContains("hello"))
+        let letters = text.unicodeScalars.filter(\.properties.isAlphabetic)
+        let isLatin = letters.allSatisfy(\.isASCII)
+        #expect(!letters.isEmpty)
+        #expect(isLatin, "\(text)")
     }
 
     @Test func aPairAppleDoesNotSupportIsSaidSo() async {

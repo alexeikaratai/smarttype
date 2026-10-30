@@ -57,8 +57,8 @@ import Testing
         #expect(installed["com.apple.keylayout.PinyinKeyboard"] == nil)
     }
 
-    /// macOS lists one ID twice (`TraditionalWubihuaKeyboard`, measured); Settings shows a row per
-    /// ID, so each is read once.
+    /// macOS lists `TraditionalWubihuaKeyboard` twice, and from 27.2 `WubihuaKeyboard` too
+    /// (measured); Settings shows a row per ID, so each is read once.
     @Test func everyLayoutIsReadOnce() {
         let ids = InputSourceLayouts.read(includingDisabled: true).map(\.layout.id)
         #expect(Set(ids).count == ids.count)
