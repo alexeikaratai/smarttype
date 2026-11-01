@@ -41,7 +41,7 @@ jobs:
   # ── Stage 1: CI ──────────────────────────────────────────
 
   # All of ci.yml on the tagged commit: lint, docs, tests with coverage, the bundle and its
-  # launch on macOS 14 and 15. CI on main ran too, but nothing made the release wait for it:
+  # launch on macOS 15 and 26. CI on main ran too, but nothing made the release wait for it:
   # v0.3.1's ran side by side with the release (measured with `gh run list`).
   ci:
     name: 🧪 CI

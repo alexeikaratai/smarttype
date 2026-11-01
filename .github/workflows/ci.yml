@@ -113,7 +113,10 @@ jobs:
   # SmartType promises macOS 14 (LSMinimumSystemVersion), is built with macOS 26's SDK, and is
   # developed on 27, so nothing else ever starts it on an older macOS. A framework or symbol
   # missing there stops it before its first line runs; still alive after 5 s, it got through
-  # launch into its run loop. Drop 14 when GitHub retires that runner (deprecated in 2026).
+  # launch into its run loop. GitHub keeps the two latest macOS runners and retires 14 on
+  # 2026-11-02 (actions/runner-images#13518), so 14 itself is held only by the compiler's
+  # availability checks and `make app`'s weak-link check. 26 is where translation and the
+  # windows' glass begin.
   launch:
     name: 🚀 Launch on macOS ${{ matrix.macos }}
     needs: test
@@ -121,7 +124,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        macos: [14, 15]
+        macos: [15, 26]
 
     steps:
       - name: ⬇️ Download the bundle
