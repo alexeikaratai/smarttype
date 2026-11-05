@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] — 2026-11-05
+
 ### Added
 
 - After an update, SmartType tells you when macOS has turned its permission off. Every release

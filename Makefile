@@ -5,7 +5,7 @@
 # === Config ===
 APP_NAME     := SmartType
 BUNDLE_ID    := com.smarttype.app
-VERSION      := 0.3.3
+VERSION      := 0.3.4
 BUILD_DIR    := .build/release
 APP_DIR      := build/$(APP_NAME).app
 CONTENTS     := $(APP_DIR)/Contents
