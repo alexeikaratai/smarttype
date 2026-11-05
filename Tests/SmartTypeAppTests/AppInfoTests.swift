@@ -9,6 +9,11 @@ import Testing
         #expect(line == "Version 0.1.0 (1)")
     }
 
+    /// 0.3.2 and 0.3.3 both shipped as build 9, so the build alone does not tell them apart.
+    @Test func aReleaseIsNamedByItsVersionAndItsBuild() {
+        #expect(AppInfo(version: "0.3.3", build: "9").release == "0.3.3 (9)")
+    }
+
     @Test func aBundleWithoutVersionsSaysSoInsteadOfFailing() throws {
         #expect(try versionLine(info: [:]) == "Version ? (?)")
     }

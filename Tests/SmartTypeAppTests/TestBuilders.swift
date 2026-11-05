@@ -4,8 +4,34 @@ import AppKit
 @testable import SmartTypeCore
 @testable import SmartTypeEngines
 
-// The `forTest` builders: an action, the panel, Settings or the welcome window put together with
-// recorders for everything that leaves the process.
+// The `forTest` builders: the composition, an action, the panel, Settings or the welcome window
+// put together with recorders for everything that leaves the process.
+
+extension AppComposition {
+    /// Nothing reaches the person's permission, Login Items, layouts, languages or screen. Only
+    /// the status item is real, and `stop` removes it.
+    static func forTest(
+        _ test: String,
+        registrar: RecordingRegistrar = RecordingRegistrar(),
+        store: HotKeyStore? = nil,
+        macOS: PermissionRecorder? = nil,
+        firstLaunch: FirstLaunch? = nil,
+        presentSettings: @escaping (NSWindow) -> Void = { _ in },
+        offerServices: @escaping (NSObject) -> Void = { _ in },
+        file: String = #fileID
+    ) -> AppComposition {
+        AppComposition(
+            hotKeyRegistrar: registrar,
+            hotKeyStore: store ?? .forTest(test, file: file),
+            permission: (macOS ?? PermissionRecorder(test: test, file: file)).permission(),
+            loginItem: LoginItemRecorder(),
+            firstLaunch: firstLaunch ?? .forTest(test, file: file),
+            makeTranslation: { .forTest(test, file: file) },
+            makeLayouts: { .forTest(test, file: file) },
+            presentSettings: presentSettings,
+            offerServices: offerServices)
+    }
+}
 
 extension WelcomeWindowController {
     /// Recorders for everything that leaves the process, and nothing put on the screen.

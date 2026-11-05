@@ -320,17 +320,6 @@
         }
       }
     },
-    "Grant Access… restarts SmartType and opens the list in System Settings: switch SmartType on there. An entry an update left behind is cleared on the way." : {
-      "comment" : "Settings ▸ General: what Grant Access does",
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "«Разрешить доступ…» перезапускает SmartType и открывает список в Системных настройках: включите там SmartType. Запись, оставшаяся после обновления, по пути удаляется."
-          }
-        }
-      }
-    },
     "Hold ⌃, or ⌘ together with ⌥." : {
       "comment" : "Settings ▸ Shortcuts: refused modifiers",
       "localizations" : {
@@ -811,6 +800,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS не дал это изменить. Попробуйте ещё раз или включите SmartType в объектах входа в Системных настройках."
+          }
+        }
+      }
+    },
+    "macOS turns it off with every update of SmartType, even if System Settings still shows it on. Grant Access… clears that entry, restarts SmartType and opens the list: switch SmartType on there." : {
+      "comment" : "Settings ▸ General: that every update turns it off, and what Grant Access does",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS выключает его при каждом обновлении SmartType, даже если в Системных настройках он ещё выглядит включённым. «Разрешить доступ…» удаляет эту запись, перезапускает SmartType и открывает список: включите там SmartType."
           }
         }
       }

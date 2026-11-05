@@ -82,12 +82,15 @@ final class AppComposition {
         )
         // The relaunch that ends a reset: only this new process puts SmartType back in the list.
         // As in SmartDock, a window opens too, to show the status next to System Settings: the
-        // welcome window until the person has closed it, Settings after.
+        // welcome window until the person has closed it, Settings after. So does the first
+        // launch after an update that took the permission, with Grant Access, which clears the
+        // entry the old release left switched on.
         let isAfterAReset = permission.asksAfterNextLaunch
         permission.asksAfterNextLaunch = false
+        let isAfterAnUpdate = permission.wasTakenByAnUpdate()
         if !firstLaunch.isDone {
             welcome.show()
-        } else if isAfterAReset {
+        } else if isAfterAReset || isAfterAnUpdate {
             settings.show()
         }
         if isAfterAReset {

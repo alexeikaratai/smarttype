@@ -82,6 +82,15 @@ extension PermissionRecorder {
         macOS.isTrusted = true
         return macOS
     }
+
+    /// What an update leaves: 0.3.4 had the permission, and 0.3.5 runs without it.
+    static func afterAnUpdateThatTookIt(test: String = #function, file: String = #fileID) -> PermissionRecorder {
+        let macOS = trusted(test: test, file: file)
+        _ = macOS.permission().isGranted
+        macOS.release = "0.3.5 (13)"
+        macOS.isTrusted = false
+        return macOS
+    }
 }
 
 // The view models Settings and the welcome window are built from, on private defaults.

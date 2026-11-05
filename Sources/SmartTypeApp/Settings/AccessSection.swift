@@ -63,8 +63,8 @@ struct AccessSection: View {
                 SettingsNote(
                     String(
                         localized:
-                            "Grant Access… restarts SmartType and opens the list in System Settings: switch SmartType on there. An entry an update left behind is cleared on the way.",
-                        comment: "Settings ▸ General: what Grant Access does"))
+                            "macOS turns it off with every update of SmartType, even if System Settings still shows it on. Grant Access… clears that entry, restarts SmartType and opens the list: switch SmartType on there.",
+                        comment: "Settings ▸ General: that every update turns it off, and what Grant Access does"))
             }
         }
     }

@@ -15,6 +15,7 @@ struct AccessibilityPermission {
 
     private let bundleID: String
     private let defaults: UserDefaults
+    private let grantedRelease: GrantedRelease
     private let checkTrust: () -> Bool
     private let promptForTrust: () -> Void
     private let openURL: (URL) -> Void
@@ -27,6 +28,7 @@ struct AccessibilityPermission {
     /// the composition root passes it.
     init(
         bundleID: String = Bundle.main.bundleIdentifier ?? "com.smarttype.app",
+        release: String = AppInfo().release,
         defaults: UserDefaults = .standard,
         checkTrust: @escaping () -> Bool = { AXIsProcessTrusted() },
         promptForTrust: @escaping () -> Void = { AccessibilityPermission.showSystemPrompt() },
@@ -38,6 +40,7 @@ struct AccessibilityPermission {
         precondition(!bundleID.isEmpty, "resetting Accessibility needs this app's bundle ID")
         self.bundleID = bundleID
         self.defaults = defaults
+        grantedRelease = GrantedRelease(defaults: defaults, current: release)
         self.checkTrust = checkTrust
         self.promptForTrust = promptForTrust
         self.openURL = openURL
@@ -76,7 +79,23 @@ struct AccessibilityPermission {
         }
     }
 
-    var isGranted: Bool { checkTrust() }
+    /// Every check goes through here, the menu's, the hotkeys' and Settings', so a yes is
+    /// remembered with this release for the first launch of the next one.
+    var isGranted: Bool {
+        let isTrusted = checkTrust()
+        if isTrusted {
+            grantedRelease.remember()
+        }
+        return isTrusted
+    }
+
+    /// Whether an update took the permission: this release has not got it, an earlier one had.
+    /// Told once, at launch.
+    func wasTakenByAnUpdate() -> Bool {
+        guard !isGranted, let earlier = grantedRelease.takeEarlier() else { return false }
+        Log.permissions.notice("Accessibility: taken by the update from \(earlier, privacy: .public)")
+        return true
+    }
 
     /// After a reset macOS lists SmartType again only for a process started later (measured
     /// in tccd's log: the same process's request is checked, not registered). So the request

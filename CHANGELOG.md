@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- After an update, SmartType tells you when macOS has turned its permission off. Every release
+  is signed anew, so macOS drops the permission while System Settings still shows SmartType
+  switched on, and until now you found out only when a shortcut showed an alert. The first
+  launch after such an update opens Settings with Grant Access…, once. This starts with the
+  update after 0.3.4: 0.3.3 kept no record of the permission.
+
 ## [0.3.3] — 2026-10-23
 
 ### Fixed

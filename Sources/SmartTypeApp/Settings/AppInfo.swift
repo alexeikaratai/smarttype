@@ -25,8 +25,12 @@ struct AppInfo {
         self.build = build
     }
 
+    /// "0.3.4 (11)": 0.3.2 and 0.3.3 both shipped as build 9, so the build alone does not tell
+    /// two releases apart.
+    var release: String { "\(version) (\(build))" }
+
     /// "Version 0.1.0 (1)".
     var versionLine: String {
-        String(localized: "Version", comment: "Settings ▸ About, before the version number") + " \(version) (\(build))"
+        String(localized: "Version", comment: "Settings ▸ About, before the version number") + " " + release
     }
 }

@@ -7,6 +7,8 @@ import Foundation
 /// TCC, and the test run never quits.
 final class PermissionRecorder {
     var isTrusted = false
+    /// The release running; another one stands for an update.
+    var release = "0.3.4 (11)"
     var exitStatus: Int32 = 0
     /// Whether a new instance could be scheduled.
     var canRelaunch = true
@@ -24,6 +26,7 @@ final class PermissionRecorder {
     func permission(bundleID: String = "com.smarttype.app") -> AccessibilityPermission {
         AccessibilityPermission(
             bundleID: bundleID,
+            release: release,
             defaults: defaults,
             checkTrust: { self.isTrusted },
             promptForTrust: { self.prompts += 1 },

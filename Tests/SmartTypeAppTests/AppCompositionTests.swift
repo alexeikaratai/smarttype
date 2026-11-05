@@ -10,7 +10,7 @@ import Testing
 
     @Test func startingRegistersTheDefaultHotKeyOfEveryCommand() {
         let registrar = RecordingRegistrar()
-        let composition = makeComposition(registrar: registrar)
+        let composition = AppComposition.forTest(#function, registrar: registrar)
         defer { composition.stop() }
 
         composition.start()
@@ -26,7 +26,7 @@ import Testing
         store.set(controlOptionK, for: .fixLayout)
         store.set(nil, for: .translate)
         let registrar = RecordingRegistrar()
-        let composition = makeComposition(registrar: registrar, store: store)
+        let composition = AppComposition.forTest(#function, registrar: registrar, store: store)
         defer { composition.stop() }
 
         composition.start()
@@ -34,72 +34,10 @@ import Testing
         #expect(Array(registrar.registered.values) == [controlOptionK])
     }
 
-    /// The first launch, for people updating from 0.2 too: the welcome window, and no prompt
-    /// nobody asked for.
-    @Test func theFirstStartShowsTheWelcome() {
-        let macOS = PermissionRecorder()
-        var presented: [String] = []
-        let composition = makeComposition(
-            macOS: macOS, firstLaunch: .forTest(#function, isDone: false),
-            presentSettings: { presented.append($0.title) })
-        defer { composition.stop() }
-
-        composition.start()
-
-        #expect(presented == ["Welcome to SmartType"])
-        #expect(macOS.prompts == 0)
-    }
-
-    /// Grant Access… in the welcome window relaunched SmartType before the window was closed: it
-    /// comes back, with the status, instead of Settings.
-    @Test func aStartAfterAResetBringsTheWelcomeBackUntilItIsClosed() {
-        let macOS = PermissionRecorder()
-        macOS.permission().asksAfterNextLaunch = true
-        var presented: [String] = []
-        let composition = makeComposition(
-            macOS: macOS, firstLaunch: .forTest(#function, isDone: false),
-            presentSettings: { presented.append($0.title) })
-        defer { composition.stop() }
-
-        composition.start()
-
-        #expect(presented == ["Welcome to SmartType"])
-        #expect(macOS.prompts == 1)
-    }
-
-    /// The relaunch after a reset lands here: only a new process puts SmartType back in the
-    /// list. As in SmartDock, Settings opens next to System Settings, to show the status.
-    @Test func aStartAfterAResetAsksForAccessAndOpensSettings() {
-        let macOS = PermissionRecorder()
-        macOS.permission().asksAfterNextLaunch = true
-        var presented: [String] = []
-        let composition = makeComposition(macOS: macOS, presentSettings: { presented.append($0.title) })
-        defer { composition.stop() }
-
-        composition.start()
-
-        #expect(presented == ["SmartType Settings"])
-        #expect(macOS.prompts == 1)
-        #expect(macOS.openedURLs.count == 1)
-        #expect(!macOS.permission().asksAfterNextLaunch)
-    }
-
-    @Test func anOrdinaryStartAsksNothing() {
-        let macOS = PermissionRecorder()
-        var presented = 0
-        let composition = makeComposition(macOS: macOS, presentSettings: { _ in presented += 1 })
-        defer { composition.stop() }
-
-        composition.start()
-
-        #expect(macOS.prompts == 0)
-        #expect(presented == 0)
-    }
-
     @Test func aHotKeyMacOSRefusesIsReported() {
         let registrar = RecordingRegistrar()
         registrar.refused = [AppCommand.translate.defaultHotKey]
-        let composition = makeComposition(registrar: registrar)
+        let composition = AppComposition.forTest(#function, registrar: registrar)
         defer { composition.stop() }
 
         composition.start()
@@ -111,7 +49,7 @@ import Testing
     /// provider that macOS asks by the names in Info.plist.
     @Test func startingOffersTheServices() throws {
         var offered: [NSObject] = []
-        let composition = makeComposition(offerServices: { offered.append($0) })
+        let composition = AppComposition.forTest(#function, offerServices: { offered.append($0) })
         defer { composition.stop() }
 
         composition.start()
@@ -120,29 +58,5 @@ import Testing
         #expect(offered.count == 1)
         #expect(provider.responds(to: NSSelectorFromString("fixLayout:userData:error:")))
         #expect(provider.responds(to: NSSelectorFromString("translate:userData:error:")))
-    }
-
-    /// Recorders for everything that leaves the process, so no test reaches the person's
-    /// permission, Login Items, layouts, languages or screen. Only the status item is real, and
-    /// `stop` removes it.
-    private func makeComposition(
-        registrar: RecordingRegistrar = RecordingRegistrar(),
-        store: HotKeyStore? = nil,
-        macOS: PermissionRecorder? = nil,
-        firstLaunch: FirstLaunch? = nil,
-        presentSettings: @escaping (NSWindow) -> Void = { _ in },
-        offerServices: @escaping (NSObject) -> Void = { _ in },
-        test: String = #function
-    ) -> AppComposition {
-        AppComposition(
-            hotKeyRegistrar: registrar,
-            hotKeyStore: store ?? .forTest(test),
-            permission: (macOS ?? PermissionRecorder(test: test)).permission(),
-            loginItem: LoginItemRecorder(),
-            firstLaunch: firstLaunch ?? .forTest(test),
-            makeTranslation: { .forTest(test) },
-            makeLayouts: { .forTest(test) },
-            presentSettings: presentSettings,
-            offerServices: offerServices)
     }
 }
